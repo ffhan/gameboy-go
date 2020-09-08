@@ -45,8 +45,9 @@ type cpu struct {
 
 	memory go_gb.MemoryBus
 
-	instrQueue instrQueue
-	ime        bool // Interrupt master enable
+	eiWaiting bool
+	diWaiting bool
+	ime       bool // Interrupt master enable
 }
 
 func (c *cpu) readOpcode() byte {

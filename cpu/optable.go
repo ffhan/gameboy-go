@@ -5,7 +5,7 @@ import (
 )
 
 var ( // todo check table (especially loads)
-	instructionMap = [...]Instr{
+	optable = [...]Instr{
 		NOP, load(rx(BC), dx(16)), load(mr(BC), rx(A)), inc16bit(rx(BC)), inc8bit(rx(B)), dec8bit(rx(B)), load(rx(B), dx(8)), rlca, load(md(16), sp()), add16b(rx(HL), rx(BC)), load(rx(A), mr(BC)), dec16bit(rx(BC)), inc8bit(rx(C)), dec8bit(rx(C)), load(rx(C), dx(8)), rrca,
 		STOP, load(rx(DE), dx(16)), load(mr(DE), rx(A)), inc16bit(rx(DE)), inc8bit(rx(D)), dec8bit(rx(D)), load(rx(D), dx(8)), rla, jr, add16b(rx(HL), rx(DE)), load(rx(A), mr(DE)), dec16bit(rx(DE)), inc8bit(rx(E)), dec8bit(rx(E)), load(rx(E), dx(8)), rra,
 		jrnc(BitZ), load(rx(HL), dx(16)), ldHl(nil, rx(A), true), inc16bit(rx(HL)), inc8bit(rx(H)), dec8bit(rx(H)), load(rx(H), dx(8)), daa, jrc(BitZ), add16b(rx(HL), rx(HL)), ldHl(rx(A), nil, true), dec16bit(rx(HL)), inc8bit(rx(L)), dec8bit(rx(L)), load(rx(L), dx(8)), cpl,
@@ -25,18 +25,60 @@ var ( // todo check table (especially loads)
 		loadIo(md(8), rx(A)), pop(rx(HL)), load(mr(C), rx(A)), invalid, invalid, push(rx(HL)), and(rx(A), dx(8)), rst(hc(0x20)), addSp, jp(mr(HL)), load(md(16), rx(A)), invalid, invalid, invalid, xor(rx(A), dx(8)), rst(hc(0x28)),
 		loadIo(rx(A), md(8)), pop(rx(AF)), load(rx(A), mr(C)), di, invalid, push(rx(AF)), or(rx(A), dx(8)), rst(hc(0x30)), ldHlSp, load(sp(), rx(HL)), load(rx(A), md(16)), ei, invalid, invalid, cp(rx(A), dx(8)), rst(hc(0x38)),
 	}
-	cbInstructionMap = [...]Instr{}
+	cbOptable = createCbOptable()
 )
 
-func (c *cpu) parseOpcode() {
-	c.instrQueue.Push(instructionMap[c.readOpcode()])
+func createCbOptable() []Instr {
+	registers := [...]Ptr{rx(B), rx(C), rx(D), rx(E), rx(H), rx(L), mr(HL), rx(A)}
+	size := 256
+	table := make([]Instr, 0, size)
+	for i := 0; i < size; i++ {
+		offset := i / 8
+		reg := registers[i%8]
+		var in Instr
+		switch offset {
+		case 0:
+			in = rlc(reg)
+		case 1:
+			in = rrc(reg)
+		case 2:
+			in = rl(reg)
+		case 3:
+			in = rr(reg)
+		case 4:
+			in = sla(reg)
+		case 5:
+			in = sra(reg)
+		case 6:
+			in = swap(reg)
+		case 7:
+			in = srl(reg)
+		case 8, 9, 10, 11, 12, 13, 14, 15:
+			in = bit(hc(byte(offset-8)), reg)
+		case 16, 17, 18, 19, 20, 21, 22, 23:
+			in = res(hc(byte(offset-8)), reg)
+		default:
+			in = set(hc(byte(offset-8)), reg)
+		}
+		table = append(table, in)
+	}
+	if len(table) != size {
+		panic("invalid cb table")
+	}
+	return table
 }
 
 func (c *cpu) Step() error {
-	if c.instrQueue.Size() == 0 {
-		c.parseOpcode()
+	instr := optable[c.readOpcode()]
+	err := instr(c) // instructions might push different opcodes before
+	if c.eiWaiting {
+		c.ime = true
+		c.eiWaiting = false
+	} else if c.diWaiting {
+		c.ime = false
+		c.diWaiting = false
 	}
-	return c.instrQueue.Pop()(c) // instructions might push different opcodes before
+	return err
 }
 
 func (c *cpu) setFlag(bit int, val bool) {

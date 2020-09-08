@@ -31,28 +31,19 @@ func ccf(c *cpu) error {
 }
 
 func prefix(c *cpu) error {
-	return cbInstructionMap[c.readOpcode()](c)
+	return cbOptable[c.readOpcode()](c)
 }
 
 func invalid(c *cpu) error {
 	return errors.New("non-mapped operation called")
 }
 
-// pushes the next instr to an instruction queue and then disables interrupts
-func ctlIME(set bool) Instr {
-	return func(c *cpu) error {
-		c.parseOpcode()
-		c.ime = set
-		return nil
-	}
-}
-
 func di(c *cpu) error {
-	c.instrQueue.Push(ctlIME(false))
+	c.diWaiting = true
 	return nil
 }
 
 func ei(c *cpu) error {
-	c.instrQueue.Push(ctlIME(true))
+	c.eiWaiting = true
 	return nil
 }
