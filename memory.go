@@ -72,16 +72,22 @@ type MemoryBus struct {
 	interruptEnableRegister *mmap
 }
 
+func NewMemoryBus() *MemoryBus {
+	m := &MemoryBus{}
+	m.init()
+	return m
+}
+
 // returns true if x in [start, end], false otherwise
 func inInterval(pointer, start, end uint16) bool {
 	return start <= pointer && pointer <= end
 }
 
 func (m *MemoryBus) createMmapWithRedirection(start, end, redirectStart, redirectEnd uint16) *mmap {
-	if (end - start) != (redirectStart - redirectEnd) {
+	if (end - start) != (redirectEnd - redirectStart) {
 		panic(fmt.Errorf("invalid redirection (%X, %X) and (%X, %X)", start, end, redirectStart, redirectEnd))
 	}
-	return newMmap(start, end, m.completeMem[redirectStart:redirectEnd+1])
+	return newMmap(start, end, m.completeMem[redirectStart:int(redirectEnd)+1])
 }
 
 func (m *MemoryBus) createMmap(start, end uint16) *mmap {
@@ -95,7 +101,7 @@ func (m *MemoryBus) init() {
 	m.externalRam = m.createMmap(ExternalRAMStart, ExternalRAMEnd)
 	m.wramBank0 = m.createMmap(WRAMBank0Start, WRAMBank0End)
 	m.wramBankN = m.createMmap(WRAMBankNStart, WRAMBankNEnd)
-	m.echo = m.createMmapWithRedirection(ECHORAMStart, ECHORAMEnd, WRAMBank0Start, WRAMBankNEnd)
+	m.echo = m.createMmapWithRedirection(ECHORAMStart, ECHORAMEnd, WRAMBank0Start, 0xDDFF)
 	m.oam = m.createMmap(OAMStart, OAMEnd)
 	m.unusable = m.createMmap(UnusableStart, UnusableEnd)
 	m.io = m.createMmap(IOPortsStart, IOPortsEnd)

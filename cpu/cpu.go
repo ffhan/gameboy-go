@@ -43,11 +43,17 @@ type cpu struct {
 
 	rMap [][]byte // register mappings
 
-	memory go_gb.MemoryBus
+	memory *go_gb.MemoryBus
 
 	eiWaiting bool
 	diWaiting bool
 	ime       bool // Interrupt master enable
+}
+
+func NewCpu() *cpu {
+	c := &cpu{}
+	c.init()
+	return c
 }
 
 func (c *cpu) readOpcode() byte {
@@ -77,6 +83,7 @@ func (c *cpu) getRegister(r registerName) []byte {
 }
 
 func (c *cpu) init() {
+	c.memory = go_gb.NewMemoryBus()
 	c.pc = 0x0100
 	c.sp = 0xFFFE
 	// todo: set r to init values
@@ -90,4 +97,26 @@ func (c *cpu) init() {
 		c.r[D : D+1], c.r[E : E+1], c.r[H : H+1], c.r[L : L+1],
 		c.af, c.bc, c.de, c.hl,
 	}
+}
+
+func (c *cpu) Step() error {
+	instr := optable[c.readOpcode()]
+	err := instr(c) // instructions might push different opcodes before
+	if c.eiWaiting {
+		c.ime = true
+		c.eiWaiting = false
+	} else if c.diWaiting {
+		c.ime = false
+		c.diWaiting = false
+	}
+	return err
+}
+
+func (c *cpu) setFlag(bit int, val bool) {
+	register := &c.getRegister(F)[0]
+	go_gb.Set(register, bit, val)
+}
+
+func (c *cpu) getFlag(bit int) bool {
+	return go_gb.Bit(c.getRegister(F)[0], bit)
 }

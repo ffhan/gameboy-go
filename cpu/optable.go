@@ -1,9 +1,5 @@
 package cpu
 
-import (
-	go_gb "go-gb"
-)
-
 var ( // todo check table (especially loads)
 	optable = [...]Instr{
 		NOP, load(rx(BC), dx(16)), load(mr(BC), rx(A)), inc16bit(rx(BC)), inc8bit(rx(B)), dec8bit(rx(B)), load(rx(B), dx(8)), rlca, load(md(16), sp()), add16b(rx(HL), rx(BC)), load(rx(A), mr(BC)), dec16bit(rx(BC)), inc8bit(rx(C)), dec8bit(rx(C)), load(rx(C), dx(8)), rrca,
@@ -66,26 +62,4 @@ func createCbOptable() []Instr {
 		panic("invalid cb table")
 	}
 	return table
-}
-
-func (c *cpu) Step() error {
-	instr := optable[c.readOpcode()]
-	err := instr(c) // instructions might push different opcodes before
-	if c.eiWaiting {
-		c.ime = true
-		c.eiWaiting = false
-	} else if c.diWaiting {
-		c.ime = false
-		c.diWaiting = false
-	}
-	return err
-}
-
-func (c *cpu) setFlag(bit int, val bool) {
-	register := &c.getRegister(F)[0]
-	go_gb.Set(register, bit, val)
-}
-
-func (c *cpu) getFlag(bit int) bool {
-	return go_gb.Bit(c.getRegister(F)[0], bit)
 }
