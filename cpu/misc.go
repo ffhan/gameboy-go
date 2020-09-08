@@ -2,7 +2,6 @@ package cpu
 
 import (
 	"errors"
-	"go-gb"
 )
 
 func NOP(c *cpu) error {
@@ -27,7 +26,7 @@ func scf(c *cpu) error {
 func ccf(c *cpu) error {
 	c.setFlag(BitN, false)
 	c.setFlag(BitH, false)
-	c.setFlag(BitC, !go_gb.Bit(c.getRegister(F)[0], BitC))
+	c.setFlag(BitC, !c.getFlag(BitC))
 	return nil
 }
 

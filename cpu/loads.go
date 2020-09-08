@@ -22,7 +22,8 @@ func ldHlSp(c *cpu) error {
 	return nil
 }
 
-func loadIncrement(dst, src Ptr, increment bool) Instr {
+// e.g. LD (HL+), A
+func ldHl(dst, src Ptr, increment bool) Instr {
 	return func(c *cpu) error {
 		if dst == nil {
 			dst = rx(HL)

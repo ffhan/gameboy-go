@@ -6,11 +6,10 @@ import (
 
 var ( // todo check table (especially loads)
 	instructionMap = [...]Instr{
-		NOP, load(rx(BC), dx(16)), load(mr(BC), rx(A)), inc16bit(rx(BC)), inc8bit(rx(B)), dec8bit(rx(B)), load(rx(B), dx(8)), rca(true), load(md(16), sp()), add16b(rx(HL), rx(BC)), load(rx(A), mr(BC)), dec16bit(rx(BC)), inc8bit(rx(C)), dec8bit(rx(C)), load(rx(C), dx(8)), rca(false),
-		STOP, load(rx(DE), dx(16)), load(mr(DE), rx(A)), inc16bit(rx(DE)), inc8bit(rx(D)), dec8bit(rx(D)), load(rx(D), dx(8)), ra(true), jr, add16b(rx(HL), rx(DE)), load(rx(A), mr(DE)), dec16bit(rx(DE)), inc8bit(rx(E)), dec8bit(rx(E)), load(rx(E), dx(8)), ra(false),
-		jrcc(BitZ), load(rx(HL), dx(16)), loadIncrement(nil, rx(A), true), inc16bit(rx(HL)), inc8bit(rx(H)), dec8bit(rx(H)), load(rx(H), dx(8)), daa, jrc(BitZ), add16b(rx(HL), rx(HL)), loadIncrement(rx(A), nil, true), dec16bit(rx(HL)), inc8bit(rx(L)), dec8bit(rx(L)), load(rx(L), dx(8)), cpl,
-		jrcc(BitC), load(sp(), dx(16)), loadIncrement(nil, rx(A), false), inc16bit(sp()), inc8bit(mr(HL)), dec8bit(mr(HL)), load(mr(HL), dx(8)), scf, jrc(BitC), addHlSp, loadIncrement(rx(A), nil, false), dec16bit(sp()), inc8bit(rx(A)), dec8bit(rx(A)), load(rx(A), dx(8)), ccf,
-
+		NOP, load(rx(BC), dx(16)), load(mr(BC), rx(A)), inc16bit(rx(BC)), inc8bit(rx(B)), dec8bit(rx(B)), load(rx(B), dx(8)), rlca, load(md(16), sp()), add16b(rx(HL), rx(BC)), load(rx(A), mr(BC)), dec16bit(rx(BC)), inc8bit(rx(C)), dec8bit(rx(C)), load(rx(C), dx(8)), rrca,
+		STOP, load(rx(DE), dx(16)), load(mr(DE), rx(A)), inc16bit(rx(DE)), inc8bit(rx(D)), dec8bit(rx(D)), load(rx(D), dx(8)), rla, jr, add16b(rx(HL), rx(DE)), load(rx(A), mr(DE)), dec16bit(rx(DE)), inc8bit(rx(E)), dec8bit(rx(E)), load(rx(E), dx(8)), rra,
+		jrnc(BitZ), load(rx(HL), dx(16)), ldHl(nil, rx(A), true), inc16bit(rx(HL)), inc8bit(rx(H)), dec8bit(rx(H)), load(rx(H), dx(8)), daa, jrc(BitZ), add16b(rx(HL), rx(HL)), ldHl(rx(A), nil, true), dec16bit(rx(HL)), inc8bit(rx(L)), dec8bit(rx(L)), load(rx(L), dx(8)), cpl,
+		jrnc(BitC), load(sp(), dx(16)), ldHl(nil, rx(A), false), inc16bit(sp()), inc8bit(mr(HL)), dec8bit(mr(HL)), load(mr(HL), dx(8)), scf, jrc(BitC), addHlSp, ldHl(rx(A), nil, false), dec16bit(sp()), inc8bit(rx(A)), dec8bit(rx(A)), load(rx(A), dx(8)), ccf,
 		load(rx(B), rx(B)), load(rx(B), rx(C)), load(rx(B), rx(D)), load(rx(B), rx(E)), load(rx(B), rx(H)), load(rx(B), rx(L)), load(rx(B), mr(HL)), load(rx(B), rx(A)), load(rx(C), rx(B)), load(rx(C), rx(C)), load(rx(C), rx(D)), load(rx(C), rx(E)), load(rx(C), rx(H)), load(rx(C), rx(L)), load(rx(C), mr(HL)), load(rx(C), rx(A)),
 		load(rx(D), rx(B)), load(rx(D), rx(C)), load(rx(D), rx(D)), load(rx(D), rx(E)), load(rx(D), rx(H)), load(rx(D), rx(L)), load(rx(D), mr(HL)), load(rx(D), rx(A)), load(rx(E), rx(B)), load(rx(E), rx(C)), load(rx(E), rx(D)), load(rx(E), rx(E)), load(rx(E), rx(H)), load(rx(E), rx(L)), load(rx(E), mr(HL)), load(rx(E), rx(A)),
 		load(rx(H), rx(B)), load(rx(H), rx(C)), load(rx(H), rx(D)), load(rx(H), rx(E)), load(rx(H), rx(H)), load(rx(H), rx(L)), load(rx(H), mr(HL)), load(rx(H), rx(A)), load(rx(L), rx(B)), load(rx(L), rx(C)), load(rx(L), rx(D)), load(rx(L), rx(E)), load(rx(L), rx(H)), load(rx(L), rx(L)), load(rx(L), mr(HL)), load(rx(L), rx(A)),
@@ -21,8 +20,8 @@ var ( // todo check table (especially loads)
 		and(rx(A), rx(B)), and(rx(A), rx(C)), and(rx(A), rx(D)), and(rx(A), rx(E)), and(rx(A), rx(H)), and(rx(A), rx(L)), and(rx(A), mr(HL)), and(rx(A), rx(A)), xor(rx(A), rx(B)), xor(rx(A), rx(C)), xor(rx(A), rx(D)), xor(rx(A), rx(E)), xor(rx(A), rx(H)), xor(rx(A), rx(L)), xor(rx(A), mr(HL)), xor(rx(A), rx(A)),
 		or(rx(A), rx(B)), or(rx(A), rx(C)), or(rx(A), rx(D)), or(rx(A), rx(E)), or(rx(A), rx(H)), or(rx(A), rx(L)), or(rx(A), mr(HL)), or(rx(A), rx(A)), cp(rx(A), rx(B)), cp(rx(A), rx(C)), cp(rx(A), rx(D)), cp(rx(A), rx(E)), cp(rx(A), rx(H)), cp(rx(A), rx(L)), cp(rx(A), mr(HL)), cp(rx(A), rx(A)),
 
-		retcc(BitZ), pop(rx(BC)), jpcc(BitZ, md(16)), jp(dx(16)), callcc(BitZ), push(rx(BC)), add8b(rx(A), dx(8)), rst(hc(0x00)), retc(BitZ), ret, jpc(BitZ, dx(16)), prefix, callc(BitZ), call, adc8b(rx(A), dx(8)), rst(hc(0x08)),
-		retcc(BitC), pop(rx(DE)), jpcc(BitC, md(16)), invalid, callcc(BitC), push(rx(DE)), sub(rx(A), dx(8)), rst(hc(0x10)), retc(BitC), reti, jpc(BitC, dx(16)), invalid, callc(BitC), invalid, sbc(rx(A), dx(8)), rst(hc(0x18)),
+		retcc(BitZ), pop(rx(BC)), jpnc(BitZ, md(16)), jp(dx(16)), callcc(BitZ), push(rx(BC)), add8b(rx(A), dx(8)), rst(hc(0x00)), retc(BitZ), ret, jpc(BitZ, dx(16)), prefix, callc(BitZ), call, adc8b(rx(A), dx(8)), rst(hc(0x08)),
+		retcc(BitC), pop(rx(DE)), jpnc(BitC, md(16)), invalid, callcc(BitC), push(rx(DE)), sub(rx(A), dx(8)), rst(hc(0x10)), retc(BitC), reti, jpc(BitC, dx(16)), invalid, callc(BitC), invalid, sbc(rx(A), dx(8)), rst(hc(0x18)),
 		loadIo(md(8), rx(A)), pop(rx(HL)), load(mr(C), rx(A)), invalid, invalid, push(rx(HL)), and(rx(A), dx(8)), rst(hc(0x20)), addSp, jp(mr(HL)), load(md(16), rx(A)), invalid, invalid, invalid, xor(rx(A), dx(8)), rst(hc(0x28)),
 		loadIo(rx(A), md(8)), pop(rx(AF)), load(rx(A), mr(C)), di, invalid, push(rx(AF)), or(rx(A), dx(8)), rst(hc(0x30)), ldHlSp, load(sp(), rx(HL)), load(rx(A), md(16)), ei, invalid, invalid, cp(rx(A), dx(8)), rst(hc(0x38)),
 	}

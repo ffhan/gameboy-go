@@ -9,7 +9,7 @@ func jr(c *cpu) error {
 	return nil
 }
 
-func jrcc(bit int) Instr {
+func jrnc(bit int) Instr {
 	return func(c *cpu) error {
 		if !c.getFlag(bit) {
 			return jr(c)
@@ -58,8 +58,8 @@ func jp(dst Ptr) Instr { // note: don't forget to check if it's a jump command (
 	}
 }
 
-// JP conditional complement
-func jpcc(bit int, dst Ptr) Instr {
+// JP NOT conditional
+func jpnc(bit int, dst Ptr) Instr {
 	instr := jp(dst)
 	return func(c *cpu) error {
 		if !c.getFlag(bit) {
