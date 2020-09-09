@@ -2,7 +2,7 @@ package cpu
 
 import "testing"
 
-func TestCPURegister(t *testing.T) {
+func TestCPU_doubleRegister(t *testing.T) {
 	c := NewCpu()
 	c.r[A] = 0xFA
 	c.r[F] = 0x12
@@ -21,5 +21,82 @@ func TestCpu_readOpcode(t *testing.T) {
 	}
 	if c.pc != 0x101 {
 		t.Fatal("PC invalid after reading opcode")
+	}
+}
+
+func TestCpu_pushStack(t *testing.T) {
+	c := NewCpu()
+	input := []byte{1, 2, 3}
+	c.pushStack(input)
+	expected := uint16(0xFFFE - 3)
+	if c.sp != expected {
+		t.Errorf("expected SP to be on %X, got %X\n", expected, c.sp)
+	}
+	for i, val := range c.memory.ReadBytes(expected+1, 3) {
+		expected := input[2-i]
+		if expected != val {
+			t.Errorf("expected %d, got %d\n", expected, val)
+		}
+	}
+}
+
+func TestCpu_popStack(t *testing.T) {
+	c := NewCpu()
+	input := []byte{1, 2, 3}
+	c.pushStack(input)
+	initialSP := uint16(0xFFFE)
+	expected := initialSP - 3
+	if c.sp != expected {
+		t.Errorf("expected SP to be on %X, got %X\n", expected, c.sp)
+	}
+	for i, val := range c.popStack(3) {
+		expected := input[2-i]
+		if expected != val {
+			t.Errorf("expected %d, got %d\n", expected, val)
+		}
+	}
+	if c.sp != initialSP {
+		t.Errorf("expected SP to be on %X, got %X\n", initialSP, c.sp)
+	}
+}
+
+func TestCpu_getFlag(t *testing.T) {
+	c := NewCpu()
+	c.r[F] |= 0xA0 // 1010
+	if !c.getFlag(BitZ) {
+		t.Error("Bit Z should be set")
+	}
+	if c.getFlag(BitN) {
+		t.Error("Bit N should not be set")
+	}
+	if !c.getFlag(BitH) {
+		t.Error("Bit H should be set")
+	}
+	if c.getFlag(BitC) {
+		t.Error("Bit C should not be set")
+	}
+}
+
+func TestCpu_setFlag(t *testing.T) {
+	c := NewCpu()
+	c.setFlag(BitZ, true)
+	c.setFlag(BitN, true)
+	c.setFlag(BitH, true)
+	c.setFlag(BitC, true)
+
+	if c.r[F] != 0xF0 {
+		t.Errorf("expected %X, got %X\n", c.r[F], 0xF0)
+	}
+}
+
+func TestCpu_Step_NOP(t *testing.T) {
+	c := NewCpu()
+	startPC := c.pc
+	c.memory.Store(c.pc, 0)
+	if err := c.Step(); err != nil {
+		t.Fatal(err)
+	}
+	if c.pc != startPC+1 {
+		t.Errorf("expected PC %X, got %X\n", startPC+1, c.pc)
 	}
 }

@@ -1,6 +1,7 @@
 package cpu
 
 import (
+	"errors"
 	"fmt"
 	"go-gb"
 )
@@ -66,15 +67,17 @@ type data struct {
 	size int
 }
 
+var InvalidStoreErr = errors.New("invalid store call")
+
 func (d data) Store(c *cpu, b []byte) {
-	panic("cannot store in data")
+	panic(InvalidStoreErr)
 }
 
 func (d data) Load(c *cpu) []byte {
 	n := d.size / 8
 	bytes := make([]byte, n)
 	for i := 0; i < n; i++ {
-		bytes[n-1-i] = c.readOpcode()
+		bytes[i] = c.readOpcode()
 	}
 	return bytes
 }
@@ -109,7 +112,7 @@ type hardcoded struct {
 }
 
 func (h hardcoded) Store(c *cpu, b []byte) {
-	panic("cannot store in hardcoded values")
+	panic(InvalidStoreErr)
 }
 
 func (h hardcoded) Load(c *cpu) []byte {

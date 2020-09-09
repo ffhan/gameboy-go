@@ -35,7 +35,7 @@ type mmap struct {
 
 func (m *mmap) ReadBytes(pointer, n uint16) []byte {
 	i := pointer - m.start
-	return m.memory[i : i+n+1]
+	return m.memory[i : i+n]
 }
 
 func (m *mmap) Read(pointer uint16) byte {
