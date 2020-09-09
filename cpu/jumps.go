@@ -53,7 +53,7 @@ func retc(bit int) Instr {
 
 func jp(dst Ptr) Instr { // note: don't forget to check if it's a jump command (don't inc pc)
 	return func(c *cpu) error {
-		c.pc = go_gb.MsbLsb(dst.Load(c))
+		c.pc = go_gb.LsbMsb(dst.Load(c))
 		return nil
 	}
 }
