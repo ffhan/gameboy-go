@@ -31,20 +31,20 @@ func checkReg(c *cpu, reg registerName) func() []byte {
 
 func checkMr(c *cpu, reg registerName) func() []byte {
 	return func() []byte {
-		return c.memory.ReadBytes(go_gb.UnifyBytes(c.rMap[reg]), 1)
+		return c.memory.ReadBytes(go_gb.MsbLsb(c.rMap[reg]), 1)
 	}
 }
 
 func checkSp(c *cpu) func() []byte {
 	return func() []byte {
-		return go_gb.SeparateUint16(c.sp)
+		return go_gb.MsbLsbBytes(c.sp)
 	}
 }
 
 func checkMd(c *cpu, i int) func() []byte {
 	offset := i / 8
 	return func() []byte {
-		addr := go_gb.UnifyBytes(c.memory.ReadBytes(c.pc-2, uint16(offset)))
+		addr := go_gb.MsbLsb(c.memory.ReadBytes(c.pc-2, uint16(offset)))
 		return c.memory.ReadBytes(addr, 2)
 	}
 }

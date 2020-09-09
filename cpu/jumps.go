@@ -53,7 +53,7 @@ func retc(bit int) Instr {
 
 func jp(dst Ptr) Instr { // note: don't forget to check if it's a jump command (don't inc pc)
 	return func(c *cpu) error {
-		c.pc = go_gb.UnifyBytes(dst.Load(c))
+		c.pc = go_gb.MsbLsb(dst.Load(c))
 		return nil
 	}
 }
@@ -83,10 +83,9 @@ func jpc(bit int, dst Ptr) Instr {
 func call(c *cpu) error {
 	addr := c.memory.ReadBytes(c.pc, 2)
 	c.pc += 2
-	pcBytes := go_gb.SeparateUint16(c.pc)
-	c.pushStack(pcBytes[1:2])
-	c.pushStack(pcBytes[0:1])
-	c.pc = go_gb.UnifyBytes(addr)
+	pcBytes := go_gb.LsbMsbBytes(c.pc)
+	c.pushStack(pcBytes)
+	c.pc = go_gb.MsbLsb(addr)
 	return nil
 }
 
@@ -115,11 +114,10 @@ func reti(c *cpu) error {
 
 func rst(dst Ptr) Instr {
 	return func(c *cpu) error {
-		pcBytes := go_gb.SeparateUint16(c.pc)
-		c.pushStack(pcBytes[1:2])
-		c.pushStack(pcBytes[0:1])
+		pcBytes := go_gb.LsbMsbBytes(c.pc)
+		c.pushStack(pcBytes)
 
-		c.pc = go_gb.UnifyBytes(dst.Load(c))
+		c.pc = go_gb.MsbLsb(dst.Load(c))
 		return nil
 	}
 }

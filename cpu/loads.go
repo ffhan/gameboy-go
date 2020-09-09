@@ -11,9 +11,9 @@ func load(dst, src Ptr) Instr {
 
 func ldHlSp(c *cpu) error {
 	hl := rx(HL)
-	n := go_gb.UnifyBytes(dx(8).Load(c))
-	result := int16(go_gb.UnifyBytes(sp().Load(c))) + int16(n)
-	hl.Store(c, go_gb.SeparateUint16(uint16(result)))
+	n := go_gb.MsbLsb(dx(8).Load(c))
+	result := int16(go_gb.MsbLsb(sp().Load(c))) + int16(n)
+	hl.Store(c, go_gb.MsbLsbBytes(uint16(result)))
 
 	c.setFlag(BitZ, false)
 	c.setFlag(BitN, false)
@@ -28,18 +28,18 @@ func ldHl(dst, src Ptr, increment bool) Instr {
 		if dst == nil {
 			dst = rx(HL)
 			if increment {
-				defer dst.Store(c, go_gb.SeparateUint16(go_gb.UnifyBytes(dst.Load(c))+1))
+				defer dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))+1))
 			} else {
-				defer dst.Store(c, go_gb.SeparateUint16(go_gb.UnifyBytes(dst.Load(c))-1))
+				defer dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))-1))
 			}
 			return load(mPtr{dst}, src)(c)
 		}
 		if src == nil {
 			src = rx(HL)
 			if increment {
-				defer src.Store(c, go_gb.SeparateUint16(go_gb.UnifyBytes(src.Load(c))+1))
+				defer src.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(src.Load(c))+1))
 			} else {
-				defer src.Store(c, go_gb.SeparateUint16(go_gb.UnifyBytes(src.Load(c))-1))
+				defer src.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(src.Load(c))-1))
 			}
 			return load(dst, mPtr{src})(c)
 		}

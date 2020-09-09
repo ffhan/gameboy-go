@@ -56,11 +56,11 @@ type mPtr struct {
 }
 
 func (m mPtr) Store(c *cpu, b []byte) {
-	c.memory.StoreBytes(go_gb.UnifyBytes(m.addr.Load(c)), b)
+	c.memory.StoreBytes(go_gb.MsbLsb(m.addr.Load(c)), b)
 }
 
 func (m mPtr) Load(c *cpu) []byte {
-	return c.memory.ReadBytes(go_gb.UnifyBytes(m.addr.Load(c)), 1)
+	return c.memory.ReadBytes(go_gb.MsbLsb(m.addr.Load(c)), 1)
 }
 
 type data struct {
@@ -89,22 +89,22 @@ func (s stackPtr) Store(c *cpu, b []byte) {
 	if len(b) != 2 {
 		panic(fmt.Errorf("invalid SP store %v", b))
 	}
-	c.sp = go_gb.UnifyBytes(b)
+	c.sp = go_gb.MsbLsb(b)
 }
 
 func (s stackPtr) Load(c *cpu) []byte {
-	return go_gb.SeparateUint16(c.sp)
+	return go_gb.MsbLsbBytes(c.sp)
 }
 
 type pc struct {
 }
 
 func (p pc) Store(c *cpu, b []byte) {
-	c.pc = go_gb.UnifyBytes(b)
+	c.pc = go_gb.MsbLsb(b)
 }
 
 func (p pc) Load(c *cpu) []byte {
-	return go_gb.SeparateUint16(c.pc)
+	return go_gb.MsbLsbBytes(c.pc)
 }
 
 type hardcoded struct {

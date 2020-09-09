@@ -20,7 +20,7 @@ func Toggle(b *byte, i int) bool {
 }
 
 // {msb, lsb} -> msblsb
-func UnifyBytes(b []byte) uint16 {
+func MsbLsb(b []byte) uint16 {
 	if len(b) > 2 {
 		panic(fmt.Errorf("%v cannot be transformed to uint16", b))
 	}
@@ -30,9 +30,24 @@ func UnifyBytes(b []byte) uint16 {
 	return uint16(b[0])
 }
 
+// {lsb, msb} -> msblsb
+func LsbMsb(b []byte) uint16 {
+	if len(b) > 2 {
+		panic(fmt.Errorf("%v cannot be transformed to uint16", b))
+	}
+	if len(b) == 2 {
+		return (uint16(b[1]) << 8) | uint16(b[0])
+	}
+	return uint16(b[1])
+}
+
 // msblsb ->  {msb, lsb}
-func SeparateUint16(val uint16) []byte {
+func MsbLsbBytes(val uint16) []byte {
 	return []byte{byte((val & 0xFF00) >> 8), byte(val & 0xFF)}
+}
+
+func LsbMsbBytes(val uint16) []byte {
+	return []byte{byte(val & 0xFF), byte((val & 0xFF00) >> 8)}
 }
 
 func BitToByte(val bool) byte {

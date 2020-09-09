@@ -19,7 +19,7 @@ func inc8bit(dst Ptr) Instr {
 
 func inc16bit(dst Ptr) Instr {
 	return func(c *cpu) error {
-		dst.Store(c, go_gb.SeparateUint16(go_gb.UnifyBytes(dst.Load(c))+1))
+		dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))+1))
 		return nil
 	}
 }
@@ -39,7 +39,7 @@ func dec8bit(dst Ptr) Instr {
 
 func dec16bit(dst Ptr) Instr {
 	return func(c *cpu) error {
-		dst.Store(c, go_gb.SeparateUint16(uint16(int16(go_gb.UnifyBytes(dst.Load(c)))-1)))
+		dst.Store(c, go_gb.MsbLsbBytes(uint16(int16(go_gb.MsbLsb(dst.Load(c)))-1)))
 		return nil
 	}
 }
@@ -64,8 +64,8 @@ func add8b(dst, src Ptr) Instr {
 
 func add16b(dst, src Ptr) Instr {
 	return func(c *cpu) error {
-		dstVal := go_gb.UnifyBytes(dst.Load(c))
-		srcVal := go_gb.UnifyBytes(src.Load(c))
+		dstVal := go_gb.MsbLsb(dst.Load(c))
+		srcVal := go_gb.MsbLsb(src.Load(c))
 		result := dstVal + srcVal
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, ((dstVal&0xFFF)+(srcVal&0xFFF))&0x1000 != 0)
@@ -77,7 +77,7 @@ func add16b(dst, src Ptr) Instr {
 func addSp(c *cpu) error {
 	sp := sp()
 	d := dx(8)
-	orig := int16(go_gb.UnifyBytes(sp.Load(c)))
+	orig := int16(go_gb.MsbLsb(sp.Load(c)))
 	result := orig + int16(d.Load(c)[0])
 
 	c.setFlag(BitZ, false)
@@ -92,7 +92,7 @@ func addHlSp(c *cpu) error {
 	orig := int16(c.sp)
 	result := int16(c.sp) + int16(c.readOpcode())
 
-	dst.Store(c, go_gb.SeparateUint16(uint16(result)))
+	dst.Store(c, go_gb.MsbLsbBytes(uint16(result)))
 
 	c.setFlag(BitZ, false)
 	c.setFlag(BitN, false)
