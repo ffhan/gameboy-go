@@ -37,7 +37,7 @@ func checkMr(c *cpu, reg registerName) func() []byte {
 
 func checkSp(c *cpu) func() []byte {
 	return func() []byte {
-		return go_gb.MsbLsbBytes(c.sp)
+		return go_gb.MsbLsbBytes(c.sp, true)
 	}
 }
 
@@ -130,3 +130,83 @@ func TestLoadHl(t *testing.T) {
 		checkBytes(i+1, t, test.expected, test.results())
 	}
 }
+
+type spTest struct {
+	in         Instr
+	prepare    func()
+	expectedSp uint16
+	expected   []byte
+}
+
+func TestPush(t *testing.T) {
+	c := NewCpu()
+	start := c.pc
+	startSp := c.sp
+	table := []spTest{
+		{push(rx(BC)), func() { c.rMap[BC][0] = 0x12; c.rMap[BC][1] = 0x34 }, startSp - 2, []byte{0x34, 0x12}},
+		{push(rx(DE)), func() { c.rMap[DE][0] = 0x12; c.rMap[DE][1] = 0x35 }, startSp - 2, []byte{0x35, 0x12}},
+		{push(rx(HL)), func() { c.rMap[HL][0] = 0x12; c.rMap[HL][1] = 0x36 }, startSp - 2, []byte{0x36, 0x12}},
+		{push(rx(AF)), func() { c.rMap[AF][0] = 0x12; c.rMap[AF][1] = 0x37 }, startSp - 2, []byte{0x37, 0x12}},
+	}
+	for i, test := range table {
+		c.pc = start
+		c.sp = startSp
+		if test.prepare != nil {
+			test.prepare()
+		}
+		if err := test.in(c); err != nil {
+			t.Error(err)
+		}
+		if c.sp != test.expectedSp {
+			t.Errorf("test %d expected SP %X, got %X\n", i+1, test.expectedSp, c.sp)
+		}
+		checkBytes(i+1, t, test.expected, c.popStack(2))
+	}
+}
+
+func TestPop(t *testing.T) {
+	type poptest struct {
+		register   registerName
+		expectedSp uint16
+		expected   []byte
+	}
+	c := NewCpu()
+	c.pushStack([]byte{0xAB, 0xCD, 0xDE, 0xF0, 0xF1, 0xA1, 0xB2, 0xC4})
+	startSp := c.sp
+	table := []poptest{
+		{BC, startSp + 2, []byte{0xC4, 0xB2}},
+		{DE, startSp + 4, []byte{0xA1, 0xF1}},
+		{HL, startSp + 6, []byte{0xF0, 0xDE}},
+		{AF, startSp + 8, []byte{0xCD, 0xAB}},
+	}
+	for i, test := range table {
+		if err := pop(rx(test.register))(c); err != nil {
+			t.Error(err)
+		}
+		if c.sp != test.expectedSp {
+			t.Errorf("test %d expected SP %X, got %X\n", i+1, test.expectedSp, c.sp)
+		}
+		checkBytes(i+1, t, test.expected, c.rMap[test.register])
+	}
+}
+
+//func TestLoadIo(t *testing.T) {
+//	type ioTest struct {
+//		prepare  func()
+//		in       Instr
+//		expected byte
+//		result   func() []byte
+//	}
+//	c := NewCpu()
+//	c.memory.StoreBytes(c.pc, []byte{0x10, 0xAB})
+//	table := []ioTest{
+//		{func() { c.rMap[A][0] = 0xF1 }, loadIo(dx(8), rx(A)), 0xF1, func() []byte { return c.memory.ReadBytes(0xFF10, 1) }}, // B is 0 so FF00
+//		{func() { c.memory.Store(0xFFAB, 0xBC) }, loadIo(rx(A), dx(8)), 0xBC, func() []byte { return c.rMap[A] }},
+//	}
+//	for i, test := range table {
+//		if err := test.in(c); err != nil {
+//			t.Error(err)
+//		}
+//		checkBytes(i+1, t, []byte{test.expected}, test.result())
+//	}
+//}

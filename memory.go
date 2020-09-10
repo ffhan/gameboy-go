@@ -118,7 +118,7 @@ func (m *MemoryBus) Route(pointer uint16) *mmap {
 	} else if inInterval(pointer, VRAMStart, VRAMEnd) {
 		return m.vram
 	} else if inInterval(pointer, ExternalRAMStart, ExternalRAMEnd) {
-		return m.vram
+		return m.externalRam
 	} else if inInterval(pointer, WRAMBank0Start, WRAMBank0End) {
 		return m.wramBank0
 	} else if inInterval(pointer, WRAMBankNStart, WRAMBankNEnd) {

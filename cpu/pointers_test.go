@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"errors"
+	go_gb "go-gb"
 	"testing"
 )
 
@@ -140,5 +141,77 @@ func TestMr(t *testing.T) {
 	}
 	if bytes[0] != expected {
 		t.Errorf("expected %X, got %X\n", expected, bytes[0])
+	}
+}
+
+func TestOffset_Load_Reg(t *testing.T) { // offset doesn't work
+	c := NewCpu()
+	c.rMap[F][0] = 0xAB
+	o := off(rx(AF), 0xFF00)
+	expected := uint16(0xFFAB)
+	result := go_gb.MsbLsb(o.Load(c))
+	if result != expected {
+		t.Errorf("expected %X, got %X\n", expected, result)
+	}
+}
+
+func TestOffset_Store_Reg(t *testing.T) { // offset doesn't work
+	c := NewCpu()
+	o := off(rx(A), 0xA0)
+	expected := byte(0xAB)
+	o.Store(c, []byte{0x0B})
+	result := c.rMap[A][0]
+	if result != expected {
+		t.Errorf("expected %X, got %X\n", expected, result)
+	}
+}
+
+func TestOffset_Load_Mptr8bit(t *testing.T) {
+	c := NewCpu()
+	c.rMap[A][0] = 0xAA
+	expected := byte(0xF1)
+	c.memory.Store(0xFFAA, expected)
+	c.memory.Store(c.pc, 0xAA)
+	o := mem(off(dx(8), 0xFF00))
+	result := o.Load(c)[0]
+	if result != expected {
+		t.Errorf("expected %X, got %X\n", expected, result)
+	}
+}
+
+func TestOffset_Load_Mptr16bit(t *testing.T) {
+	c := NewCpu()
+	c.rMap[A][0] = 0xAA
+	expected := byte(0xF1)
+	c.memory.Store(0xFFAA, expected)
+	c.memory.StoreBytes(c.pc, []byte{0x00, 0xAA})
+	o := mem(off(dx(16), 0xFF00))
+	result := o.Load(c)[0]
+	if result != expected {
+		t.Errorf("expected %X, got %X\n", expected, result)
+	}
+}
+
+func TestOffset_Store_Mptr8bit(t *testing.T) {
+	c := NewCpu()
+	expected := byte(0xAB)
+	c.memory.Store(c.pc, 0xAB)
+	o := mem(off(dx(8), 0xFF00))
+	o.Store(c, []byte{expected})
+	result := c.memory.Read(0xFFAB)
+	if result != expected {
+		t.Errorf("expected %X, got %X\n", expected, result)
+	}
+}
+
+func TestOffset_Store_Mptr16bit(t *testing.T) {
+	c := NewCpu()
+	expected := byte(0xAB)
+	c.memory.StoreBytes(c.pc, []byte{0x02, 0x34})
+	o := mem(off(dx(16), 0xAAAA))
+	o.Store(c, []byte{expected})
+	result := c.memory.Read(0xACDE)
+	if result != expected {
+		t.Errorf("expected %X, got %X\n", expected, result)
 	}
 }

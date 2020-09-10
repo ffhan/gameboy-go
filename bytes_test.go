@@ -13,7 +13,7 @@ func TestUnifyBytes(t *testing.T) {
 
 func TestSeparateUint16(t *testing.T) {
 	v := uint16(0xFE12)
-	result := MsbLsbBytes(v)
+	result := MsbLsbBytes(v, true)
 	expected := []byte{0xFE, 0x12}
 	for i := range result {
 		if result[i] != expected[i] {

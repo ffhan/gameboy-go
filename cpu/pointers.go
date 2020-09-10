@@ -11,6 +11,16 @@ type Ptr interface {
 	Load(c *cpu) []byte
 }
 
+type Ptr8 interface {
+	Load8(c *cpu) byte
+	Store8(c *cpu, b byte)
+}
+
+type Ptr16 interface {
+	Load16(c *cpu) [2]byte
+	Store16(c *cpu, b [2]byte)
+}
+
 type reg struct {
 	addr registerName
 }
@@ -43,12 +53,34 @@ func md(size int) mPtr {
 	return mPtr{dx(size)}
 }
 
+func mem(ptr Ptr) mPtr {
+	return mPtr{ptr}
+}
+
 func (r reg) Store(c *cpu, b []byte) {
 	copy(c.getRegister(r.addr), b)
 }
 
 func (r reg) Load(c *cpu) []byte {
 	return c.getRegister(r.addr)
+}
+
+type offset struct {
+	dst    Ptr
+	offset int
+}
+
+func (o offset) Store(c *cpu, b []byte) {
+	o.dst.Store(c, go_gb.MsbLsbBytes(uint16(int(go_gb.MsbLsb(b))+o.offset), len(b) == 2 || o.offset > 0xFF))
+}
+
+func (o offset) Load(c *cpu) []byte {
+	bytes := o.dst.Load(c)
+	return go_gb.MsbLsbBytes(uint16(int(go_gb.MsbLsb(bytes))+o.offset), len(bytes) == 2 || o.offset > 0xFF)
+}
+
+func off(dst Ptr, o int) offset {
+	return offset{dst, o}
 }
 
 type mPtr struct {
@@ -93,7 +125,7 @@ func (s stackPtr) Store(c *cpu, b []byte) {
 }
 
 func (s stackPtr) Load(c *cpu) []byte {
-	return go_gb.MsbLsbBytes(c.sp)
+	return go_gb.MsbLsbBytes(c.sp, true)
 }
 
 type pc struct {
@@ -104,7 +136,7 @@ func (p pc) Store(c *cpu, b []byte) {
 }
 
 func (p pc) Load(c *cpu) []byte {
-	return go_gb.MsbLsbBytes(c.pc)
+	return go_gb.MsbLsbBytes(c.pc, true)
 }
 
 type hardcoded struct {

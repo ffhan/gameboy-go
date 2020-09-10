@@ -13,7 +13,7 @@ func ldHlSp(c *cpu) error {
 	hl := rx(HL)
 	n := go_gb.MsbLsb(dx(8).Load(c))
 	result := int16(go_gb.MsbLsb(sp().Load(c))) + int16(n)
-	hl.Store(c, go_gb.MsbLsbBytes(uint16(result)))
+	hl.Store(c, go_gb.MsbLsbBytes(uint16(result), true))
 
 	c.setFlag(BitZ, false)
 	c.setFlag(BitN, false)
@@ -28,29 +28,21 @@ func ldHl(dst, src Ptr, increment bool) Instr {
 		if dst == nil {
 			dst = rx(HL)
 			if increment {
-				defer dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))+1))
+				defer dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))+1, true))
 			} else {
-				defer dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))-1))
+				defer dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))-1, true))
 			}
 			return load(mPtr{dst}, src)(c)
 		}
 		if src == nil {
 			src = rx(HL)
 			if increment {
-				defer src.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(src.Load(c))+1))
+				defer src.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(src.Load(c))+1, true))
 			} else {
-				defer src.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(src.Load(c))-1))
+				defer src.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(src.Load(c))-1, true))
 			}
 			return load(dst, mPtr{src})(c)
 		}
-		return nil
-	}
-}
-
-func loadIo(dst, src Ptr) Instr {
-	return func(c *cpu) error {
-		n := uint16(src.Load(c)[0])
-		dst.Store(c, c.memory.ReadBytes(go_gb.IOPortsStart+n, 1))
 		return nil
 	}
 }

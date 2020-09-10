@@ -42,8 +42,11 @@ func LsbMsb(b []byte) uint16 {
 }
 
 // msblsb ->  {msb, lsb}
-func MsbLsbBytes(val uint16) []byte {
-	return []byte{byte((val & 0xFF00) >> 8), byte(val & 0xFF)}
+func MsbLsbBytes(val uint16, word bool) []byte {
+	if word {
+		return []byte{byte((val & 0xFF00) >> 8), byte(val & 0xFF)}
+	}
+	return []byte{byte(val & 0xFF)}
 }
 
 func LsbMsbBytes(val uint16) []byte {

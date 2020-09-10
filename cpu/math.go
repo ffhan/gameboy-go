@@ -19,7 +19,7 @@ func inc8bit(dst Ptr) Instr {
 
 func inc16bit(dst Ptr) Instr {
 	return func(c *cpu) error {
-		dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))+1))
+		dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))+1, true))
 		return nil
 	}
 }
@@ -39,7 +39,7 @@ func dec8bit(dst Ptr) Instr {
 
 func dec16bit(dst Ptr) Instr {
 	return func(c *cpu) error {
-		dst.Store(c, go_gb.MsbLsbBytes(uint16(int16(go_gb.MsbLsb(dst.Load(c)))-1)))
+		dst.Store(c, go_gb.MsbLsbBytes(uint16(int16(go_gb.MsbLsb(dst.Load(c)))-1), true))
 		return nil
 	}
 }
@@ -92,7 +92,7 @@ func addHlSp(c *cpu) error {
 	orig := int16(c.sp)
 	result := int16(c.sp) + int16(c.readOpcode())
 
-	dst.Store(c, go_gb.MsbLsbBytes(uint16(result)))
+	dst.Store(c, go_gb.MsbLsbBytes(uint16(result), true))
 
 	c.setFlag(BitZ, false)
 	c.setFlag(BitN, false)
