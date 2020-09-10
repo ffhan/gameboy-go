@@ -164,7 +164,7 @@ func TestPush(t *testing.T) {
 	}
 }
 
-func TestPop(t *testing.T) {
+func TestPop(t *testing.T) { // todo: test flags
 	type poptest struct {
 		register   registerName
 		expectedSp uint16
@@ -190,23 +190,39 @@ func TestPop(t *testing.T) {
 	}
 }
 
-//func TestLoadIo(t *testing.T) {
-//	type ioTest struct {
-//		prepare  func()
-//		in       Instr
-//		expected byte
-//		result   func() []byte
-//	}
-//	c := NewCpu()
-//	c.memory.StoreBytes(c.pc, []byte{0x10, 0xAB})
-//	table := []ioTest{
-//		{func() { c.rMap[A][0] = 0xF1 }, loadIo(dx(8), rx(A)), 0xF1, func() []byte { return c.memory.ReadBytes(0xFF10, 1) }}, // B is 0 so FF00
-//		{func() { c.memory.Store(0xFFAB, 0xBC) }, loadIo(rx(A), dx(8)), 0xBC, func() []byte { return c.rMap[A] }},
-//	}
-//	for i, test := range table {
-//		if err := test.in(c); err != nil {
-//			t.Error(err)
-//		}
-//		checkBytes(i+1, t, []byte{test.expected}, test.result())
-//	}
-//}
+func TestLoadHlSp(t *testing.T) {
+	c := NewCpu()
+	type hlsptest struct {
+		prepare    func()
+		z, n, h, c bool
+		expected   uint16
+	}
+	table := []hlsptest{
+		{func() { c.memory.Store(c.pc, 0xAB); c.sp = 0xFF00 }, false, false, false, false, 0xFFAB},
+		{func() { c.memory.Store(c.pc, 0x01); c.sp = 0xFF0F }, false, false, true, false, 0xFF10},
+		{func() { c.memory.Store(c.pc, 0x1B); c.sp = 0x00F0 }, false, false, false, true, 0x010B},
+		{func() { c.memory.Store(c.pc, 0xFF); c.sp = 0x00FF }, false, false, true, true, 0x01FE},
+	}
+	for i, test := range table {
+		test.prepare()
+		if err := ldHlSp(c); err != nil {
+			t.Error(err)
+		}
+		hl := go_gb.MsbLsb(c.rMap[HL])
+		if hl != test.expected {
+			t.Errorf("test %d expected %X, got %X\n", i+1, test.expected, hl)
+		}
+		if c.getFlag(BitZ) != test.z {
+			t.Errorf("test %d Flag Z is wrong", i+1)
+		}
+		if c.getFlag(BitN) != test.n {
+			t.Errorf("test %d Flag N is wrong", i+1)
+		}
+		if c.getFlag(BitH) != test.h {
+			t.Errorf("test %d Flag H is wrong", i+1)
+		}
+		if c.getFlag(BitC) != test.c {
+			t.Errorf("test %d Flag C is wrong", i+1)
+		}
+	}
+}
