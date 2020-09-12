@@ -33,7 +33,8 @@ const (
 	HL
 )
 
-type Instr func(c *cpu) error
+// executes specific things on the cpu and returns the number of m cycles it took to execute
+type Instr func(c *cpu) go_gb.MC
 
 type cpu struct {
 	pc, sp uint16
@@ -57,26 +58,41 @@ func NewCpu() *cpu {
 	return c
 }
 
-func (c *cpu) readOpcode() byte {
-	val := c.memory.Read(c.pc)
+func (c *cpu) readOpcode() (byte, go_gb.MC) {
+	val, m := c.memory.Read(c.pc)
 	c.pc += 1
-	return val
+	return val, m
+}
+func (c *cpu) readFromPc(size uint16) ([]byte, go_gb.MC) {
+	val, m := c.memory.ReadBytes(c.pc, size)
+	c.pc += size
+	return val, m
 }
 
-func (c *cpu) popStack(size int) []byte {
+func (c *cpu) setPc(val uint16) go_gb.MC {
+	c.pc = val
+	return 1
+}
+
+func (c *cpu) popStack(size int) ([]byte, go_gb.MC) {
 	bytes := make([]byte, size)
+	m := go_gb.MC(0)
 	for i := 0; i < size; i++ {
 		c.sp += 1
-		bytes[i] = c.memory.Read(c.sp)
+		v, mc := c.memory.Read(c.sp)
+		bytes[i] = v
+		m += mc
 	}
-	return bytes
+	return bytes, m
 }
 
-func (c *cpu) pushStack(b []byte) {
+func (c *cpu) pushStack(b []byte) go_gb.MC {
+	m := go_gb.MC(0)
 	for _, val := range b {
-		c.memory.Store(c.sp, val)
+		m += c.memory.Store(c.sp, val)
 		c.sp -= 1
 	}
+	return m
 }
 
 func (c *cpu) getRegister(r registerName) []byte {
@@ -100,24 +116,28 @@ func (c *cpu) init() {
 	}
 }
 
-func (c *cpu) Step() error {
-	instr := optable[c.readOpcode()]
-	var err error
+func (c *cpu) Step() {
+	var cycles go_gb.MC
 	if !c.halt {
-		err = instr(c)
+		opcode, mc := c.readOpcode()
+		instr := optable[opcode]
+		cycles += instr(c)
+		cycles += mc
+	} else {
+		cycles = 1
 	}
 	c.handleEiDi()
 	c.handleInterrupts()
-	return err
 }
 
 func (c *cpu) handleInterrupts() {
 	if !c.ime { // interrupt master disabled
 		return
 	}
-
-	ifRegister := c.memory.Read(go_gb.IF)
-	ieRegister := c.memory.Read(go_gb.IE)
+	var cycles go_gb.MC
+	ifRegister, m := c.memory.Read(go_gb.IF)
+	ieRegister, m2 := c.memory.Read(go_gb.IE)
+	cycles += m + m2
 
 	if ifRegister == 0 { // no interrupt flags set
 		return
@@ -131,11 +151,13 @@ func (c *cpu) handleInterrupts() {
 	}
 }
 
-func (c *cpu) serviceInterrupt(ifR byte, interrupt go_gb.Interrupt) {
+func (c *cpu) serviceInterrupt(ifR byte, interrupt go_gb.Interrupt) go_gb.MC {
+	var cycles go_gb.MC
 	go_gb.Set(&ifR, int(interrupt.Bit), false)
 	c.ime = false
-	c.memory.Store(go_gb.IF, ifR)
-	callAddr(c, go_gb.MsbLsbBytes(interrupt.JpAddr, true))
+	cycles += c.memory.Store(go_gb.IF, ifR)
+	cycles += callAddr(c, go_gb.MsbLsbBytes(interrupt.JpAddr, true))
+	return cycles
 }
 
 func (c *cpu) handleEiDi() {

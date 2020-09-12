@@ -19,38 +19,28 @@ func Toggle(b *byte, i int) bool {
 	return (*b>>i)&1 == 1
 }
 
-// {msb, lsb} -> msblsb
-func MsbLsb(b []byte) uint16 {
-	if len(b) > 2 {
-		panic(fmt.Errorf("%v cannot be transformed to uint16", b))
-	}
-	if len(b) == 2 {
-		return (uint16(b[0]) << 8) | uint16(b[1])
-	}
-	return uint16(b[0])
-}
-
-// {lsb, msb} -> msblsb
-func LsbMsb(b []byte) uint16 {
+func FromBytes(b []byte) uint16 {
 	if len(b) > 2 {
 		panic(fmt.Errorf("%v cannot be transformed to uint16", b))
 	}
 	if len(b) == 2 {
 		return (uint16(b[1]) << 8) | uint16(b[0])
 	}
-	return uint16(b[1])
+	return uint16(b[0])
 }
 
-// msblsb ->  {msb, lsb}
+func LsbMsbBytes(val uint16, word bool) []byte {
+	if word {
+		return []byte{byte(val & 0xFF), byte((val & 0xFF00) >> 8)}
+	}
+	return []byte{byte(val & 0xFF)}
+}
+
 func MsbLsbBytes(val uint16, word bool) []byte {
 	if word {
 		return []byte{byte((val & 0xFF00) >> 8), byte(val & 0xFF)}
 	}
 	return []byte{byte(val & 0xFF)}
-}
-
-func LsbMsbBytes(val uint16) []byte {
-	return []byte{byte(val & 0xFF), byte((val & 0xFF00) >> 8)}
 }
 
 func BitToByte(val bool) byte {

@@ -16,8 +16,8 @@ func TestCpu_readOpcode(t *testing.T) {
 	c := NewCpu()
 	c.memory.StoreBytes(0x100, []byte{0x12})
 
-	if c.readOpcode() != 0x12 {
-		t.Fatal("invalid opcode read")
+	if val, mc := c.readOpcode(); val != 0x12 || mc != 1 {
+		t.Fatal("invalid opcode read or MC is not 1")
 	}
 	if c.pc != 0x101 {
 		t.Fatal("PC invalid after reading opcode")
@@ -32,7 +32,11 @@ func TestCpu_pushStack(t *testing.T) {
 	if c.sp != expected {
 		t.Errorf("expected SP to be on %X, got %X\n", expected, c.sp)
 	}
-	for i, val := range c.memory.ReadBytes(expected+1, 3) {
+	bytes, mc := c.memory.ReadBytes(expected+1, 3)
+	if mc != 3 {
+		t.Errorf("expected MC %d, got %d\n", 3, mc)
+	}
+	for i, val := range bytes {
 		expected := input[2-i]
 		if expected != val {
 			t.Errorf("expected %d, got %d\n", expected, val)
@@ -49,7 +53,11 @@ func TestCpu_popStack(t *testing.T) {
 	if c.sp != expected {
 		t.Errorf("expected SP to be on %X, got %X\n", expected, c.sp)
 	}
-	for i, val := range c.popStack(3) {
+	stack, mc := c.popStack(3)
+	if mc != 3 {
+		t.Errorf("expected MC %d, got %d\n", 3, mc)
+	}
+	for i, val := range stack {
 		expected := input[2-i]
 		if expected != val {
 			t.Errorf("expected %d, got %d\n", expected, val)
@@ -93,9 +101,7 @@ func TestCpu_Step_NOP(t *testing.T) {
 	c := NewCpu()
 	startPC := c.pc
 	c.memory.Store(c.pc, 0)
-	if err := c.Step(); err != nil {
-		t.Fatal(err)
-	}
+	c.Step()
 	if c.pc != startPC+1 {
 		t.Errorf("expected PC %X, got %X\n", startPC+1, c.pc)
 	}

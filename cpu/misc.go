@@ -1,50 +1,51 @@
 package cpu
 
 import (
-	"errors"
+	go_gb "go-gb"
 )
 
-func NOP(c *cpu) error {
-	return nil
+func NOP(c *cpu) go_gb.MC {
+	return 0
 }
 
 func STOP(c *cpu) error { // todo: halt until button pressed (joypad interrupt?)
 	panic("implement me")
 }
 
-func halt(c *cpu) error {
+func halt(c *cpu) go_gb.MC {
 	c.halt = true
-	return nil
+	return 0
 }
 
-func scf(c *cpu) error {
+func scf(c *cpu) go_gb.MC {
 	c.setFlag(BitN, false)
 	c.setFlag(BitH, false)
 	c.setFlag(BitC, true)
-	return nil
+	return 0
 }
 
-func ccf(c *cpu) error {
+func ccf(c *cpu) go_gb.MC {
 	c.setFlag(BitN, false)
 	c.setFlag(BitH, false)
 	c.setFlag(BitC, !c.getFlag(BitC))
-	return nil
+	return 0
 }
 
-func prefix(c *cpu) error {
-	return cbOptable[c.readOpcode()](c)
+func prefix(c *cpu) go_gb.MC {
+	opcode, mc := c.readOpcode()
+	return cbOptable[opcode](c) + mc
 }
 
-func invalid(c *cpu) error {
-	return errors.New("non-mapped operation called")
+func invalid(c *cpu) go_gb.MC {
+	panic("non-mapped operation called")
 }
 
-func di(c *cpu) error {
+func di(c *cpu) go_gb.MC {
 	c.diWaiting = 2
-	return nil
+	return 0
 }
 
-func ei(c *cpu) error {
+func ei(c *cpu) go_gb.MC {
 	c.eiWaiting = 2
-	return nil
+	return 0
 }

@@ -11,12 +11,15 @@ func TestReg_Load(t *testing.T) {
 	input := byte(0xFA)
 	c.r[A] = input
 	a := rx(A)
-	result := a.Load(c)
+	result, mc := a.Load(c)
 	if len(result) != 1 {
 		t.Errorf("expected len 1, got %d\n", len(result))
 	}
 	if result[0] != input {
 		t.Errorf("expected result %X, got %X\n", input, result[0])
+	}
+	if mc != 0 {
+		t.Error("MC should be 0")
 	}
 }
 
@@ -149,7 +152,7 @@ func TestOffset_Load_Reg(t *testing.T) { // offset doesn't work
 	c.rMap[F][0] = 0xAB
 	o := off(rx(AF), 0xFF00)
 	expected := uint16(0xFFAB)
-	result := go_gb.MsbLsb(o.Load(c))
+	result := go_gb.FromBytes(o.Load(c))
 	if result != expected {
 		t.Errorf("expected %X, got %X\n", expected, result)
 	}

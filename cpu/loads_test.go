@@ -31,20 +31,20 @@ func checkReg(c *cpu, reg registerName) func() []byte {
 
 func checkMr(c *cpu, reg registerName) func() []byte {
 	return func() []byte {
-		return c.memory.ReadBytes(go_gb.MsbLsb(c.rMap[reg]), 1)
+		return c.memory.ReadBytes(go_gb.FromBytes(c.rMap[reg]), 1)
 	}
 }
 
 func checkSp(c *cpu) func() []byte {
 	return func() []byte {
-		return go_gb.MsbLsbBytes(c.sp, true)
+		return go_gb.LsbMsbBytes(c.sp, true)
 	}
 }
 
 func checkMd(c *cpu, i int) func() []byte {
 	offset := i / 8
 	return func() []byte {
-		addr := go_gb.MsbLsb(c.memory.ReadBytes(c.pc-2, uint16(offset)))
+		addr := go_gb.FromBytes(c.memory.ReadBytes(c.pc-2, uint16(offset)))
 		return c.memory.ReadBytes(addr, 2)
 	}
 }
@@ -208,7 +208,7 @@ func TestLoadHlSp(t *testing.T) {
 		if err := ldHlSp(c); err != nil {
 			t.Error(err)
 		}
-		hl := go_gb.MsbLsb(c.rMap[HL])
+		hl := go_gb.FromBytes(c.rMap[HL])
 		if hl != test.expected {
 			t.Errorf("test %d expected %X, got %X\n", i+1, test.expected, hl)
 		}

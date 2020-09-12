@@ -19,7 +19,7 @@ type Interrupt struct {
 }
 
 var (
-	Interrupts []Interrupt = []Interrupt{
+	Interrupts = [...]Interrupt{
 		{BitVBlank, 0x40},
 		{BitLCD, 0x48},
 		{BitTimer, 0x50},
