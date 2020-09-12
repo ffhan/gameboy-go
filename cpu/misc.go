@@ -8,7 +8,7 @@ func NOP(c *cpu) go_gb.MC {
 	return 0
 }
 
-func STOP(c *cpu) error { // todo: halt until button pressed (joypad interrupt?)
+func STOP(c *cpu) go_gb.MC { // todo: halt until button pressed (joypad interrupt?)
 	panic("implement me")
 }
 
