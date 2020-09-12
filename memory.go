@@ -1,6 +1,8 @@
 package go_gb
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	ROMBank0Start           uint16 = 0x0000

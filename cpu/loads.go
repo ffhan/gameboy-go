@@ -24,26 +24,32 @@ func ldHlSp(c *cpu) error {
 
 // e.g. LD (HL+), A
 func ldHl(dst, src Ptr, increment bool) Instr {
+	var deferFunc func(c *cpu)
+	var loadFunc Instr
+	if (dst == nil && src == nil) || (dst != nil && src != nil) {
+		panic("invalid ldHl call")
+	}
+	if dst == nil {
+		dst = rx(HL)
+		if increment {
+			deferFunc = func(c *cpu) { dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))+1, true)) }
+		} else {
+			deferFunc = func(c *cpu) { dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))-1, true)) }
+		}
+		loadFunc = load(mPtr{dst}, src)
+	}
+	if src == nil {
+		src = rx(HL)
+		if increment {
+			deferFunc = func(c *cpu) { src.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(src.Load(c))+1, true)) }
+		} else {
+			deferFunc = func(c *cpu) { src.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(src.Load(c))-1, true)) }
+		}
+		loadFunc = load(dst, mPtr{src})
+	}
 	return func(c *cpu) error {
-		if dst == nil {
-			dst = rx(HL)
-			if increment {
-				defer dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))+1, true))
-			} else {
-				defer dst.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(dst.Load(c))-1, true))
-			}
-			return load(mPtr{dst}, src)(c)
-		}
-		if src == nil {
-			src = rx(HL)
-			if increment {
-				defer src.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(src.Load(c))+1, true))
-			} else {
-				defer src.Store(c, go_gb.MsbLsbBytes(go_gb.MsbLsb(src.Load(c))-1, true))
-			}
-			return load(dst, mPtr{src})(c)
-		}
-		return nil
+		defer deferFunc(c)
+		return loadFunc(c)
 	}
 }
 
