@@ -83,10 +83,14 @@ func jpc(bit int, dst Ptr) Instr {
 func call(c *cpu) error {
 	addr := c.memory.ReadBytes(c.pc, 2)
 	c.pc += 2
+	callAddr(c, addr)
+	return nil
+}
+
+func callAddr(c *cpu, addr []byte) {
 	pcBytes := go_gb.LsbMsbBytes(c.pc)
 	c.pushStack(pcBytes)
 	c.pc = go_gb.MsbLsb(addr)
-	return nil
 }
 
 func callc(bit int) Instr {

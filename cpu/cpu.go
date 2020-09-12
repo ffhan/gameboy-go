@@ -45,8 +45,9 @@ type cpu struct {
 
 	memory *go_gb.MemoryBus
 
-	eiWaiting bool
-	diWaiting bool
+	halt      bool
+	eiWaiting byte
+	diWaiting byte
 	ime       bool // Interrupt master enable
 }
 
@@ -101,15 +102,55 @@ func (c *cpu) init() {
 
 func (c *cpu) Step() error {
 	instr := optable[c.readOpcode()]
-	err := instr(c) // instructions might push different opcodes before
-	if c.eiWaiting {
-		c.ime = true
-		c.eiWaiting = false
-	} else if c.diWaiting {
-		c.ime = false
-		c.diWaiting = false
+	var err error
+	if !c.halt {
+		err = instr(c)
 	}
+	c.handleEiDi()
+	c.handleInterrupts()
 	return err
+}
+
+func (c *cpu) handleInterrupts() {
+	if !c.ime { // interrupt master disabled
+		return
+	}
+
+	ifRegister := c.memory.Read(go_gb.IF)
+	ieRegister := c.memory.Read(go_gb.IE)
+
+	if ifRegister == 0 { // no interrupt flags set
+		return
+	}
+
+	for _, interrupt := range go_gb.Interrupts {
+		if go_gb.ShouldServiceInterrupt(ieRegister, ifRegister, interrupt.Bit) {
+			c.serviceInterrupt(ifRegister, interrupt)
+			return
+		}
+	}
+}
+
+func (c *cpu) serviceInterrupt(ifR byte, interrupt go_gb.Interrupt) {
+	go_gb.Set(&ifR, int(interrupt.Bit), false)
+	c.ime = false
+	c.memory.Store(go_gb.IF, ifR)
+	callAddr(c, go_gb.MsbLsbBytes(interrupt.JpAddr, true))
+}
+
+func (c *cpu) handleEiDi() {
+	if c.eiWaiting != 0 {
+		c.eiWaiting -= 1
+		if c.eiWaiting == 0 {
+			c.ime = true
+		}
+	}
+	if c.diWaiting != 0 {
+		c.diWaiting -= 1
+		if c.diWaiting == 0 {
+			c.ime = false
+		}
+	}
 }
 
 func (c *cpu) setFlag(bit int, val bool) {

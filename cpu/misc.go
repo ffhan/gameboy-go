@@ -8,12 +8,13 @@ func NOP(c *cpu) error {
 	return nil
 }
 
-func STOP(c *cpu) error {
+func STOP(c *cpu) error { // todo: halt until button pressed (joypad interrupt?)
 	panic("implement me")
 }
 
 func halt(c *cpu) error {
-	panic("implement me")
+	c.halt = true
+	return nil
 }
 
 func scf(c *cpu) error {
@@ -39,11 +40,11 @@ func invalid(c *cpu) error {
 }
 
 func di(c *cpu) error {
-	c.diWaiting = true
+	c.diWaiting = 2
 	return nil
 }
 
 func ei(c *cpu) error {
-	c.eiWaiting = true
+	c.eiWaiting = 2
 	return nil
 }
