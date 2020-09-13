@@ -30,6 +30,13 @@ const (
 	InterruptEnableRegister uint16 = 0xFFFF
 )
 
+type Memory interface {
+	ReadBytes(pointer, n uint16, mc *MC) []byte
+	Read(pointer uint16, mc *MC) byte
+	StoreBytes(pointer uint16, bytes []byte, mc *MC)
+	Store(pointer uint16, val byte, mc *MC)
+}
+
 type mmap struct {
 	start, end uint16
 	memory     []byte
