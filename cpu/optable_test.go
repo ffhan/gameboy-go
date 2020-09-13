@@ -39,10 +39,36 @@ func TestOptableCycles(t *testing.T) {
 		3, 3, 2, 0, 0, 4, 2, 4, 4, 1, 4, 0, 0, 0, 2, 4,
 		3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4,
 	}
+	cbTable := [...]go_gb.MC{
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+
+		2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 3, 2,
+		2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 3, 2,
+		2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 3, 2,
+		2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 3, 2,
+
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
+	}
 
 	c := NewCpu()
 
-	for i, op := range optable {
+	checkCycles(0, t, c, optable[:], table[:])
+	checkCycles(0xCB00, t, c, cbOptable, cbTable[:])
+}
+
+func checkCycles(prefix int, t *testing.T, c *cpu, table []Instr, expected []go_gb.MC) {
+	for i, op := range table {
 		failed := false
 		var cyc go_gb.MC
 		c.r[F] = 0
@@ -52,16 +78,16 @@ func TestOptableCycles(t *testing.T) {
 				if err != nil {
 					failed = true
 					if e, ok := err.(error); ok && !errors.Is(e, InvalidOpErr) {
-						t.Errorf("opcode %X panicked: %v\n", i, err)
+						t.Errorf("opcode %X panicked: %v\n", i+prefix, err)
 					} else if !ok {
-						t.Errorf("opcode %X panicked: %v\n", i, err)
+						t.Errorf("opcode %X panicked: %v\n", i+prefix, err)
 					}
 				}
 			}()
 			cyc = op(c)
 		}()
-		if !failed && table[i] != cyc+1 {
-			t.Errorf("opcode %X expected %d cycles, got %d\n", i, table[i], cyc+1)
+		if !failed && expected[i] != cyc+1 {
+			t.Errorf("opcode %X expected %d cycles, got %d\n", i+prefix, expected[i], cyc+1)
 		}
 	}
 }

@@ -3,11 +3,11 @@ package cpu
 import go_gb "go-gb"
 
 func rlca(c *cpu) go_gb.MC {
-	return rc(c, rx(A), true, true)
+	return rc(c, rx(A), true, true) - 1
 }
 
 func rrca(c *cpu) go_gb.MC {
-	return rc(c, rx(A), false, true)
+	return rc(c, rx(A), false, true) - 1
 }
 
 func r(c *cpu, dst Ptr, left bool) go_gb.MC {
@@ -34,15 +34,15 @@ func r(c *cpu, dst Ptr, left bool) go_gb.MC {
 	c.setFlag(BitN, false)
 	c.setFlag(BitH, false)
 	c.setFlag(BitC, old == 1)
-	return cycles
+	return cycles + 1
 }
 
 func rla(c *cpu) go_gb.MC {
-	return r(c, rx(A), true)
+	return r(c, rx(A), true) - 1
 }
 
 func rra(c *cpu) go_gb.MC {
-	return r(c, rx(A), false)
+	return r(c, rx(A), false) - 1
 }
 
 func and(dst, src Ptr) Instr {
@@ -132,7 +132,7 @@ func rc(c *cpu, dst Ptr, left, resetZ bool) go_gb.MC {
 	c.setFlag(BitN, false)
 	c.setFlag(BitH, false)
 	c.setFlag(BitC, old == 1)
-	return cycles
+	return cycles + 1
 }
 
 func rlc(dst Ptr) Instr {
@@ -176,7 +176,7 @@ func sa(c *cpu, dst Ptr, left bool) go_gb.MC {
 	c.setFlag(BitN, false)
 	c.setFlag(BitH, false)
 	c.setFlag(BitC, old == 1)
-	return cycles
+	return cycles + 1
 }
 
 func sla(dst Ptr) Instr {
@@ -200,7 +200,7 @@ func sra(dst Ptr) Instr {
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, false)
 		c.setFlag(BitC, old == 1)
-		return cycles
+		return cycles + 1
 	}
 }
 
@@ -225,6 +225,6 @@ func swap(dst Ptr) Instr {
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, false)
 		c.setFlag(BitC, false)
-		return cycles
+		return cycles + 1
 	}
 }
