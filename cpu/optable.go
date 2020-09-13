@@ -16,10 +16,10 @@ var ( // todo check table (especially loads)
 		and(rx(A), rx(B)), and(rx(A), rx(C)), and(rx(A), rx(D)), and(rx(A), rx(E)), and(rx(A), rx(H)), and(rx(A), rx(L)), and(rx(A), mr(HL)), and(rx(A), rx(A)), xor(rx(A), rx(B)), xor(rx(A), rx(C)), xor(rx(A), rx(D)), xor(rx(A), rx(E)), xor(rx(A), rx(H)), xor(rx(A), rx(L)), xor(rx(A), mr(HL)), xor(rx(A), rx(A)),
 		or(rx(A), rx(B)), or(rx(A), rx(C)), or(rx(A), rx(D)), or(rx(A), rx(E)), or(rx(A), rx(H)), or(rx(A), rx(L)), or(rx(A), mr(HL)), or(rx(A), rx(A)), cp(rx(A), rx(B)), cp(rx(A), rx(C)), cp(rx(A), rx(D)), cp(rx(A), rx(E)), cp(rx(A), rx(H)), cp(rx(A), rx(L)), cp(rx(A), mr(HL)), cp(rx(A), rx(A)),
 
-		retnc(BitZ), pop(rx(BC)), jpnc(BitZ, md(16)), jp(dx(16)), callcc(BitZ), push(rx(BC)), add8b(rx(A), dx(8)), rst(hc(0x00)), retc(BitZ), ret, jpc(BitZ, dx(16)), prefix, callc(BitZ), call, adc8b(rx(A), dx(8)), rst(hc(0x08)),
-		retnc(BitC), pop(rx(DE)), jpnc(BitC, md(16)), invalid, callcc(BitC), push(rx(DE)), sub(rx(A), dx(8)), rst(hc(0x10)), retc(BitC), reti, jpc(BitC, dx(16)), invalid, callc(BitC), invalid, sbc(rx(A), dx(8)), rst(hc(0x18)),
+		retnc(BitZ), pop(rx(BC)), jpnc(BitZ, dx(16)), jp(dx(16)), callcc(BitZ), push(rx(BC)), add8b(rx(A), dx(8)), rst(hc(0x00)), retc(BitZ), ret, jpc(BitZ, dx(16)), prefix, callc(BitZ), call, adc8b(rx(A), dx(8)), rst(hc(0x08)),
+		retnc(BitC), pop(rx(DE)), jpnc(BitC, dx(16)), invalid, callcc(BitC), push(rx(DE)), sub(rx(A), dx(8)), rst(hc(0x10)), retc(BitC), reti, jpc(BitC, dx(16)), invalid, callc(BitC), invalid, sbc(rx(A), dx(8)), rst(hc(0x18)),
 		load(mem(off(dx(8), 0xFF00)), rx(A)), pop(rx(HL)), load(mem(off(rx(C), 0xFF00)), rx(A)), invalid, invalid, push(rx(HL)), and(rx(A), dx(8)), rst(hc(0x20)), addSp, jpHl, load(md(16), rx(A)), invalid, invalid, invalid, xor(rx(A), dx(8)), rst(hc(0x28)),
-		load(rx(A), mem(off(dx(8), 0xFF00))), pop(rx(AF)), load(rx(A), mem(off(rx(C), 0xFF00))), di, invalid, push(rx(AF)), or(rx(A), dx(8)), rst(hc(0x30)), ldHlSp, load(sp(), rx(HL)), load(rx(A), md(16)), ei, invalid, invalid, cp(rx(A), dx(8)), rst(hc(0x38)),
+		load(rx(A), mem(off(dx(8), 0xFF00))), pop(rx(AF)), load(rx(A), mem(off(rx(C), 0xFF00))), di, invalid, push(rx(AF)), or(rx(A), dx(8)), rst(hc(0x30)), ldHlSp, ldSpHl, load(rx(A), md(16)), ei, invalid, invalid, cp(rx(A), dx(8)), rst(hc(0x38)),
 	}
 	cbOptable = createCbOptable()
 )

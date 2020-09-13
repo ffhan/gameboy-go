@@ -11,6 +11,10 @@ func load(dst, src Ptr) Instr {
 	}
 }
 
+func ldSpHl(c *cpu) go_gb.MC {
+	return load(sp(), rx(HL))(c) + 1
+}
+
 func ldHlSp(c *cpu) go_gb.MC {
 	var cycles go_gb.MC
 
@@ -24,7 +28,7 @@ func ldHlSp(c *cpu) go_gb.MC {
 	c.setFlag(BitN, false)
 	c.setFlag(BitH, (result&0xF) < int16(c.sp&0xF))
 	c.setFlag(BitC, (result&0xFF) < int16(c.sp&0xFF))
-	return cycles
+	return cycles + 1
 }
 
 // e.g. LD (HL+), A

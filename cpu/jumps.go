@@ -103,6 +103,9 @@ func callAddr(c *cpu, addr []byte, mc *go_gb.MC) {
 	pcBytes := go_gb.ToBytesReverse(c.pc, true)
 	c.pushStack(pcBytes, mc)
 	c.pc = go_gb.FromBytes(addr)
+	if mc != nil {
+		*mc += 1
+	}
 }
 
 func callc(bit int) Instr {

@@ -124,15 +124,9 @@ func (s stackPtr) Store(c *cpu, b []byte, mc *go_gb.MC) {
 		panic(fmt.Errorf("invalid SP store %v", b))
 	}
 	c.sp = go_gb.FromBytes(b)
-	if mc != nil {
-		*mc += 1
-	}
 }
 
 func (s stackPtr) Load(c *cpu, mc *go_gb.MC) []byte {
-	if mc != nil {
-		*mc += 1
-	}
 	return go_gb.ToBytes(c.sp, true)
 }
 

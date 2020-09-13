@@ -50,6 +50,7 @@ type cpu struct {
 	eiWaiting byte
 	diWaiting byte
 	ime       bool // Interrupt master enable
+	cbLookup  bool
 }
 
 func NewCpu() *cpu {
@@ -118,7 +119,13 @@ func (c *cpu) Step() {
 	var cycles go_gb.MC
 	if !c.halt {
 		opcode := c.readOpcode(&cycles)
-		instr := optable[opcode]
+		var instr Instr
+		if c.cbLookup {
+			instr = cbOptable[opcode]
+			c.cbLookup = false
+		} else {
+			instr = optable[opcode]
+		}
 		cycles += instr(c)
 	} else {
 		cycles = 1

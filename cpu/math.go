@@ -24,7 +24,7 @@ func inc16bit(dst Ptr) Instr {
 		var cycles go_gb.MC
 		bytes := dst.Load(c, &cycles)
 		dst.Store(c, go_gb.ToBytes(go_gb.FromBytes(bytes)+1, true), &cycles)
-		return cycles
+		return cycles + 1
 	}
 }
 
@@ -48,7 +48,7 @@ func dec16bit(dst Ptr) Instr {
 		var cycles go_gb.MC
 		bytes := dst.Load(c, &cycles)
 		dst.Store(c, go_gb.ToBytes(uint16(int16(go_gb.FromBytes(bytes))-1), true), &cycles)
-		return cycles
+		return cycles + 1
 	}
 }
 
@@ -101,7 +101,7 @@ func addSp(c *cpu) go_gb.MC {
 	c.setFlag(BitH, (result&0xF) < (orig&0xF))
 	c.setFlag(BitC, (result&0xFF) < (orig&0xFF))
 	sp.Store(c, go_gb.ToBytes(uint16(result), true), &cycles)
-	return cycles
+	return cycles + 2
 }
 
 func adc8b(dst, src Ptr) Instr {

@@ -1,6 +1,7 @@
 package cpu
 
 import (
+	"errors"
 	go_gb "go-gb"
 )
 
@@ -32,13 +33,14 @@ func ccf(c *cpu) go_gb.MC {
 }
 
 func prefix(c *cpu) go_gb.MC {
-	var cycles go_gb.MC
-	opcode := c.readOpcode(&cycles)
-	return cbOptable[opcode](c) + cycles
+	c.cbLookup = true
+	return 0
 }
 
+var InvalidOpErr = errors.New("non-mapped operation called")
+
 func invalid(c *cpu) go_gb.MC {
-	panic("non-mapped operation called")
+	panic(InvalidOpErr)
 }
 
 func di(c *cpu) go_gb.MC {

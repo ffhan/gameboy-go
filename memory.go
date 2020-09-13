@@ -53,7 +53,7 @@ func (m *mmap) Read(pointer uint16, mc *MC) byte {
 
 func (m *mmap) StoreBytes(pointer uint16, bytes []byte, mc *MC) {
 	i := pointer - m.start
-	copy(m.memory[i:i+uint16(len(bytes))+1], bytes)
+	copy(m.memory[i:i+uint16(len(bytes))], bytes)
 	if mc != nil {
 		*mc += MC(len(bytes))
 	}
