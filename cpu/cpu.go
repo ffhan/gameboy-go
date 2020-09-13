@@ -19,14 +19,14 @@ const (
 type registerName uint16
 
 const (
-	A registerName = iota
-	F
-	B
+	F registerName = iota
+	A
 	C
-	D
+	B
 	E
-	H
+	D
 	L
+	H
 	AF
 	BC
 	DE
@@ -39,8 +39,8 @@ type Instr func(c *cpu) go_gb.MC
 type cpu struct {
 	pc, sp uint16
 
-	r              [8]byte // registers
-	af, bc, de, hl []byte  // double registers
+	r              [8]byte // registers (stored in little endian order)
+	af, bc, de, hl []byte  // double registers (double registers store data in little endian)
 
 	rMap [][]byte // register mappings
 
@@ -58,41 +58,39 @@ func NewCpu() *cpu {
 	return c
 }
 
-func (c *cpu) readOpcode() (byte, go_gb.MC) {
-	val, m := c.memory.Read(c.pc)
+func (c *cpu) readOpcode(mc *go_gb.MC) byte {
+	val := c.memory.Read(c.pc, mc)
 	c.pc += 1
-	return val, m
+	return val
 }
-func (c *cpu) readFromPc(size uint16) ([]byte, go_gb.MC) {
-	val, m := c.memory.ReadBytes(c.pc, size)
+func (c *cpu) readFromPc(size uint16, mc *go_gb.MC) []byte {
+	val := c.memory.ReadBytes(c.pc, size, mc)
 	c.pc += size
-	return val, m
+	return val
 }
 
-func (c *cpu) setPc(val uint16) go_gb.MC {
+func (c *cpu) setPc(val uint16, mc *go_gb.MC) {
 	c.pc = val
-	return 1
+	if mc != nil {
+		*mc += 1
+	}
 }
 
-func (c *cpu) popStack(size int) ([]byte, go_gb.MC) {
+func (c *cpu) popStack(size int, mc *go_gb.MC) []byte {
 	bytes := make([]byte, size)
-	m := go_gb.MC(0)
 	for i := 0; i < size; i++ {
 		c.sp += 1
-		v, mc := c.memory.Read(c.sp)
+		v := c.memory.Read(c.sp, mc)
 		bytes[i] = v
-		m += mc
 	}
-	return bytes, m
+	return bytes
 }
 
-func (c *cpu) pushStack(b []byte) go_gb.MC {
-	m := go_gb.MC(0)
+func (c *cpu) pushStack(b []byte, mc *go_gb.MC) {
 	for _, val := range b {
-		m += c.memory.Store(c.sp, val)
+		c.memory.Store(c.sp, val, mc)
 		c.sp -= 1
 	}
-	return m
 }
 
 func (c *cpu) getRegister(r registerName) []byte {
@@ -105,13 +103,13 @@ func (c *cpu) init() {
 	c.sp = 0xFFFE
 	// todo: set r to init values
 	// setting references to register arr
-	c.af = c.r[A : F+1]
-	c.bc = c.r[B : C+1]
-	c.de = c.r[D : E+1]
-	c.hl = c.r[H : L+1]
+	c.af = c.r[F : A+1]
+	c.bc = c.r[C : B+1]
+	c.de = c.r[E : D+1]
+	c.hl = c.r[L : H+1]
 	c.rMap = [][]byte{
-		c.r[A : A+1], c.r[F : F+1], c.r[B : B+1], c.r[C : C+1],
-		c.r[D : D+1], c.r[E : E+1], c.r[H : H+1], c.r[L : L+1],
+		c.r[F : F+1], c.r[A : A+1], c.r[C : C+1], c.r[B : B+1],
+		c.r[E : E+1], c.r[D : D+1], c.r[L : L+1], c.r[H : H+1],
 		c.af, c.bc, c.de, c.hl,
 	}
 }
@@ -119,10 +117,9 @@ func (c *cpu) init() {
 func (c *cpu) Step() {
 	var cycles go_gb.MC
 	if !c.halt {
-		opcode, mc := c.readOpcode()
+		opcode := c.readOpcode(&cycles)
 		instr := optable[opcode]
 		cycles += instr(c)
-		cycles += mc
 	} else {
 		cycles = 1
 	}
@@ -130,14 +127,13 @@ func (c *cpu) Step() {
 	c.handleInterrupts()
 }
 
-func (c *cpu) handleInterrupts() {
+func (c *cpu) handleInterrupts() { // todo: should we count the cycles from the memory read?
 	if !c.ime { // interrupt master disabled
 		return
 	}
 	var cycles go_gb.MC
-	ifRegister, m := c.memory.Read(go_gb.IF)
-	ieRegister, m2 := c.memory.Read(go_gb.IE)
-	cycles += m + m2
+	ifRegister := c.memory.Read(go_gb.IF, &cycles)
+	ieRegister := c.memory.Read(go_gb.IE, &cycles)
 
 	if ifRegister == 0 { // no interrupt flags set
 		return
@@ -155,8 +151,8 @@ func (c *cpu) serviceInterrupt(ifR byte, interrupt go_gb.Interrupt) go_gb.MC {
 	var cycles go_gb.MC
 	go_gb.Set(&ifR, int(interrupt.Bit), false)
 	c.ime = false
-	cycles += c.memory.Store(go_gb.IF, ifR)
-	cycles += callAddr(c, go_gb.MsbLsbBytes(interrupt.JpAddr, true))
+	c.memory.Store(go_gb.IF, ifR, &cycles)
+	callAddr(c, go_gb.ToBytesReverse(interrupt.JpAddr, true), &cycles)
 	return cycles
 }
 

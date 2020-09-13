@@ -29,14 +29,24 @@ func FromBytes(b []byte) uint16 {
 	return uint16(b[0])
 }
 
-func LsbMsbBytes(val uint16, word bool) []byte {
+func ToBytes(val uint16, word bool) []byte {
 	if word {
 		return []byte{byte(val & 0xFF), byte((val & 0xFF00) >> 8)}
 	}
 	return []byte{byte(val & 0xFF)}
 }
 
-func MsbLsbBytes(val uint16, word bool) []byte {
+func FromBytesReverse(b []byte) uint16 {
+	if len(b) > 2 {
+		panic(fmt.Errorf("%v cannot be transformed to uint16", b))
+	}
+	if len(b) == 2 {
+		return (uint16(b[1]) << 8) | uint16(b[0])
+	}
+	return uint16(b[0])
+}
+
+func ToBytesReverse(val uint16, word bool) []byte {
 	if word {
 		return []byte{byte((val & 0xFF00) >> 8), byte(val & 0xFF)}
 	}
@@ -62,4 +72,13 @@ func BitToInt16(val bool) int16 {
 		return 1
 	}
 	return 0
+}
+
+func Reverse(b []byte) {
+	for i := 0; i < len(b)/2; i++ {
+		j := len(b) - 1 - i
+		tmp := b[i]
+		b[i] = b[j]
+		b[j] = tmp
+	}
 }

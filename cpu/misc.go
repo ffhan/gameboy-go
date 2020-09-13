@@ -32,8 +32,9 @@ func ccf(c *cpu) go_gb.MC {
 }
 
 func prefix(c *cpu) go_gb.MC {
-	opcode, mc := c.readOpcode()
-	return cbOptable[opcode](c) + mc
+	var cycles go_gb.MC
+	opcode := c.readOpcode(&cycles)
+	return cbOptable[opcode](c) + cycles
 }
 
 func invalid(c *cpu) go_gb.MC {

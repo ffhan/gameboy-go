@@ -10,7 +10,8 @@ func TestMemoryBus_Read(t *testing.T) {
 	}
 	copy(m.completeMem[:], b[:])
 	for i := 0; i <= 0xFFFF; i++ {
-		val, mc := m.Read(uint16(i))
+		var mc MC
+		val := m.Read(uint16(i), &mc)
 		if mc != 1 {
 			t.Error("MC should be 1")
 		}
@@ -33,7 +34,8 @@ func TestMemoryBus_Store(t *testing.T) {
 		if ECHORAMStart <= uint16(i) && uint16(i) <= ECHORAMEnd {
 			continue
 		}
-		mc := m.Store(uint16(i), byte(i))
+		var mc MC
+		m.Store(uint16(i), byte(i), &mc)
 		if mc != 1 {
 			t.Error("MC should be 1")
 		}

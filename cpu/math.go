@@ -6,49 +6,58 @@ import (
 
 func inc8bit(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		origB, mc := dst.Load(c)
+		var cycles go_gb.MC
+		origB := dst.Load(c, &cycles)
 		orig := origB[0]
 		bytes := uint16(orig) + 1
 		result := byte(bytes)
 		c.setFlag(BitZ, bytes == 0)
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, (bytes&0xF)+1 > 0xF) // TODO: probably wrong
-		return mc + dst.Store(c, []byte{result})
+		dst.Store(c, []byte{result}, &cycles)
+		return cycles
 	}
 }
 
 func inc16bit(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := dst.Load(c)
-		return mc + dst.Store(c, go_gb.LsbMsbBytes(go_gb.FromBytes(bytes)+1, true))
+		var cycles go_gb.MC
+		bytes := dst.Load(c, &cycles)
+		dst.Store(c, go_gb.ToBytes(go_gb.FromBytes(bytes)+1, true), &cycles)
+		return cycles
 	}
 }
 
 func dec8bit(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		origB, mc := dst.Load(c)
+		var cycles go_gb.MC
+		origB := dst.Load(c, &cycles)
 		orig := origB[0]
 		bytes := int16(orig) - 1
 		result := byte(bytes)
 		c.setFlag(BitZ, bytes == 0)
 		c.setFlag(BitN, true)
 		c.setFlag(BitH, (int16(orig)&0xF)-1 < 0) // TODO: probably wrong
-		return mc + dst.Store(c, []byte{result})
+		dst.Store(c, []byte{result}, &cycles)
+		return cycles
 	}
 }
 
 func dec16bit(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := dst.Load(c)
-		return mc + dst.Store(c, go_gb.LsbMsbBytes(uint16(int16(go_gb.FromBytes(bytes))-1), true))
+		var cycles go_gb.MC
+		bytes := dst.Load(c, &cycles)
+		dst.Store(c, go_gb.ToBytes(uint16(int16(go_gb.FromBytes(bytes))-1), true), &cycles)
+		return cycles
 	}
 }
 
 func add8b(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := src.Load(c)
+		var cycles go_gb.MC
+		bytes := src.Load(c, &cycles)
 		srcVal := uint16(bytes[0])
-		bytes, mc2 := dst.Load(c)
+		bytes = dst.Load(c, &cycles)
 		orig := uint16(bytes[0])
 		dstVal := orig + srcVal
 
@@ -57,44 +66,50 @@ func add8b(dst, src Ptr) Instr {
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, (orig&0xF)+(srcVal&0xF) > 0xF)
 		c.setFlag(BitC, (dstVal&0x100) != 0)
-		return mc + mc2 + dst.Store(c, []byte{result})
+		dst.Store(c, []byte{result}, &cycles)
+		return cycles
 	}
 }
 
 func add16b(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := dst.Load(c)
+		var cycles go_gb.MC
+		bytes := dst.Load(c, &cycles)
 		dstVal := go_gb.FromBytes(bytes)
-		bytes, mc2 := src.Load(c)
+		bytes = src.Load(c, &cycles)
 		srcVal := go_gb.FromBytes(bytes)
 		result := dstVal + srcVal
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, ((dstVal&0xFFF)+(srcVal&0xFFF))&0x1000 != 0)
 		c.setFlag(BitC, result > 0xFFFF)
-		return mc + mc2 + dst.Store(c, go_gb.LsbMsbBytes(result, true)) + 1
+		dst.Store(c, go_gb.ToBytes(result, true), &cycles)
+		return cycles + 1
 	}
 }
 
 func addSp(c *cpu) go_gb.MC {
+	var cycles go_gb.MC
 	sp := sp()
 	d := dx(8)
-	bytes, mc := sp.Load(c)
+	bytes := sp.Load(c, &cycles)
 	orig := int16(go_gb.FromBytes(bytes))
-	val, mc2 := d.Load(c)
+	val := d.Load(c, &cycles)
 	result := orig + int16(val[0])
 
 	c.setFlag(BitZ, false)
 	c.setFlag(BitN, false)
 	c.setFlag(BitH, (result&0xF) < (orig&0xF))
 	c.setFlag(BitC, (result&0xFF) < (orig&0xFF))
-	return mc + mc2 + sp.Store(c, go_gb.LsbMsbBytes(uint16(result), true))
+	sp.Store(c, go_gb.ToBytes(uint16(result), true), &cycles)
+	return cycles
 }
 
 func adc8b(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := src.Load(c)
+		var cycles go_gb.MC
+		bytes := src.Load(c, &cycles)
 		srcVal := uint16(bytes[0])
-		bytes, mc2 := dst.Load(c)
+		bytes = dst.Load(c, &cycles)
 		orig := uint16(bytes[0])
 		carry := go_gb.BitToUint16(c.getFlag(BitC))
 		dstVal := orig + srcVal + carry
@@ -104,15 +119,17 @@ func adc8b(dst, src Ptr) Instr {
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, (orig&0xF)+(srcVal&0xF)+carry > 0xF)
 		c.setFlag(BitC, (dstVal&0x100) != 0)
-		return mc + mc2 + dst.Store(c, []byte{result})
+		dst.Store(c, []byte{result}, &cycles)
+		return cycles
 	}
 }
 
 func sub(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := src.Load(c)
+		var cycles go_gb.MC
+		bytes := src.Load(c, &cycles)
 		srcVal := int16(bytes[0])
-		bytes, mc2 := dst.Load(c)
+		bytes = dst.Load(c, &cycles)
 		orig := int16(bytes[0])
 		dstVal := orig - srcVal
 
@@ -121,15 +138,17 @@ func sub(dst, src Ptr) Instr {
 		c.setFlag(BitN, true)
 		c.setFlag(BitH, (orig&0xF)-(srcVal&0xF) < 0)
 		c.setFlag(BitC, dstVal < 0)
-		return mc + mc2 + dst.Store(c, []byte{result})
+		dst.Store(c, []byte{result}, &cycles)
+		return cycles
 	}
 }
 
 func sbc(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := src.Load(c)
+		var cycles go_gb.MC
+		bytes := src.Load(c, &cycles)
 		srcVal := int16(bytes[0])
-		bytes, mc2 := dst.Load(c)
+		bytes = dst.Load(c, &cycles)
 		orig := int16(bytes[0])
 		carry := go_gb.BitToInt16(c.getFlag(BitC))
 		dstVal := orig - srcVal - carry
@@ -139,7 +158,8 @@ func sbc(dst, src Ptr) Instr {
 		c.setFlag(BitN, true)
 		c.setFlag(BitH, (orig&0xF)-(srcVal&0xF)-carry < 0)
 		c.setFlag(BitC, dstVal < 0)
-		return mc + mc2 + dst.Store(c, []byte{result})
+		dst.Store(c, []byte{result}, &cycles)
+		return cycles
 	}
 }
 
@@ -149,9 +169,10 @@ func daa(c *cpu) go_gb.MC {
 
 func cp(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := src.Load(c)
+		var cycles go_gb.MC
+		bytes := src.Load(c, &cycles)
 		srcVal := int16(bytes[0])
-		bytes, mc2 := dst.Load(c)
+		bytes = dst.Load(c, &cycles)
 		orig := int16(bytes[0])
 		dstVal := orig - srcVal
 
@@ -160,6 +181,7 @@ func cp(dst, src Ptr) Instr {
 		c.setFlag(BitN, true)
 		c.setFlag(BitH, (orig&0xF)-(srcVal&0xF) < 0)
 		c.setFlag(BitC, dstVal < 0)
-		return mc + mc2 + dst.Store(c, []byte{result})
+		dst.Store(c, []byte{result}, &cycles)
+		return cycles
 	}
 }

@@ -7,11 +7,11 @@ import (
 )
 
 type Store interface {
-	Store(c *cpu, b []byte) go_gb.MC
+	Store(c *cpu, b []byte, mc *go_gb.MC)
 }
 
 type Loader interface {
-	Load(c *cpu) ([]byte, go_gb.MC)
+	Load(c *cpu, mc *go_gb.MC) []byte
 }
 
 type Ptr interface {
@@ -55,13 +55,12 @@ func mem(ptr Ptr) mPtr {
 	return mPtr{ptr}
 }
 
-func (r reg) Store(c *cpu, b []byte) go_gb.MC {
+func (r reg) Store(c *cpu, b []byte, mc *go_gb.MC) {
 	copy(c.getRegister(r.addr), b)
-	return 0
 }
 
-func (r reg) Load(c *cpu) ([]byte, go_gb.MC) {
-	return c.getRegister(r.addr), 0
+func (r reg) Load(c *cpu, mc *go_gb.MC) []byte {
+	return c.getRegister(r.addr)
 }
 
 type offset struct {
@@ -69,13 +68,13 @@ type offset struct {
 	offset int
 }
 
-func (o offset) Store(c *cpu, b []byte) go_gb.MC {
-	return o.dst.Store(c, go_gb.LsbMsbBytes(uint16(int(go_gb.FromBytes(b))+o.offset), len(b) == 2 || o.offset > 0xFF))
+func (o offset) Store(c *cpu, b []byte, mc *go_gb.MC) {
+	o.dst.Store(c, go_gb.ToBytes(uint16(int(go_gb.FromBytes(b))+o.offset), len(b) == 2 || o.offset > 0xFF), mc)
 }
 
-func (o offset) Load(c *cpu) ([]byte, go_gb.MC) {
-	bytes, mc := o.dst.Load(c)
-	return go_gb.LsbMsbBytes(uint16(int(go_gb.FromBytes(bytes))+o.offset), len(bytes) == 2 || o.offset > 0xFF), mc
+func (o offset) Load(c *cpu, mc *go_gb.MC) []byte {
+	bytes := o.dst.Load(c, mc)
+	return go_gb.ToBytes(uint16(int(go_gb.FromBytes(bytes))+o.offset), len(bytes) == 2 || o.offset > 0xFF)
 }
 
 func off(dst Ptr, o int) offset {
@@ -86,16 +85,15 @@ type mPtr struct {
 	addr Ptr
 }
 
-func (m mPtr) Store(c *cpu, b []byte) go_gb.MC {
-	bytes, mc := m.addr.Load(c)
-	mc += c.memory.StoreBytes(go_gb.FromBytes(bytes), b)
-	return mc
+func (m mPtr) Store(c *cpu, b []byte, mc *go_gb.MC) {
+	bytes := m.addr.Load(c, mc)
+	c.memory.StoreBytes(go_gb.FromBytes(bytes), b, mc)
 }
 
-func (m mPtr) Load(c *cpu) ([]byte, go_gb.MC) {
-	pointerAddr, mc := m.addr.Load(c)
-	result, m2 := c.memory.ReadBytes(go_gb.FromBytes(pointerAddr), 1)
-	return result, mc + m2
+func (m mPtr) Load(c *cpu, mc *go_gb.MC) []byte {
+	pointerAddr := m.addr.Load(c, mc)
+	result := c.memory.ReadBytes(go_gb.FromBytes(pointerAddr), 1, mc)
+	return result
 }
 
 type data struct {
@@ -104,59 +102,61 @@ type data struct {
 
 var InvalidStoreErr = errors.New("invalid store call")
 
-func (d data) Store(c *cpu, b []byte) go_gb.MC {
+func (d data) Store(c *cpu, b []byte, mc *go_gb.MC) {
 	panic(InvalidStoreErr)
 }
 
-func (d data) Load(c *cpu) ([]byte, go_gb.MC) {
-	var cycles go_gb.MC
+func (d data) Load(c *cpu, mc *go_gb.MC) []byte {
 	n := d.size / 8
 	bytes := make([]byte, n)
 	for i := 0; i < n; i++ {
-		b, mc := c.readOpcode()
+		b := c.readOpcode(mc)
 		bytes[i] = b
-		cycles += mc
 	}
-	return bytes, cycles
+	return bytes
 }
 
 type stackPtr struct {
 }
 
-func (s stackPtr) Store(c *cpu, b []byte) go_gb.MC {
+func (s stackPtr) Store(c *cpu, b []byte, mc *go_gb.MC) {
 	if len(b) != 2 {
 		panic(fmt.Errorf("invalid SP store %v", b))
 	}
 	c.sp = go_gb.FromBytes(b)
-	return 1
+	if mc != nil {
+		*mc += 1
+	}
 }
 
-func (s stackPtr) Load(c *cpu) ([]byte, go_gb.MC) {
-	return go_gb.LsbMsbBytes(c.sp, true), 1
+func (s stackPtr) Load(c *cpu, mc *go_gb.MC) []byte {
+	if mc != nil {
+		*mc += 1
+	}
+	return go_gb.ToBytes(c.sp, true)
 }
 
 type pc struct {
 }
 
-func (p pc) Store(c *cpu, b []byte) go_gb.MC {
+func (p pc) Store(c *cpu, b []byte, mc *go_gb.MC) {
 	c.pc = go_gb.FromBytes(b)
-	return 0
 }
 
-func (p pc) Load(c *cpu) ([]byte, go_gb.MC) {
-	return go_gb.LsbMsbBytes(c.pc, true), 0
+func (p pc) Load(c *cpu, mc *go_gb.MC) []byte {
+	return go_gb.ToBytes(c.pc, true)
 }
 
 type hardcoded struct {
 	val byte
 }
 
-func (h hardcoded) Store(c *cpu, b []byte) go_gb.MC {
+func (h hardcoded) Store(c *cpu, b []byte, mc *go_gb.MC) {
 	panic(InvalidStoreErr)
 }
 
-func (h hardcoded) Load(c *cpu) ([]byte, go_gb.MC) {
-	return []byte{h.val}, 0
+func (h hardcoded) Load(c *cpu, mc *go_gb.MC) []byte {
+	return []byte{h.val}
 }
 
 func hc(b byte) hardcoded {

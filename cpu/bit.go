@@ -4,31 +4,33 @@ import go_gb "go-gb"
 
 func bit(bit hardcoded, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := src.Load(c)
-		bitAddr, mc2 := bit.Load(c)
-		c.setFlag(BitZ, go_gb.Bit(bytes[0], int(bitAddr[0])))
+		var cycles go_gb.MC
+		c.setFlag(BitZ, go_gb.Bit(src.Load(c, &cycles)[0], int(bit.Load(c, &cycles)[0])))
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, true)
-		return mc + mc2
+		return cycles
 	}
 }
 
 func set(bit hardcoded, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		b, mc := src.Load(c)
-		bytes, mc2 := bit.Load(c)
+		var cycles go_gb.MC
+		b := src.Load(c, &cycles)
+		bytes := bit.Load(c, &cycles)
+
 		go_gb.Set(&b[0], int(bytes[0]), true)
-		src.Store(c, []byte{b[0]})
-		return mc + mc2
+		src.Store(c, []byte{b[0]}, &cycles)
+		return cycles
 	}
 }
 
 func res(bit hardcoded, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		b, mc := src.Load(c)
-		bytes, mc2 := bit.Load(c)
+		var cycles go_gb.MC
+		b := src.Load(c, &cycles)
+		bytes := bit.Load(c, &cycles)
 		go_gb.Set(&b[0], int(bytes[0]), false)
-		src.Store(c, []byte{b[0]})
-		return mc + mc2
+		src.Store(c, []byte{b[0]}, &cycles)
+		return cycles
 	}
 }

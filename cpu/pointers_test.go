@@ -11,7 +11,8 @@ func TestReg_Load(t *testing.T) {
 	input := byte(0xFA)
 	c.r[A] = input
 	a := rx(A)
-	result, mc := a.Load(c)
+	var mc go_gb.MC
+	result := a.Load(c, &mc)
 	if len(result) != 1 {
 		t.Errorf("expected len 1, got %d\n", len(result))
 	}
@@ -24,21 +25,27 @@ func TestReg_Load(t *testing.T) {
 }
 
 func TestReg_Store(t *testing.T) {
+	var mc go_gb.MC
 	c := NewCpu()
 	input := byte(0xFA)
-	rx(A).Store(c, []byte{input})
+	rx(A).Store(c, []byte{input}, &mc)
 	if input != c.r[A] {
 		t.Errorf("expected %X, got %X\n", input, c.r[A])
+	}
+	if mc != 0 {
+		t.Error("MC should be 0")
 	}
 }
 
 func TestReg_Load16bit(t *testing.T) {
+	var mc go_gb.MC
+
 	c := NewCpu()
 	input := []byte{0xFA, 0xCE}
-	c.r[A] = input[0]
-	c.r[F] = input[1]
+	c.r[A] = input[1]
+	c.r[F] = input[0]
 	a := rx(AF)
-	result := a.Load(c)
+	result := a.Load(c, &mc)
 	if len(result) != 2 {
 		t.Errorf("expected len 2, got %d\n", len(result))
 	}
@@ -47,43 +54,61 @@ func TestReg_Load16bit(t *testing.T) {
 			t.Errorf("expected result %X, got %X\n", input[i], res)
 		}
 	}
+	if mc != 0 {
+		t.Error("MC should be 0")
+	}
 }
 
 func TestReg_Store16bit(t *testing.T) {
+	var mc go_gb.MC
+
 	c := NewCpu()
 	input := []byte{0xFA, 0xCE}
-	rx(AF).Store(c, input)
+	rx(AF).Store(c, input, &mc)
 	for i, res := range c.rMap[AF] {
 		if res != input[i] {
 			t.Errorf("expected result %X, got %X\n", input[i], res)
 		}
 	}
+	if mc != 0 {
+		t.Error("MC should be 0")
+	}
 }
 
 func TestMPtr_Load(t *testing.T) {
+	var mc go_gb.MC
 	c := NewCpu()
-	input := []byte{0x01, 0x02, 0xAB}
+	input := []byte{0x02, 0x01, 0xAB}
 	addr := c.pc
-	c.memory.StoreBytes(addr, input)
+	c.memory.StoreBytes(addr, input, nil)
 	expected := []byte{0xAB}
-	bytes := md(16).Load(c)
+	bytes := md(16).Load(c, &mc)
 	for i := range bytes {
 		if bytes[i] != expected[i] {
 			t.Errorf("expected %X, got %X\n", expected[i], bytes[i])
 		}
 	}
+	expectedMC := go_gb.MC(3)
+	if mc != expectedMC {
+		t.Errorf("expected MC %d, got %d\n", expectedMC, mc)
+	}
 }
 
 func TestMPtr_Store(t *testing.T) {
+	var mc go_gb.MC
+
 	c := NewCpu()
-	input := []byte{0x01, 0x02, 0xBD}
-	input = []byte{0xBD, 0xFE}
-	md(16).Store(c, input)
-	result := c.memory.ReadBytes(0, 2)
+	input := []byte{0xFE, 0xBD}
+	md(16).Store(c, input, &mc)
+	result := c.memory.ReadBytes(0, 2, nil)
 	for i := range result {
 		if result[i] != input[i] {
 			t.Errorf("expected %X, got %X\n", input[i], result[i])
 		}
+	}
+	expected := go_gb.MC(4)
+	if mc != expected {
+		t.Errorf("expected MC %d, got %d\n", expected, mc)
 	}
 }
 
@@ -95,29 +120,41 @@ func TestData_Store(t *testing.T) {
 		}
 		t.Log("invalid store has been called")
 	}()
-	dx(16).Store(NewCpu(), []byte{})
+	dx(16).Store(NewCpu(), []byte{}, nil)
 }
 
 func TestData_Load(t *testing.T) {
+	var mc go_gb.MC
+
 	c := NewCpu()
 	input := []byte{1, 2}
-	c.memory.StoreBytes(c.pc, input)
-	bytes := dx(16).Load(c)
+	c.memory.StoreBytes(c.pc, input, nil)
+	bytes := dx(16).Load(c, &mc)
 	for i := range bytes {
 		if bytes[i] != input[i] {
 			t.Errorf("expected %X, got %X\n", input[i], bytes[i])
 		}
 	}
+	expected := go_gb.MC(2)
+	if mc != expected {
+		t.Errorf("expected MC %d, got %d\n", expected, mc)
+	}
 }
 
 func TestHardcoded_Load(t *testing.T) {
+	var mc go_gb.MC
+
 	c := NewCpu()
-	bytes := hc(4).Load(c)
+	bytes := hc(4).Load(c, &mc)
 	if len(bytes) != 1 {
 		t.Fatal("invalid bytes length")
 	}
 	if bytes[0] != 4 {
 		t.Errorf("expected 4, got %d\n", bytes[0])
+	}
+	expected := go_gb.MC(0)
+	if mc != expected {
+		t.Errorf("expected MC %d, got %d\n", expected, mc)
 	}
 }
 
@@ -129,92 +166,133 @@ func TestHardcoded_Store(t *testing.T) {
 		}
 		t.Log("invalid store has been called")
 	}()
-	hc(6).Store(NewCpu(), []byte{})
+	hc(6).Store(NewCpu(), []byte{}, nil)
 }
 
 func TestMr(t *testing.T) {
+	var mc go_gb.MC
+
 	c := NewCpu()
 	expected := byte(0xFE)
 	c.r[B] = 0x01
 	c.r[C] = 0x02
-	c.memory.Store(0x0102, expected)
-	bytes := mr(BC).Load(c)
+	c.memory.Store(0x0102, expected, nil)
+	bytes := mr(BC).Load(c, &mc)
 	if len(bytes) != 1 {
 		t.Errorf("expected len 1, got %d\n", len(bytes))
 	}
 	if bytes[0] != expected {
 		t.Errorf("expected %X, got %X\n", expected, bytes[0])
 	}
+	expectedMC := go_gb.MC(1)
+	if mc != expectedMC {
+		t.Errorf("expected MC %d, got %d\n", expectedMC, mc)
+	}
 }
 
 func TestOffset_Load_Reg(t *testing.T) { // offset doesn't work
+	var mc go_gb.MC
+
 	c := NewCpu()
 	c.rMap[F][0] = 0xAB
 	o := off(rx(AF), 0xFF00)
 	expected := uint16(0xFFAB)
-	result := go_gb.FromBytes(o.Load(c))
+	result := go_gb.FromBytes(o.Load(c, &mc))
 	if result != expected {
 		t.Errorf("expected %X, got %X\n", expected, result)
+	}
+	expectedMc := go_gb.MC(0)
+	if mc != expectedMc {
+		t.Errorf("expected MC %d, got %d\n", expectedMc, mc)
 	}
 }
 
 func TestOffset_Store_Reg(t *testing.T) { // offset doesn't work
+	var mc go_gb.MC
+
 	c := NewCpu()
 	o := off(rx(A), 0xA0)
 	expected := byte(0xAB)
-	o.Store(c, []byte{0x0B})
+	o.Store(c, []byte{0x0B}, &mc)
 	result := c.rMap[A][0]
 	if result != expected {
 		t.Errorf("expected %X, got %X\n", expected, result)
 	}
+	expectedMc := go_gb.MC(0)
+	if mc != expectedMc {
+		t.Errorf("expected MC %d, got %d\n", expectedMc, mc)
+	}
 }
 
 func TestOffset_Load_Mptr8bit(t *testing.T) {
+	var mc go_gb.MC
 	c := NewCpu()
-	c.rMap[A][0] = 0xAA
+	c.r[A] = 0xAA
 	expected := byte(0xF1)
-	c.memory.Store(0xFFAA, expected)
-	c.memory.Store(c.pc, 0xAA)
+	c.memory.Store(0xFFAA, expected, nil)
+	c.memory.Store(c.pc, 0xAA, nil)
 	o := mem(off(dx(8), 0xFF00))
-	result := o.Load(c)[0]
+	result := o.Load(c, &mc)[0]
 	if result != expected {
 		t.Errorf("expected %X, got %X\n", expected, result)
+	}
+	expectedMc := go_gb.MC(2)
+	if mc != expectedMc {
+		t.Errorf("expected MC %d, got %d\n", expectedMc, mc)
 	}
 }
 
 func TestOffset_Load_Mptr16bit(t *testing.T) {
+	var mc go_gb.MC
+
 	c := NewCpu()
-	c.rMap[A][0] = 0xAA
+	c.r[A] = 0xAA
 	expected := byte(0xF1)
-	c.memory.Store(0xFFAA, expected)
-	c.memory.StoreBytes(c.pc, []byte{0x00, 0xAA})
+	c.memory.Store(0xFFAA, expected, nil)
+	c.memory.StoreBytes(c.pc, []byte{0xAA}, nil)
 	o := mem(off(dx(16), 0xFF00))
-	result := o.Load(c)[0]
+	result := o.Load(c, &mc)[0]
 	if result != expected {
 		t.Errorf("expected %X, got %X\n", expected, result)
+	}
+	expectedMc := go_gb.MC(3)
+	if mc != expectedMc {
+		t.Errorf("expected MC %d, got %d\n", expectedMc, mc)
 	}
 }
 
 func TestOffset_Store_Mptr8bit(t *testing.T) {
+	var mc go_gb.MC
+
 	c := NewCpu()
 	expected := byte(0xAB)
-	c.memory.Store(c.pc, 0xAB)
+	c.memory.Store(c.pc, 0xAB, nil)
 	o := mem(off(dx(8), 0xFF00))
-	o.Store(c, []byte{expected})
-	result := c.memory.Read(0xFFAB)
+	o.Store(c, []byte{expected}, &mc)
+	result := c.memory.Read(0xFFAB, nil)
 	if result != expected {
 		t.Errorf("expected %X, got %X\n", expected, result)
+	}
+	expectedMc := go_gb.MC(2)
+	if mc != expectedMc {
+		t.Errorf("expected MC %d, got %d\n", expectedMc, mc)
 	}
 }
 
 func TestOffset_Store_Mptr16bit(t *testing.T) {
+	var mc go_gb.MC
+
 	c := NewCpu()
 	expected := byte(0xAB)
-	c.memory.StoreBytes(c.pc, []byte{0x02, 0x34})
+	c.memory.StoreBytes(c.pc, []byte{0x34, 0x02}, nil)
 	o := mem(off(dx(16), 0xAAAA))
-	o.Store(c, []byte{expected})
-	result := c.memory.Read(0xACDE)
+	o.Store(c, []byte{expected}, &mc)
+	result := c.memory.Read(0xACDE, nil)
 	if result != expected {
 		t.Errorf("expected %X, got %X\n", expected, result)
+	}
+	expectedMc := go_gb.MC(3)
+	if mc != expectedMc {
+		t.Errorf("expected MC %d, got %d\n", expectedMc, mc)
 	}
 }

@@ -35,25 +35,35 @@ type mmap struct {
 	memory     []byte
 }
 
-func (m *mmap) ReadBytes(pointer, n uint16) ([]byte, MC) {
+func (m *mmap) ReadBytes(pointer, n uint16, mc *MC) []byte {
 	i := pointer - m.start
-	return m.memory[i : i+n], MC(n)
+	if mc != nil {
+		*mc += MC(n)
+	}
+	return m.memory[i : i+n]
 }
 
-func (m *mmap) Read(pointer uint16) (byte, MC) {
+func (m *mmap) Read(pointer uint16, mc *MC) byte {
 	i := pointer - m.start
-	return m.memory[i], 1
+	if mc != nil {
+		*mc += 1
+	}
+	return m.memory[i]
 }
 
-func (m *mmap) StoreBytes(pointer uint16, bytes []byte) MC {
+func (m *mmap) StoreBytes(pointer uint16, bytes []byte, mc *MC) {
 	i := pointer - m.start
 	copy(m.memory[i:i+uint16(len(bytes))+1], bytes)
-	return MC(len(bytes))
+	if mc != nil {
+		*mc += MC(len(bytes))
+	}
 }
 
-func (m *mmap) Store(pointer uint16, val byte) MC {
+func (m *mmap) Store(pointer uint16, val byte, mc *MC) {
 	m.memory[pointer-m.start] = val
-	return 1
+	if mc != nil {
+		*mc += 1
+	}
 }
 
 func newMmap(start uint16, end uint16, memory []byte) *mmap {
@@ -143,20 +153,18 @@ func (m *MemoryBus) Route(pointer uint16) *mmap {
 	panic(fmt.Errorf("invalid pointer %X", pointer))
 }
 
-func (m *MemoryBus) ReadBytes(pointer, n uint16) ([]byte, MC) {
-	return m.Route(pointer).ReadBytes(pointer, n)
+func (m *MemoryBus) ReadBytes(pointer, n uint16, mc *MC) []byte {
+	return m.Route(pointer).ReadBytes(pointer, n, mc)
 }
 
-func (m *MemoryBus) Read(pointer uint16) (byte, MC) {
-	return m.Route(pointer).Read(pointer)
+func (m *MemoryBus) Read(pointer uint16, mc *MC) byte {
+	return m.Route(pointer).Read(pointer, mc)
 }
 
-func (m *MemoryBus) StoreBytes(pointer uint16, bytes []byte) MC {
-	m.Route(pointer).StoreBytes(pointer, bytes)
-	return MC(len(bytes))
+func (m *MemoryBus) StoreBytes(pointer uint16, bytes []byte, mc *MC) {
+	m.Route(pointer).StoreBytes(pointer, bytes, mc)
 }
 
-func (m *MemoryBus) Store(pointer uint16, val byte) MC {
-	m.Route(pointer).Store(pointer, val)
-	return MC(1)
+func (m *MemoryBus) Store(pointer uint16, val byte, mc *MC) {
+	m.Route(pointer).Store(pointer, val, mc)
 }

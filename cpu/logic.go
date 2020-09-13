@@ -11,7 +11,8 @@ func rrca(c *cpu) go_gb.MC {
 }
 
 func r(c *cpu, dst Ptr, left bool) go_gb.MC {
-	bytes, mc := dst.Load(c)
+	var cycles go_gb.MC
+	bytes := dst.Load(c, &cycles)
 	b := bytes[0]
 	var old byte
 	carry := c.getFlag(BitC)
@@ -28,12 +29,12 @@ func r(c *cpu, dst Ptr, left bool) go_gb.MC {
 			b |= 0x80
 		}
 	}
-	mc += dst.Store(c, []byte{b})
+	dst.Store(c, []byte{b}, &cycles)
 	c.setFlag(BitZ, b == 0)
 	c.setFlag(BitN, false)
 	c.setFlag(BitH, false)
 	c.setFlag(BitC, old == 1)
-	return mc
+	return cycles
 }
 
 func rla(c *cpu) go_gb.MC {
@@ -46,9 +47,11 @@ func rra(c *cpu) go_gb.MC {
 
 func and(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := src.Load(c)
+		var cycles go_gb.MC
+
+		bytes := src.Load(c, &cycles)
 		srcVal := bytes[0]
-		bytes, mc2 := dst.Load(c)
+		bytes = dst.Load(c, &cycles)
 		orig := bytes[0]
 		dstVal := orig & srcVal
 
@@ -56,15 +59,18 @@ func and(dst, src Ptr) Instr {
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, true)
 		c.setFlag(BitC, false)
-		return mc + mc2 + dst.Store(c, []byte{dstVal})
+		dst.Store(c, []byte{dstVal}, &cycles)
+		return cycles
 	}
 }
 
 func xor(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := src.Load(c)
+		var cycles go_gb.MC
+
+		bytes := src.Load(c, &cycles)
 		srcVal := bytes[0]
-		bytes, mc2 := dst.Load(c)
+		bytes = dst.Load(c, &cycles)
 		orig := bytes[0]
 		dstVal := orig ^ srcVal
 
@@ -72,15 +78,17 @@ func xor(dst, src Ptr) Instr {
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, false)
 		c.setFlag(BitC, false)
-		return mc + mc2 + dst.Store(c, []byte{dstVal})
+		dst.Store(c, []byte{dstVal}, &cycles)
+		return cycles
 	}
 }
 
 func or(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := src.Load(c)
+		var cycles go_gb.MC
+		bytes := src.Load(c, &cycles)
 		srcVal := bytes[0]
-		bytes, mc2 := dst.Load(c)
+		bytes = dst.Load(c, &cycles)
 		orig := bytes[0]
 		dstVal := orig | srcVal
 
@@ -88,7 +96,8 @@ func or(dst, src Ptr) Instr {
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, false)
 		c.setFlag(BitC, false)
-		return mc + mc2 + dst.Store(c, []byte{dstVal})
+		dst.Store(c, []byte{dstVal}, &cycles)
+		return cycles
 	}
 }
 
@@ -101,7 +110,8 @@ func cpl(c *cpu) go_gb.MC {
 }
 
 func rc(c *cpu, dst Ptr, left, resetZ bool) go_gb.MC {
-	bytes, mc := dst.Load(c)
+	var cycles go_gb.MC
+	bytes := dst.Load(c, &cycles)
 	b := bytes[0]
 	var old byte
 	if left {
@@ -113,7 +123,7 @@ func rc(c *cpu, dst Ptr, left, resetZ bool) go_gb.MC {
 		b >>= 1
 		b |= old << 7
 	}
-	mc += dst.Store(c, []byte{b})
+	dst.Store(c, []byte{b}, &cycles)
 	if resetZ {
 		c.setFlag(BitZ, false)
 	} else {
@@ -122,7 +132,7 @@ func rc(c *cpu, dst Ptr, left, resetZ bool) go_gb.MC {
 	c.setFlag(BitN, false)
 	c.setFlag(BitH, false)
 	c.setFlag(BitC, old == 1)
-	return mc
+	return cycles
 }
 
 func rlc(dst Ptr) Instr {
@@ -150,7 +160,8 @@ func rr(dst Ptr) Instr {
 }
 
 func sa(c *cpu, dst Ptr, left bool) go_gb.MC {
-	bytes, mc := dst.Load(c)
+	var cycles go_gb.MC
+	bytes := dst.Load(c, &cycles)
 	b := bytes[0]
 	var old byte
 	if left {
@@ -160,12 +171,12 @@ func sa(c *cpu, dst Ptr, left bool) go_gb.MC {
 		old = b & 1
 		b >>= 1
 	}
-	mc += dst.Store(c, []byte{b})
+	dst.Store(c, []byte{b}, &cycles)
 	c.setFlag(BitZ, b == 0)
 	c.setFlag(BitN, false)
 	c.setFlag(BitH, false)
 	c.setFlag(BitC, old == 1)
-	return mc
+	return cycles
 }
 
 func sla(dst Ptr) Instr {
@@ -176,19 +187,20 @@ func sla(dst Ptr) Instr {
 
 func sra(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := dst.Load(c)
+		var cycles go_gb.MC
+		bytes := dst.Load(c, &cycles)
 		b := bytes[0]
 		var old byte
 		msb := b & 0xF0
 		old = b & 1
 		b >>= 1
 		b |= msb
-		mc += dst.Store(c, []byte{b})
+		dst.Store(c, []byte{b}, &cycles)
 		c.setFlag(BitZ, b == 0)
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, false)
 		c.setFlag(BitC, old == 1)
-		return mc
+		return cycles
 	}
 }
 
@@ -201,17 +213,18 @@ func srl(dst Ptr) Instr {
 
 func swap(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := dst.Load(c)
+		var cycles go_gb.MC
+		bytes := dst.Load(c, &cycles)
 		val := bytes[0]
 		msn := val & 0xF0
 		lsn := val & 0x0F
 		result := (msn >> 4) | (lsn << 4)
-		mc += dst.Store(c, []byte{result})
+		dst.Store(c, []byte{result}, &cycles)
 
 		c.setFlag(BitZ, result == 0)
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, false)
 		c.setFlag(BitC, false)
-		return mc
+		return cycles
 	}
 }

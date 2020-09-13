@@ -31,21 +31,21 @@ func checkReg(c *cpu, reg registerName) func() []byte {
 
 func checkMr(c *cpu, reg registerName) func() []byte {
 	return func() []byte {
-		return c.memory.ReadBytes(go_gb.FromBytes(c.rMap[reg]), 1)
+		return c.memory.ReadBytes(go_gb.FromBytes(c.rMap[reg]), 1, nil)
 	}
 }
 
 func checkSp(c *cpu) func() []byte {
 	return func() []byte {
-		return go_gb.LsbMsbBytes(c.sp, true)
+		return go_gb.ToBytes(c.sp, true)
 	}
 }
 
 func checkMd(c *cpu, i int) func() []byte {
 	offset := i / 8
 	return func() []byte {
-		addr := go_gb.FromBytes(c.memory.ReadBytes(c.pc-2, uint16(offset)))
-		return c.memory.ReadBytes(addr, 2)
+		addr := go_gb.FromBytes(c.memory.ReadBytes(c.pc-2, uint16(offset), nil))
+		return c.memory.ReadBytes(addr, 2, nil)
 	}
 }
 
@@ -65,10 +65,10 @@ func TestLoad(t *testing.T) {
 		{nil, checkReg(c, H), load(rx(H), dx(8)), []byte{0x58}},
 		{nil, checkMr(c, HL), load(mr(HL), dx(8)), []byte{0x59}},
 
-		{func() { c.sp = 0xFFFE }, checkMd(c, 16), load(md(16), sp()), []byte{0xFF, 0xFE}},
+		{func() { c.sp = 0xFFFE }, checkMd(c, 16), load(md(16), sp()), []byte{0xFE, 0xFF}},
 
-		{func() { c.memory.StoreBytes(0, []byte{0x0A}); c.rMap[BC][0] = 0; c.rMap[BC][1] = 0 }, checkReg(c, A), load(rx(A), mr(BC)), []byte{0x0A}},
-		{func() { c.memory.StoreBytes(0, []byte{0x1A}); c.rMap[DE][0] = 0; c.rMap[DE][1] = 0 }, checkReg(c, A), load(rx(A), mr(DE)), []byte{0x1A}},
+		{func() { c.memory.StoreBytes(0, []byte{0x0A}, nil); c.rMap[BC][0] = 0; c.rMap[BC][1] = 0 }, checkReg(c, A), load(rx(A), mr(BC)), []byte{0x0A}},
+		{func() { c.memory.StoreBytes(0, []byte{0x1A}, nil); c.rMap[DE][0] = 0; c.rMap[DE][1] = 0 }, checkReg(c, A), load(rx(A), mr(DE)), []byte{0x1A}},
 
 		{nil, checkReg(c, C), load(rx(C), dx(8)), []byte{0x5A}},
 		{nil, checkReg(c, E), load(rx(E), dx(8)), []byte{0x5B}},
@@ -81,22 +81,20 @@ func TestLoad(t *testing.T) {
 		0x56, 0x57, 0x58, 0x59,
 		0x00, 0x00, // load (nn), SP test moves PC
 		0x5A, 0x5B, 0x5C, 0x5D,
-	})
+	}, nil)
 	for i, test := range table {
 		if test.prepare != nil {
 			test.prepare()
 		}
-		if err := test.in(c); err != nil {
-			t.Error(err)
-		}
+		test.in(c)
 		checkBytes(i+1, t, test.expected, test.results())
 	}
 }
 
 func TestLoadHl(t *testing.T) {
 	c := NewCpu()
-	c.rMap[HL][0] = 0xAB
-	c.rMap[HL][1] = 0xCD
+	c.rMap[HL][1] = 0xAB
+	c.rMap[HL][0] = 0xCD
 	hlLSB := byte(0xCD)
 	check := func(inc bool) func() []byte {
 		return func() []byte {
@@ -105,7 +103,7 @@ func TestLoadHl(t *testing.T) {
 			} else {
 				hlLSB -= 1
 			}
-			if c.rMap[HL][0] != 0xAB || c.rMap[HL][1] != hlLSB {
+			if c.rMap[HL][1] != 0xAB || c.rMap[HL][0] != hlLSB {
 				t.Errorf("expected HL to be %v, got %v\n", []byte{0xAB, hlLSB}, c.rMap[HL])
 			}
 			return c.rMap[A]
@@ -116,17 +114,15 @@ func TestLoadHl(t *testing.T) {
 		{nil, check(true), ldHl(nil, rx(A), true), []byte{0x69}},
 		{nil, check(false), ldHl(nil, rx(A), false), []byte{0x69}},
 
-		{func() { c.rMap[HL][1] = 0xFE; hlLSB = 0xFE }, check(true), ldHl(rx(A), nil, true), []byte{0x70}},
+		{func() { c.rMap[HL][0] = 0xFE; hlLSB = 0xFE }, check(true), ldHl(rx(A), nil, true), []byte{0x70}},
 		{nil, check(false), ldHl(rx(A), nil, false), []byte{0x71}},
 	}
-	c.memory.StoreBytes(0xABFE, []byte{0x70, 0x71})
+	c.memory.StoreBytes(0xABFE, []byte{0x70, 0x71}, nil)
 	for i, test := range table {
 		if test.prepare != nil {
 			test.prepare()
 		}
-		if err := test.in(c); err != nil {
-			t.Error(err)
-		}
+		test.in(c)
 		checkBytes(i+1, t, test.expected, test.results())
 	}
 }
@@ -154,13 +150,11 @@ func TestPush(t *testing.T) {
 		if test.prepare != nil {
 			test.prepare()
 		}
-		if err := test.in(c); err != nil {
-			t.Error(err)
-		}
+		test.in(c)
 		if c.sp != test.expectedSp {
 			t.Errorf("test %d expected SP %X, got %X\n", i+1, test.expectedSp, c.sp)
 		}
-		checkBytes(i+1, t, test.expected, c.popStack(2))
+		checkBytes(i+1, t, test.expected, c.popStack(2, nil))
 	}
 }
 
@@ -171,7 +165,7 @@ func TestPop(t *testing.T) { // todo: test flags
 		expected   []byte
 	}
 	c := NewCpu()
-	c.pushStack([]byte{0xAB, 0xCD, 0xDE, 0xF0, 0xF1, 0xA1, 0xB2, 0xC4})
+	c.pushStack([]byte{0xAB, 0xCD, 0xDE, 0xF0, 0xF1, 0xA1, 0xB2, 0xC4}, nil)
 	startSp := c.sp
 	table := []poptest{
 		{BC, startSp + 2, []byte{0xC4, 0xB2}},
@@ -180,9 +174,7 @@ func TestPop(t *testing.T) { // todo: test flags
 		{AF, startSp + 8, []byte{0xCD, 0xAB}},
 	}
 	for i, test := range table {
-		if err := pop(rx(test.register))(c); err != nil {
-			t.Error(err)
-		}
+		pop(rx(test.register))(c)
 		if c.sp != test.expectedSp {
 			t.Errorf("test %d expected SP %X, got %X\n", i+1, test.expectedSp, c.sp)
 		}
@@ -198,16 +190,14 @@ func TestLoadHlSp(t *testing.T) {
 		expected   uint16
 	}
 	table := []hlsptest{
-		{func() { c.memory.Store(c.pc, 0xAB); c.sp = 0xFF00 }, false, false, false, false, 0xFFAB},
-		{func() { c.memory.Store(c.pc, 0x01); c.sp = 0xFF0F }, false, false, true, false, 0xFF10},
-		{func() { c.memory.Store(c.pc, 0x1B); c.sp = 0x00F0 }, false, false, false, true, 0x010B},
-		{func() { c.memory.Store(c.pc, 0xFF); c.sp = 0x00FF }, false, false, true, true, 0x01FE},
+		{func() { c.memory.Store(c.pc, 0xAB, nil); c.sp = 0xFF00 }, false, false, false, false, 0xFFAB},
+		{func() { c.memory.Store(c.pc, 0x01, nil); c.sp = 0xFF0F }, false, false, true, false, 0xFF10},
+		{func() { c.memory.Store(c.pc, 0x1B, nil); c.sp = 0x00F0 }, false, false, false, true, 0x010B},
+		{func() { c.memory.Store(c.pc, 0xFF, nil); c.sp = 0x00FF }, false, false, true, true, 0x01FE},
 	}
 	for i, test := range table {
 		test.prepare()
-		if err := ldHlSp(c); err != nil {
-			t.Error(err)
-		}
+		ldHlSp(c)
 		hl := go_gb.FromBytes(c.rMap[HL])
 		if hl != test.expected {
 			t.Errorf("test %d expected %X, got %X\n", i+1, test.expected, hl)

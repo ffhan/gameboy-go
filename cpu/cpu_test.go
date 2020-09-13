@@ -1,23 +1,37 @@
 package cpu
 
-import "testing"
+import (
+	go_gb "go-gb"
+	"testing"
+)
 
 func TestCPU_doubleRegister(t *testing.T) {
 	c := NewCpu()
 	c.r[A] = 0xFA
 	c.r[F] = 0x12
 
-	if c.rMap[AF][0] != 0xFA || c.rMap[AF][1] != 0x12 {
+	if c.rMap[AF][1] != 0xFA || c.rMap[AF][0] != 0x12 {
+		t.Fatal("invalid double registers")
+	}
+}
+
+func TestCPU_doubleRegister_changeSingleRegister(t *testing.T) {
+	c := NewCpu()
+	c.r[A] = 0xFA
+	c.r[F] = 0x12
+	c.rMap[AF][1] = 0xAA
+
+	if c.rMap[AF][1] != 0xAA || c.rMap[AF][0] != 0x12 {
 		t.Fatal("invalid double registers")
 	}
 }
 
 func TestCpu_readOpcode(t *testing.T) {
 	c := NewCpu()
-	c.memory.StoreBytes(0x100, []byte{0x12})
+	c.memory.StoreBytes(0x100, []byte{0x12}, nil)
 
-	if val, mc := c.readOpcode(); val != 0x12 || mc != 1 {
-		t.Fatal("invalid opcode read or MC is not 1")
+	if val := c.readOpcode(nil); val != 0x12 {
+		t.Fatal("invalid opcode read")
 	}
 	if c.pc != 0x101 {
 		t.Fatal("PC invalid after reading opcode")
@@ -27,12 +41,13 @@ func TestCpu_readOpcode(t *testing.T) {
 func TestCpu_pushStack(t *testing.T) {
 	c := NewCpu()
 	input := []byte{1, 2, 3}
-	c.pushStack(input)
+	c.pushStack(input, nil)
 	expected := uint16(0xFFFE - 3)
 	if c.sp != expected {
 		t.Errorf("expected SP to be on %X, got %X\n", expected, c.sp)
 	}
-	bytes, mc := c.memory.ReadBytes(expected+1, 3)
+	mc := go_gb.MC(0)
+	bytes := c.memory.ReadBytes(expected+1, 3, &mc)
 	if mc != 3 {
 		t.Errorf("expected MC %d, got %d\n", 3, mc)
 	}
@@ -47,13 +62,14 @@ func TestCpu_pushStack(t *testing.T) {
 func TestCpu_popStack(t *testing.T) {
 	c := NewCpu()
 	input := []byte{1, 2, 3}
-	c.pushStack(input)
+	c.pushStack(input, nil)
 	initialSP := uint16(0xFFFE)
 	expected := initialSP - 3
 	if c.sp != expected {
 		t.Errorf("expected SP to be on %X, got %X\n", expected, c.sp)
 	}
-	stack, mc := c.popStack(3)
+	mc := go_gb.MC(0)
+	stack := c.popStack(3, &mc)
 	if mc != 3 {
 		t.Errorf("expected MC %d, got %d\n", 3, mc)
 	}
@@ -100,7 +116,7 @@ func TestCpu_setFlag(t *testing.T) {
 func TestCpu_Step_NOP(t *testing.T) {
 	c := NewCpu()
 	startPC := c.pc
-	c.memory.Store(c.pc, 0)
+	c.memory.Store(c.pc, 0, nil)
 	c.Step()
 	if c.pc != startPC+1 {
 		t.Errorf("expected PC %X, got %X\n", startPC+1, c.pc)

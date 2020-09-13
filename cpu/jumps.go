@@ -3,10 +3,12 @@ package cpu
 import "go-gb"
 
 func jr(c *cpu) go_gb.MC {
-	opcode, mc := c.readOpcode()
+	var cycles go_gb.MC
+	opcode := c.readOpcode(&cycles)
 	e := int(opcode)
 	pc := int(c.pc) + e
-	return mc + c.setPc(uint16(pc))
+	c.setPc(uint16(pc), &cycles)
+	return cycles
 }
 
 func jrnc(bit int) Instr {
@@ -28,8 +30,10 @@ func jrc(bit int) Instr {
 }
 
 func ret(c *cpu) go_gb.MC {
-	addrBytes, mc := c.popStack(2)
-	return mc + c.setPc((uint16(addrBytes[1])<<8)|uint16(addrBytes[0]))
+	var cycles go_gb.MC
+	addrBytes := c.popStack(2, &cycles)
+	c.setPc((uint16(addrBytes[1])<<8)|uint16(addrBytes[0]), &cycles)
+	return cycles
 }
 
 func retnc(bit int) Instr {
@@ -51,15 +55,18 @@ func retc(bit int) Instr {
 }
 
 func jpHl(c *cpu) go_gb.MC {
-	reg, _ := rx(HL).Load(c)
+	var cycles go_gb.MC
+	reg := rx(HL).Load(c, &cycles)
 	c.pc = go_gb.FromBytes(reg)
-	return 0
+	return cycles
 }
 
 func jp(dst Ptr) Instr { // note: don't forget to check if it's a jump command (don't inc pc)
 	return func(c *cpu) go_gb.MC {
-		bytes, mc := dst.Load(c)
-		return mc + c.setPc(go_gb.FromBytes(bytes))
+		var cycles go_gb.MC
+		bytes := dst.Load(c, &cycles)
+		c.setPc(go_gb.FromBytes(bytes), &cycles)
+		return cycles
 	}
 }
 
@@ -86,16 +93,16 @@ func jpc(bit int, dst Ptr) Instr {
 }
 
 func call(c *cpu) go_gb.MC {
-	addr, m := c.readFromPc(2)
-	mc := callAddr(c, addr)
-	return mc + m
+	var cycles go_gb.MC
+	addr := c.readFromPc(2, &cycles)
+	callAddr(c, addr, &cycles)
+	return cycles
 }
 
-func callAddr(c *cpu, addr []byte) go_gb.MC {
-	pcBytes := go_gb.MsbLsbBytes(c.pc, true)
-	cycles := c.pushStack(pcBytes)
+func callAddr(c *cpu, addr []byte, mc *go_gb.MC) {
+	pcBytes := go_gb.ToBytesReverse(c.pc, true)
+	c.pushStack(pcBytes, mc)
 	c.pc = go_gb.FromBytes(addr)
-	return cycles + 1 // for reading SP
 }
 
 func callc(bit int) Instr {
@@ -123,10 +130,12 @@ func reti(c *cpu) go_gb.MC {
 
 func rst(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		pcBytes := go_gb.MsbLsbBytes(c.pc, true)
-		cycles := c.pushStack(pcBytes)
+		var cycles go_gb.MC
+		pcBytes := go_gb.ToBytesReverse(c.pc, true)
+		c.pushStack(pcBytes, &cycles)
 
-		bytes, mc := dst.Load(c)
-		return cycles + mc + c.setPc(go_gb.FromBytes(bytes))
+		bytes := dst.Load(c, &cycles)
+		c.setPc(go_gb.FromBytes(bytes), &cycles)
+		return cycles
 	}
 }
