@@ -87,12 +87,12 @@ type mPtr struct {
 
 func (m mPtr) Store(c *cpu, b []byte, mc *go_gb.MC) {
 	bytes := m.addr.Load(c, mc)
-	c.memory.StoreBytes(go_gb.FromBytes(bytes), b, mc)
+	c.storeBytes(go_gb.FromBytes(bytes), b, mc)
 }
 
 func (m mPtr) Load(c *cpu, mc *go_gb.MC) []byte {
 	pointerAddr := m.addr.Load(c, mc)
-	result := c.memory.ReadBytes(go_gb.FromBytes(pointerAddr), 1, mc)
+	result := c.readBytes(go_gb.FromBytes(pointerAddr), 1, mc)
 	return result
 }
 

@@ -28,7 +28,7 @@ func TestCPU_doubleRegister_changeSingleRegister(t *testing.T) {
 
 func TestCpu_readOpcode(t *testing.T) {
 	c := NewCpu()
-	c.memory.StoreBytes(0x100, []byte{0x12}, nil)
+	c.memory.StoreBytes(0x100, []byte{0x12})
 
 	if val := c.readOpcode(nil); val != 0x12 {
 		t.Fatal("invalid opcode read")
@@ -46,11 +46,7 @@ func TestCpu_pushStack(t *testing.T) {
 	if c.sp != expected {
 		t.Errorf("expected SP to be on %X, got %X\n", expected, c.sp)
 	}
-	mc := go_gb.MC(0)
-	bytes := c.memory.ReadBytes(expected+1, 3, &mc)
-	if mc != 3 {
-		t.Errorf("expected MC %d, got %d\n", 3, mc)
-	}
+	bytes := c.memory.ReadBytes(expected+1, 3)
 	for i, val := range bytes {
 		expected := input[2-i]
 		if expected != val {
@@ -116,7 +112,7 @@ func TestCpu_setFlag(t *testing.T) {
 func TestCpu_Step_NOP(t *testing.T) {
 	c := NewCpu()
 	startPC := c.pc
-	c.memory.Store(c.pc, 0, nil)
+	c.memory.Store(c.pc, 0)
 	c.Step()
 	if c.pc != startPC+1 {
 		t.Errorf("expected PC %X, got %X\n", startPC+1, c.pc)

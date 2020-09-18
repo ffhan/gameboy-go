@@ -1,7 +1,8 @@
-package go_gb
+package memory
 
 import (
 	"fmt"
+	"go-gb"
 )
 
 const (
@@ -31,71 +32,89 @@ const (
 )
 
 type Memory interface {
-	ReadBytes(pointer, n uint16, mc *MC) []byte
-	Read(pointer uint16, mc *MC) byte
-	StoreBytes(pointer uint16, bytes []byte, mc *MC)
-	Store(pointer uint16, val byte, mc *MC)
+	ReadBytes(pointer, n uint16) []byte
+	Read(pointer uint16) byte
+	StoreBytes(pointer uint16, bytes []byte)
+	Store(pointer uint16, val byte)
 }
 
 type mmap struct {
-	start, end uint16
-	memory     []byte
+	start, end   uint16
+	memory       []byte
+	rLock, wLock bool
 }
 
-func (m *mmap) ReadBytes(pointer, n uint16, mc *MC) []byte {
+func (m *mmap) ReadBytes(pointer, n uint16) []byte {
 	i := pointer - m.start
-	if mc != nil {
-		*mc += MC(n)
-	}
 	return m.memory[i : i+n]
 }
 
-func (m *mmap) Read(pointer uint16, mc *MC) byte {
+func (m *mmap) Read(pointer uint16) byte {
 	i := pointer - m.start
-	if mc != nil {
-		*mc += 1
-	}
 	return m.memory[i]
 }
 
-func (m *mmap) StoreBytes(pointer uint16, bytes []byte, mc *MC) {
+func (m *mmap) StoreBytes(pointer uint16, bytes []byte) {
 	i := pointer - m.start
 	copy(m.memory[i:i+uint16(len(bytes))], bytes)
-	if mc != nil {
-		*mc += MC(len(bytes))
-	}
 }
 
-func (m *mmap) Store(pointer uint16, val byte, mc *MC) {
+func (m *mmap) Store(pointer uint16, val byte) {
 	m.memory[pointer-m.start] = val
-	if mc != nil {
-		*mc += 1
+}
+
+type wram struct {
+	bank         *bank
+	selectedBank int
+}
+
+func (w *wram) ReadBytes(pointer, n uint16) []byte {
+	if WRAMBank0Start <= pointer && pointer <= WRAMBank0End {
+		return w.bank.ReadBytes(0, pointer-WRAMBank0Start, n)
+	} else if WRAMBankNStart <= pointer && pointer <= WRAMBankNEnd {
+		return w.bank.ReadBytes(uint16(w.selectedBank), pointer-WRAMBankNStart, n)
 	}
+	panic(fmt.Errorf("invalid address %X", pointer))
+}
+
+func (w *wram) Read(pointer uint16) byte {
+	return w.ReadBytes(pointer, 1)[0]
+}
+
+func (w *wram) StoreBytes(pointer uint16, bytes []byte) {
+	if WRAMBank0Start <= pointer && pointer <= WRAMBank0End {
+		w.bank.StoreBytes(0, pointer-WRAMBank0Start, bytes)
+		return
+	} else if WRAMBankNStart <= pointer && pointer <= WRAMBankNEnd {
+		w.bank.StoreBytes(uint16(w.selectedBank), pointer-WRAMBankNStart, bytes)
+		return
+	}
+	panic(fmt.Errorf("invalid address %X", pointer))
+}
+
+func (w *wram) Store(pointer uint16, val byte) {
+	w.StoreBytes(pointer, []byte{val})
 }
 
 func newMmap(start uint16, end uint16, memory []byte) *mmap {
 	return &mmap{start: start, end: end, memory: memory}
 }
 
-type MemoryBus struct {
+type mmu struct {
 	completeMem             [0xFFFF + 1]byte
-	romBank0                *mmap
-	romBankN                *mmap
-	vram                    *mmap
-	externalRam             *mmap
-	wramBank0               *mmap
-	wramBankN               *mmap
-	echo                    *mmap
-	oam                     *mmap
-	unusable                *mmap
-	io                      *mmap
-	hram                    *mmap
-	interruptEnableRegister *mmap
+	cartridge               Memory
+	vram                    Memory
+	wram                    Memory
+	echo                    Memory
+	oam                     Memory
+	unusable                Memory
+	io                      Memory
+	hram                    Memory
+	interruptEnableRegister Memory
 }
 
-func NewMemoryBus() *MemoryBus {
-	m := &MemoryBus{}
-	m.init()
+func NewMMU() *mmu {
+	m := &mmu{}
 	return m
 }
 
@@ -104,24 +123,27 @@ func inInterval(pointer, start, end uint16) bool {
 	return start <= pointer && pointer <= end
 }
 
-func (m *MemoryBus) createMmapWithRedirection(start, end, redirectStart, redirectEnd uint16) *mmap {
+func (m *mmu) createMmapWithRedirection(start, end, redirectStart, redirectEnd uint16) *mmap {
 	if (end - start) != (redirectEnd - redirectStart) {
 		panic(fmt.Errorf("invalid redirection (%X, %X) and (%X, %X)", start, end, redirectStart, redirectEnd))
 	}
 	return newMmap(start, end, m.completeMem[redirectStart:int(redirectEnd)+1])
 }
 
-func (m *MemoryBus) createMmap(start, end uint16) *mmap {
+func (m *mmu) createMmap(start, end uint16) *mmap {
 	return m.createMmapWithRedirection(start, end, start, end)
 }
 
-func (m *MemoryBus) init() {
-	m.romBank0 = m.createMmap(ROMBank0Start, ROMBank0End)
-	m.romBankN = m.createMmap(ROMBankNStart, ROMBankNEnd)
+func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
+	var wramMemory Memory
+	if gbType == go_gb.CGB {
+		wramMemory = &wram{bank: newBank(8, 1<<12), selectedBank: 1}
+	} else {
+		wramMemory = &wram{bank: newBank(2, 1<<12), selectedBank: 1}
+	}
+	m.cartridge = getCartridge(rom)
 	m.vram = m.createMmap(VRAMStart, VRAMEnd)
-	m.externalRam = m.createMmap(ExternalRAMStart, ExternalRAMEnd)
-	m.wramBank0 = m.createMmap(WRAMBank0Start, WRAMBank0End)
-	m.wramBankN = m.createMmap(WRAMBankNStart, WRAMBankNEnd)
+	m.wram = wramMemory
 	m.echo = m.createMmapWithRedirection(ECHORAMStart, ECHORAMEnd, WRAMBank0Start, 0xDDFF)
 	m.oam = m.createMmap(OAMStart, OAMEnd)
 	m.unusable = m.createMmap(UnusableStart, UnusableEnd)
@@ -131,19 +153,15 @@ func (m *MemoryBus) init() {
 }
 
 // takes a pointer and returns a whole portion of the memory responsible
-func (m *MemoryBus) Route(pointer uint16) *mmap {
-	if inInterval(pointer, ROMBank0Start, ROMBank0End) {
-		return m.romBank0
-	} else if inInterval(pointer, ROMBankNStart, ROMBankNEnd) {
-		return m.romBankN
+func (m *mmu) Route(pointer uint16) Memory {
+	if inInterval(pointer, ROMBank0Start, ROMBankNEnd) {
+		return m.cartridge
 	} else if inInterval(pointer, VRAMStart, VRAMEnd) {
 		return m.vram
 	} else if inInterval(pointer, ExternalRAMStart, ExternalRAMEnd) {
-		return m.externalRam
-	} else if inInterval(pointer, WRAMBank0Start, WRAMBank0End) {
-		return m.wramBank0
-	} else if inInterval(pointer, WRAMBankNStart, WRAMBankNEnd) {
-		return m.wramBankN
+		return m.cartridge
+	} else if inInterval(pointer, WRAMBank0Start, WRAMBankNEnd) {
+		return m.wram
 	} else if inInterval(pointer, ECHORAMStart, ECHORAMEnd) {
 		return m.echo
 	} else if inInterval(pointer, OAMStart, OAMEnd) {
@@ -160,18 +178,18 @@ func (m *MemoryBus) Route(pointer uint16) *mmap {
 	panic(fmt.Errorf("invalid pointer %X", pointer))
 }
 
-func (m *MemoryBus) ReadBytes(pointer, n uint16, mc *MC) []byte {
-	return m.Route(pointer).ReadBytes(pointer, n, mc)
+func (m *mmu) ReadBytes(pointer, n uint16) []byte {
+	return m.Route(pointer).ReadBytes(pointer, n)
 }
 
-func (m *MemoryBus) Read(pointer uint16, mc *MC) byte {
-	return m.Route(pointer).Read(pointer, mc)
+func (m *mmu) Read(pointer uint16) byte {
+	return m.Route(pointer).Read(pointer)
 }
 
-func (m *MemoryBus) StoreBytes(pointer uint16, bytes []byte, mc *MC) {
-	m.Route(pointer).StoreBytes(pointer, bytes, mc)
+func (m *mmu) StoreBytes(pointer uint16, bytes []byte) {
+	m.Route(pointer).StoreBytes(pointer, bytes)
 }
 
-func (m *MemoryBus) Store(pointer uint16, val byte, mc *MC) {
-	m.Route(pointer).Store(pointer, val, mc)
+func (m *mmu) Store(pointer uint16, val byte) {
+	m.Route(pointer).Store(pointer, val)
 }

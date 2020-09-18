@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"go-gb"
+	memory2 "go-gb/memory"
 )
 
 const (
@@ -44,7 +45,7 @@ type cpu struct {
 
 	rMap [][]byte // register mappings
 
-	memory *go_gb.MemoryBus
+	memory memory2.Memory
 
 	halt      bool
 	eiWaiting byte
@@ -60,12 +61,35 @@ func NewCpu() *cpu {
 }
 
 func (c *cpu) readOpcode(mc *go_gb.MC) byte {
-	val := c.memory.Read(c.pc, mc)
+	val := c.memory.Read(c.pc)
+	*mc += 1
 	c.pc += 1
 	return val
 }
+
+func (c *cpu) readBytes(pointer, n uint16, mc *go_gb.MC) []byte {
+	*mc += go_gb.MC(n)
+	return c.memory.ReadBytes(pointer, n)
+}
+
+func (c *cpu) read(pointer uint16, mc *go_gb.MC) byte {
+	*mc += 1
+	return c.memory.Read(pointer)
+}
+
+func (c *cpu) storeBytes(pointer uint16, b []byte, mc *go_gb.MC) {
+	*mc += go_gb.MC(len(b))
+	c.memory.StoreBytes(pointer, b)
+}
+
+func (c *cpu) store(pointer uint16, val byte, mc *go_gb.MC) {
+	*mc += 1
+	c.memory.Store(pointer, val)
+}
+
 func (c *cpu) readFromPc(size uint16, mc *go_gb.MC) []byte {
-	val := c.memory.ReadBytes(c.pc, size, mc)
+	val := c.memory.ReadBytes(c.pc, size)
+	*mc += go_gb.MC(size)
 	c.pc += size
 	return val
 }
@@ -81,7 +105,8 @@ func (c *cpu) popStack(size int, mc *go_gb.MC) []byte {
 	bytes := make([]byte, size)
 	for i := 0; i < size; i++ {
 		c.sp += 1
-		v := c.memory.Read(c.sp, mc)
+		v := c.memory.Read(c.sp)
+		*mc += 1
 		bytes[i] = v
 	}
 	return bytes
@@ -89,7 +114,8 @@ func (c *cpu) popStack(size int, mc *go_gb.MC) []byte {
 
 func (c *cpu) pushStack(b []byte, mc *go_gb.MC) {
 	for _, val := range b {
-		c.memory.Store(c.sp, val, mc)
+		c.memory.Store(c.sp, val)
+		*mc += 1
 		c.sp -= 1
 	}
 }
@@ -99,7 +125,7 @@ func (c *cpu) getRegister(r registerName) []byte {
 }
 
 func (c *cpu) init() {
-	c.memory = go_gb.NewMemoryBus()
+	c.memory = memory2.NewMMU()
 	c.pc = 0x0100
 	c.sp = 0xFFFE
 	// todo: set r to init values
@@ -131,34 +157,38 @@ func (c *cpu) Step() {
 		cycles = 1
 	}
 	c.handleEiDi()
-	c.handleInterrupts()
+	cycles += c.handleInterrupts()
 }
 
-func (c *cpu) handleInterrupts() { // todo: should we count the cycles from the memory read?
-	if !c.ime { // interrupt master disabled
-		return
-	}
+func (c *cpu) handleInterrupts() go_gb.MC { // todo: should we count the cycles from the memory read?
 	var cycles go_gb.MC
-	ifRegister := c.memory.Read(go_gb.IF, &cycles)
-	ieRegister := c.memory.Read(go_gb.IE, &cycles)
+	if !c.ime { // interrupt master disabled
+		return cycles
+	}
+	ifRegister := c.memory.Read(go_gb.IF)
+	ieRegister := c.memory.Read(go_gb.IE)
+
+	cycles += 2
 
 	if ifRegister == 0 { // no interrupt flags set
-		return
+		return cycles
 	}
 
 	for _, interrupt := range go_gb.Interrupts {
 		if go_gb.ShouldServiceInterrupt(ieRegister, ifRegister, interrupt.Bit) {
-			c.serviceInterrupt(ifRegister, interrupt)
-			return
+			cycles += c.serviceInterrupt(ifRegister, interrupt)
+			return cycles
 		}
 	}
+	return cycles
 }
 
 func (c *cpu) serviceInterrupt(ifR byte, interrupt go_gb.Interrupt) go_gb.MC {
 	var cycles go_gb.MC
 	go_gb.Set(&ifR, int(interrupt.Bit), false)
 	c.ime = false
-	c.memory.Store(go_gb.IF, ifR, &cycles)
+	c.memory.Store(go_gb.IF, ifR) // todo: should we update cycles during interrupts?
+	cycles += 1
 	callAddr(c, go_gb.ToBytesReverse(interrupt.JpAddr, true), &cycles)
 	return cycles
 }

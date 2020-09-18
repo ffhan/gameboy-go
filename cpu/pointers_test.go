@@ -80,7 +80,7 @@ func TestMPtr_Load(t *testing.T) {
 	c := NewCpu()
 	input := []byte{0x02, 0x01, 0xAB}
 	addr := c.pc
-	c.memory.StoreBytes(addr, input, nil)
+	c.memory.StoreBytes(addr, input)
 	expected := []byte{0xAB}
 	bytes := md(16).Load(c, &mc)
 	for i := range bytes {
@@ -100,7 +100,7 @@ func TestMPtr_Store(t *testing.T) {
 	c := NewCpu()
 	input := []byte{0xFE, 0xBD}
 	md(16).Store(c, input, &mc)
-	result := c.memory.ReadBytes(0, 2, nil)
+	result := c.memory.ReadBytes(0, 2)
 	for i := range result {
 		if result[i] != input[i] {
 			t.Errorf("expected %X, got %X\n", input[i], result[i])
@@ -128,7 +128,7 @@ func TestData_Load(t *testing.T) {
 
 	c := NewCpu()
 	input := []byte{1, 2}
-	c.memory.StoreBytes(c.pc, input, nil)
+	c.memory.StoreBytes(c.pc, input)
 	bytes := dx(16).Load(c, &mc)
 	for i := range bytes {
 		if bytes[i] != input[i] {
@@ -176,7 +176,7 @@ func TestMr(t *testing.T) {
 	expected := byte(0xFE)
 	c.r[B] = 0x01
 	c.r[C] = 0x02
-	c.memory.Store(0x0102, expected, nil)
+	c.memory.Store(0x0102, expected)
 	bytes := mr(BC).Load(c, &mc)
 	if len(bytes) != 1 {
 		t.Errorf("expected len 1, got %d\n", len(bytes))
@@ -229,8 +229,8 @@ func TestOffset_Load_Mptr8bit(t *testing.T) {
 	c := NewCpu()
 	c.r[A] = 0xAA
 	expected := byte(0xF1)
-	c.memory.Store(0xFFAA, expected, nil)
-	c.memory.Store(c.pc, 0xAA, nil)
+	c.memory.Store(0xFFAA, expected)
+	c.memory.Store(c.pc, 0xAA)
 	o := mem(off(dx(8), 0xFF00))
 	result := o.Load(c, &mc)[0]
 	if result != expected {
@@ -248,8 +248,8 @@ func TestOffset_Load_Mptr16bit(t *testing.T) {
 	c := NewCpu()
 	c.r[A] = 0xAA
 	expected := byte(0xF1)
-	c.memory.Store(0xFFAA, expected, nil)
-	c.memory.StoreBytes(c.pc, []byte{0xAA}, nil)
+	c.memory.Store(0xFFAA, expected)
+	c.memory.StoreBytes(c.pc, []byte{0xAA})
 	o := mem(off(dx(16), 0xFF00))
 	result := o.Load(c, &mc)[0]
 	if result != expected {
@@ -266,10 +266,10 @@ func TestOffset_Store_Mptr8bit(t *testing.T) {
 
 	c := NewCpu()
 	expected := byte(0xAB)
-	c.memory.Store(c.pc, 0xAB, nil)
+	c.memory.Store(c.pc, 0xAB)
 	o := mem(off(dx(8), 0xFF00))
 	o.Store(c, []byte{expected}, &mc)
-	result := c.memory.Read(0xFFAB, nil)
+	result := c.memory.Read(0xFFAB)
 	if result != expected {
 		t.Errorf("expected %X, got %X\n", expected, result)
 	}
@@ -284,10 +284,10 @@ func TestOffset_Store_Mptr16bit(t *testing.T) {
 
 	c := NewCpu()
 	expected := byte(0xAB)
-	c.memory.StoreBytes(c.pc, []byte{0x34, 0x02}, nil)
+	c.memory.StoreBytes(c.pc, []byte{0x34, 0x02})
 	o := mem(off(dx(16), 0xAAAA))
 	o.Store(c, []byte{expected}, &mc)
-	result := c.memory.Read(0xACDE, nil)
+	result := c.memory.Read(0xACDE)
 	if result != expected {
 		t.Errorf("expected %X, got %X\n", expected, result)
 	}

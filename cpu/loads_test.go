@@ -31,7 +31,7 @@ func checkReg(c *cpu, reg registerName) func() []byte {
 
 func checkMr(c *cpu, reg registerName) func() []byte {
 	return func() []byte {
-		return c.memory.ReadBytes(go_gb.FromBytes(c.rMap[reg]), 1, nil)
+		return c.memory.ReadBytes(go_gb.FromBytes(c.rMap[reg]), 1)
 	}
 }
 
@@ -44,8 +44,8 @@ func checkSp(c *cpu) func() []byte {
 func checkMd(c *cpu, i int) func() []byte {
 	offset := i / 8
 	return func() []byte {
-		addr := go_gb.FromBytes(c.memory.ReadBytes(c.pc-2, uint16(offset), nil))
-		return c.memory.ReadBytes(addr, 2, nil)
+		addr := go_gb.FromBytes(c.memory.ReadBytes(c.pc-2, uint16(offset)))
+		return c.memory.ReadBytes(addr, 2)
 	}
 }
 
@@ -67,8 +67,8 @@ func TestLoad(t *testing.T) {
 
 		{func() { c.sp = 0xFFFE }, checkMd(c, 16), load(md(16), sp()), []byte{0xFE, 0xFF}},
 
-		{func() { c.memory.StoreBytes(0, []byte{0x0A}, nil); c.rMap[BC][0] = 0; c.rMap[BC][1] = 0 }, checkReg(c, A), load(rx(A), mr(BC)), []byte{0x0A}},
-		{func() { c.memory.StoreBytes(0, []byte{0x1A}, nil); c.rMap[DE][0] = 0; c.rMap[DE][1] = 0 }, checkReg(c, A), load(rx(A), mr(DE)), []byte{0x1A}},
+		{func() { c.memory.StoreBytes(0, []byte{0x0A}); c.rMap[BC][0] = 0; c.rMap[BC][1] = 0 }, checkReg(c, A), load(rx(A), mr(BC)), []byte{0x0A}},
+		{func() { c.memory.StoreBytes(0, []byte{0x1A}); c.rMap[DE][0] = 0; c.rMap[DE][1] = 0 }, checkReg(c, A), load(rx(A), mr(DE)), []byte{0x1A}},
 
 		{nil, checkReg(c, C), load(rx(C), dx(8)), []byte{0x5A}},
 		{nil, checkReg(c, E), load(rx(E), dx(8)), []byte{0x5B}},
@@ -81,7 +81,7 @@ func TestLoad(t *testing.T) {
 		0x56, 0x57, 0x58, 0x59,
 		0x00, 0x00, // load (nn), SP test moves PC
 		0x5A, 0x5B, 0x5C, 0x5D,
-	}, nil)
+	})
 	for i, test := range table {
 		if test.prepare != nil {
 			test.prepare()
@@ -117,7 +117,7 @@ func TestLoadHl(t *testing.T) {
 		{func() { c.rMap[HL][0] = 0xFE; hlLSB = 0xFE }, check(true), ldHl(rx(A), nil, true), []byte{0x70}},
 		{nil, check(false), ldHl(rx(A), nil, false), []byte{0x71}},
 	}
-	c.memory.StoreBytes(0xABFE, []byte{0x70, 0x71}, nil)
+	c.memory.StoreBytes(0xABFE, []byte{0x70, 0x71})
 	for i, test := range table {
 		if test.prepare != nil {
 			test.prepare()
@@ -190,10 +190,10 @@ func TestLoadHlSp(t *testing.T) {
 		expected   uint16
 	}
 	table := []hlsptest{
-		{func() { c.memory.Store(c.pc, 0xAB, nil); c.sp = 0xFF00 }, false, false, false, false, 0xFFAB},
-		{func() { c.memory.Store(c.pc, 0x01, nil); c.sp = 0xFF0F }, false, false, true, false, 0xFF10},
-		{func() { c.memory.Store(c.pc, 0x1B, nil); c.sp = 0x00F0 }, false, false, false, true, 0x010B},
-		{func() { c.memory.Store(c.pc, 0xFF, nil); c.sp = 0x00FF }, false, false, true, true, 0x01FE},
+		{func() { c.memory.Store(c.pc, 0xAB); c.sp = 0xFF00 }, false, false, false, false, 0xFFAB},
+		{func() { c.memory.Store(c.pc, 0x01); c.sp = 0xFF0F }, false, false, true, false, 0xFF10},
+		{func() { c.memory.Store(c.pc, 0x1B); c.sp = 0x00F0 }, false, false, false, true, 0x010B},
+		{func() { c.memory.Store(c.pc, 0xFF); c.sp = 0x00FF }, false, false, true, true, 0x01FE},
 	}
 	for i, test := range table {
 		test.prepare()

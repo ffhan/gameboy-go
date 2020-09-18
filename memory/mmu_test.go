@@ -1,20 +1,18 @@
-package go_gb
+package memory
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestMemoryBus_Read(t *testing.T) {
-	m := NewMemoryBus()
+	m := NewMMU()
 	var b [0xFFFF + 1]byte
 	for i := range b {
 		b[i] = byte(i)
 	}
 	copy(m.completeMem[:], b[:])
 	for i := 0; i <= 0xFFFF; i++ {
-		var mc MC
-		val := m.Read(uint16(i), &mc)
-		if mc != 1 {
-			t.Error("MC should be 1")
-		}
+		val := m.Read(uint16(i))
 		if ECHORAMStart <= uint16(i) && uint16(i) <= ECHORAMEnd {
 			j := byte((uint16(i) - ECHORAMStart) + WRAMBank0Start)
 			if val != j {
@@ -29,16 +27,12 @@ func TestMemoryBus_Read(t *testing.T) {
 }
 
 func TestMemoryBus_Store(t *testing.T) {
-	m := NewMemoryBus()
+	m := NewMMU()
 	for i := 0; i <= 0xFFFF; i++ {
 		if ECHORAMStart <= uint16(i) && uint16(i) <= ECHORAMEnd {
 			continue
 		}
-		var mc MC
-		m.Store(uint16(i), byte(i), &mc)
-		if mc != 1 {
-			t.Error("MC should be 1")
-		}
+		m.Store(uint16(i), byte(i))
 	}
 	for i := 0; i <= 0xFFFF; i++ {
 		val := m.completeMem[i]

@@ -1,13 +1,16 @@
 package ppu
 
-import go_gb "go-gb"
+import (
+	go_gb "go-gb"
+	memory2 "go-gb/memory"
+)
 
 const (
 	frameBufASize = 160 * 144 * 4
 )
 
 type ppu struct {
-	memory go_gb.Memory
+	memory memory2.Memory
 
 	frameBuffer  [160 * 144 * 3]byte
 	frameBufferA [frameBufASize]byte
