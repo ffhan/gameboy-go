@@ -45,167 +45,49 @@ const (
 	MbcHuC1RAMBATTERY             mbcType = 0xFF
 )
 
-func getCartridge(memory []byte) go_gb.Cartridge {
-	cartridgeType := memory[CartridgeTypeAddr]
-	switch cartridgeType {
-	case 0x00:
-		return &noMBC{}
-	case 0x01:
-		return NewMbc1(getRomBanks(memory), nil)
-	case 0x02, 0x03: // todo: implement battery (save in files)
-		return NewMbc1(getRomBanks(memory), getRamBanks(memory))
-	case 0x05, 0x06:
-		panic("implement MBC2")
-	case 0x08, 0x09:
-		mbc := &noMBC{ram: make([]byte, ExternalRAMEnd-ExternalRAMStart+1)}
-		mbc.LoadRom(memory)
-		return mbc
-	}
-	panic(fmt.Errorf("implement cartridge type %X", cartridgeType))
-}
-
-func getRomBanks(memory []byte) *bank {
-	banks := memory[CartridgeROMSizeAddr]
-	var bank *bank
-	switch banks {
-	case 0x00:
-		bank = newBank(1, 32*KiB)
-	case 0x01:
-		bank = newBank(4, 16*KiB)
-	case 0x02:
-		bank = newBank(8, 16*KiB)
-	case 0x03:
-		bank = newBank(16, 16*KiB)
-	case 0x04:
-		bank = newBank(32, 16*KiB)
-	case 0x05:
-		bank = newBank(64, 16*KiB)
-	case 0x06:
-		bank = newBank(128, 16*KiB)
-	case 0x07:
-		bank = newBank(256, 16*KiB)
-	case 0x08:
-		bank = newBank(512, 16*KiB)
-	case 0x52:
-		bank = newBank(72, 16*KiB)
-	case 0x53:
-		bank = newBank(80, 16*KiB)
-	case 0x54:
-		bank = newBank(96, 16*KiB)
-	}
-	if bank == nil {
-		panic("invalid number of banks")
-	}
-	bank.LoadRom(memory)
-	return bank
-}
-
-func getRamBanks(memory []byte) *bank {
-	val := memory[CartridgeRAMSizeAddr]
-	switch val {
-	case 0x00:
-		return nil
-	case 0x01:
-		return newBank(1, 2*KiB)
-	case 0x02:
-		return newBank(1, 8*KiB)
-	case 0x03:
-		return newBank(4, 8*KiB)
-	case 0x04:
-		return newBank(16, 8*KiB)
-	case 0x05:
-		return newBank(8, 8*KiB)
-	}
-	panic("invalid RAM size")
-}
-
-type bank struct {
-	memory   []byte
-	partSize uint16
-}
-
-func newBank(numOfParts, partSize uint16) *bank {
-	return &bank{
-		memory:   make([]byte, int(numOfParts)*int(partSize)),
-		partSize: partSize,
-	}
-}
-
-func (b *bank) address(bank, pointer uint16) uint16 {
-	return b.partSize*bank + pointer
-}
-
-func (b *bank) ReadBytes(bank, pointer, n uint16) []byte {
-	address := b.address(bank, pointer)
-	return b.memory[address : address+n]
-}
-
-func (b *bank) Read(bank, pointer uint16) byte {
-	address := b.address(bank, pointer)
-	return b.memory[address]
-}
-
-func (b *bank) StoreBytes(bank, pointer uint16, bytes []byte) {
-	address := b.address(bank, pointer)
-	copy(b.memory[address:address+uint16(len(bytes))], bytes)
-}
-
-func (b *bank) Store(bank, pointer uint16, val byte) {
-	b.memory[b.address(bank, pointer)] = val
-}
-
-func (b *bank) LoadRom(bytes []byte) int {
-	n := len(b.memory)
-	if n > len(bytes) {
-		n = len(bytes)
-	}
-	copy(b.memory, bytes[:n])
-	return n
-}
-
 type noMBC struct {
 	rom [ROMBankNEnd + 1]byte
 	ram []byte
 }
 
-func (n2 *noMBC) ReadBytes(pointer, n uint16) []byte {
+func (m *noMBC) ReadBytes(pointer, n uint16) []byte {
 	if pointer <= ROMBankNEnd {
-		return n2.rom[pointer : pointer+n]
+		return m.rom[pointer : pointer+n]
 	} else if ExternalRAMStart <= pointer && pointer <= ExternalRAMEnd {
-		if n2.ram == nil {
+		if m.ram == nil {
 			return make([]byte, n)
 		}
 		address := pointer - ExternalRAMStart
-		return n2.ram[address : address+n]
+		return m.ram[address : address+n]
 	}
 	panic(fmt.Errorf("invalid memory access at address %X", pointer))
 }
 
-func (n2 *noMBC) Read(pointer uint16) byte {
-	return n2.ReadBytes(pointer, 1)[0]
+func (m *noMBC) Read(pointer uint16) byte {
+	return m.ReadBytes(pointer, 1)[0]
 }
 
-func (n2 *noMBC) StoreBytes(pointer uint16, bytes []byte) {
-	if n2.ram == nil || pointer < ExternalRAMStart {
+func (m *noMBC) StoreBytes(pointer uint16, bytes []byte) {
+	if m.ram == nil || pointer < ExternalRAMStart {
 		return
 	}
 	address := int(pointer) - int(ExternalRAMStart)
 	if address < 0 {
 		return
 	}
-	copy(n2.ram[address:address+len(bytes)], bytes)
+	copy(m.ram[address:address+len(bytes)], bytes)
 }
 
-func (n2 *noMBC) Store(pointer uint16, val byte) {
-	n2.StoreBytes(pointer, []byte{val})
+func (m *noMBC) Store(pointer uint16, val byte) {
+	m.StoreBytes(pointer, []byte{val})
 }
 
-func (n2 *noMBC) LoadRom(bytes []byte) int {
-	n := len(n2.rom)
+func (m *noMBC) LoadRom(bytes []byte) int {
+	n := len(m.rom)
 	if n > len(bytes) {
 		n = len(bytes)
 	}
-	copy(n2.rom[:], bytes[:n])
+	copy(m.rom[:], bytes[:n])
 	return n
 }
 
