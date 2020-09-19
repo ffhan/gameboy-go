@@ -2,11 +2,27 @@ package cpu
 
 import (
 	go_gb "go-gb"
+	"go-gb/memory"
 	"testing"
 )
 
-func TestCPU_doubleRegister(t *testing.T) {
+func initCpu(fill map[uint16]byte) *cpu {
 	c := NewCpu()
+	bytes := make([]byte, 0xFFFF+1)
+	if fill != nil {
+		for addr, val := range fill {
+			bytes[addr] = val
+		}
+	}
+	bytes[memory.CartridgeTypeAddr] = byte(memory.MbcROMRAM)
+	bytes[memory.CartridgeROMSizeAddr] = 0x05
+	bytes[memory.CartridgeRAMSizeAddr] = 0x03
+	c.Init(bytes, go_gb.GB)
+	return c
+}
+
+func TestCPU_doubleRegister(t *testing.T) {
+	c := initCpu(nil)
 	c.r[A] = 0xFA
 	c.r[F] = 0x12
 
@@ -16,7 +32,7 @@ func TestCPU_doubleRegister(t *testing.T) {
 }
 
 func TestCPU_doubleRegister_changeSingleRegister(t *testing.T) {
-	c := NewCpu()
+	c := initCpu(nil)
 	c.r[A] = 0xFA
 	c.r[F] = 0x12
 	c.rMap[AF][1] = 0xAA
@@ -27,11 +43,15 @@ func TestCPU_doubleRegister_changeSingleRegister(t *testing.T) {
 }
 
 func TestCpu_readOpcode(t *testing.T) {
-	c := NewCpu()
-	c.memory.StoreBytes(0x100, []byte{0x12})
+	c := initCpu(map[uint16]byte{0x100: 0x12})
 
-	if val := c.readOpcode(nil); val != 0x12 {
+	var cycles go_gb.MC
+
+	if val := c.readOpcode(&cycles); val != 0x12 {
 		t.Fatal("invalid opcode read")
+	}
+	if cycles != 1 {
+		t.Errorf("expectd 1 cycle, got %d\n", cycles)
 	}
 	if c.pc != 0x101 {
 		t.Fatal("PC invalid after reading opcode")
@@ -39,9 +59,14 @@ func TestCpu_readOpcode(t *testing.T) {
 }
 
 func TestCpu_pushStack(t *testing.T) {
-	c := NewCpu()
+	c := initCpu(nil)
 	input := []byte{1, 2, 3}
-	c.pushStack(input, nil)
+	var mc go_gb.MC
+	c.pushStack(input, &mc)
+
+	if mc != 3 {
+		t.Errorf("expected 3 cycles, got %d\n", mc)
+	}
 	expected := uint16(0xFFFE - 3)
 	if c.sp != expected {
 		t.Errorf("expected SP to be on %X, got %X\n", expected, c.sp)
@@ -56,15 +81,20 @@ func TestCpu_pushStack(t *testing.T) {
 }
 
 func TestCpu_popStack(t *testing.T) {
-	c := NewCpu()
+	c := initCpu(nil)
 	input := []byte{1, 2, 3}
-	c.pushStack(input, nil)
+	var mc go_gb.MC
+	c.pushStack(input, &mc)
+
+	if mc != 3 {
+		t.Errorf("expected 3 cycles, got %d\n", mc)
+	}
 	initialSP := uint16(0xFFFE)
 	expected := initialSP - 3
 	if c.sp != expected {
 		t.Errorf("expected SP to be on %X, got %X\n", expected, c.sp)
 	}
-	mc := go_gb.MC(0)
+	mc = go_gb.MC(0)
 	stack := c.popStack(3, &mc)
 	if mc != 3 {
 		t.Errorf("expected MC %d, got %d\n", 3, mc)
@@ -81,7 +111,7 @@ func TestCpu_popStack(t *testing.T) {
 }
 
 func TestCpu_getFlag(t *testing.T) {
-	c := NewCpu()
+	c := initCpu(nil)
 	c.r[F] |= 0xA0 // 1010
 	if !c.getFlag(BitZ) {
 		t.Error("Bit Z should be set")
@@ -98,7 +128,7 @@ func TestCpu_getFlag(t *testing.T) {
 }
 
 func TestCpu_setFlag(t *testing.T) {
-	c := NewCpu()
+	c := initCpu(nil)
 	c.setFlag(BitZ, true)
 	c.setFlag(BitN, true)
 	c.setFlag(BitH, true)
@@ -110,10 +140,14 @@ func TestCpu_setFlag(t *testing.T) {
 }
 
 func TestCpu_Step_NOP(t *testing.T) {
-	c := NewCpu()
+	c := initCpu(nil)
+	c.Init(make([]byte, 0xFFFF+1), go_gb.GB)
 	startPC := c.pc
 	c.memory.Store(c.pc, 0)
-	c.Step()
+	mc := c.Step()
+	if mc != 1 {
+		t.Errorf("expected 1 cycle, got %d\n", mc)
+	}
 	if c.pc != startPC+1 {
 		t.Errorf("expected PC %X, got %X\n", startPC+1, c.pc)
 	}

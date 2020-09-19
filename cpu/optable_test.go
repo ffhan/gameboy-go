@@ -61,7 +61,7 @@ func TestOptableCycles(t *testing.T) {
 		2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
 	}
 
-	c := NewCpu()
+	c := initCpu(nil)
 
 	checkCycles(0, t, c, optable[:], table[:])
 	checkCycles(0xCB00, t, c, cbOptable, cbTable[:])

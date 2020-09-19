@@ -45,7 +45,7 @@ type cpu struct {
 
 	rMap [][]byte // register mappings
 
-	memory memory2.Memory
+	memory go_gb.Memory
 
 	halt      bool
 	eiWaiting byte
@@ -55,14 +55,13 @@ type cpu struct {
 }
 
 func NewCpu() *cpu {
-	c := &cpu{}
-	c.init()
-	return c
+	return &cpu{}
 }
 
 func (c *cpu) readOpcode(mc *go_gb.MC) byte {
 	val := c.memory.Read(c.pc)
-	*mc += 1
+	*mc += 1 // we purposefully don't check for nil in mc because it should always be cycle counted
+	// discard the result if you want not to count cycles.
 	c.pc += 1
 	return val
 }
@@ -124,8 +123,11 @@ func (c *cpu) getRegister(r registerName) []byte {
 	return c.rMap[r]
 }
 
-func (c *cpu) init() {
-	c.memory = memory2.NewMMU()
+func (c *cpu) Init(rom []byte, gbType go_gb.GameboyType) {
+	mmu := memory2.NewMMU()
+	mmu.Init(rom, gbType)
+	c.memory = mmu
+
 	c.pc = 0x0100
 	c.sp = 0xFFFE
 	// todo: set r to init values
@@ -141,7 +143,7 @@ func (c *cpu) init() {
 	}
 }
 
-func (c *cpu) Step() {
+func (c *cpu) Step() go_gb.MC {
 	var cycles go_gb.MC
 	if !c.halt {
 		opcode := c.readOpcode(&cycles)
@@ -158,6 +160,7 @@ func (c *cpu) Step() {
 	}
 	c.handleEiDi()
 	cycles += c.handleInterrupts()
+	return cycles
 }
 
 func (c *cpu) handleInterrupts() go_gb.MC { // todo: should we count the cycles from the memory read?

@@ -2,7 +2,6 @@ package ppu
 
 import (
 	go_gb "go-gb"
-	memory2 "go-gb/memory"
 )
 
 const (
@@ -10,7 +9,7 @@ const (
 )
 
 type ppu struct {
-	memory memory2.Memory
+	memory go_gb.Memory
 
 	frameBuffer  [160 * 144 * 3]byte
 	frameBufferA [frameBufASize]byte
@@ -21,14 +20,14 @@ type ppu struct {
 }
 
 func (p *ppu) getTileMapAddr() uint16 {
-	if go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister, nil), 3) {
+	if go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister), 3) {
 		return 0x9C00
 	}
 	return 0x9800
 }
 
 func (p *ppu) getTileDataAddr() uint16 {
-	if go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister, nil), 4) {
+	if go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister), 4) {
 		return 0x8000
 	}
 	return 0x8800
@@ -60,24 +59,24 @@ func (p *ppu) drawFrame() {
 }
 
 func (p *ppu) calcBg(row byte) {
-	scx := p.memory.Read(go_gb.LCDSCX, nil)
-	scy := p.memory.Read(go_gb.LCDSCY, nil)
+	scx := p.memory.Read(go_gb.LCDSCX)
+	scy := p.memory.Read(go_gb.LCDSCY)
 
 	tileMap := p.getTileMapAddr()
 	tileData := p.getTileDataAddr()
 
-	pVal := p.memory.Read(go_gb.LCDBGP, nil)
+	pVal := p.memory.Read(go_gb.LCDBGP)
 	for j := 0; j < 256; j++ {
 		offY := uint16(row + scy)
 		offX := uint16(byte(j) + scx)
 
-		tileId := p.memory.Read(tileMap+((offY/8*32)+(offX/8)), nil)
+		tileId := p.memory.Read(tileMap + ((offY / 8 * 32) + (offX / 8)))
 
 		var colorval byte
 		if tileData == 0x8800 {
-			colorval = (p.memory.Read(tileData+0x800+uint16(int8(tileId)*0x10)+(offY%8*2), nil) >> (7 - (offX % 8)) & 0x1) + ((p.memory.Read(tileData+0x800+uint16(int8(tileId)*0x10)+(offY%8*2)+1, nil) >> (7 - (offX % 8)) & 0x1) * 2)
+			colorval = (p.memory.Read(tileData+0x800+uint16(int8(tileId)*0x10)+(offY%8*2)) >> (7 - (offX % 8)) & 0x1) + ((p.memory.Read(tileData+0x800+uint16(int8(tileId)*0x10)+(offY%8*2)+1) >> (7 - (offX % 8)) & 0x1) * 2)
 		} else {
-			colorval = (p.memory.Read(tileData+(uint16(tileId)*2)+(offY%8*2), nil) >> (7 - (offX % 8)) & 0x1) + (p.memory.Read(tileData+(uint16(tileId)*2)+(offY%8*2)+1, nil)>>(7-(offX%8))&0x1)*2
+			colorval = (p.memory.Read(tileData+(uint16(tileId)*2)+(offY%8*2)) >> (7 - (offX % 8)) & 0x1) + (p.memory.Read(tileData+(uint16(tileId)*2)+(offY%8*2)+1)>>(7-(offX%8))&0x1)*2
 		}
 		p.setBgColor(int(row), j, pVal, colorval)
 	}

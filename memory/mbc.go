@@ -45,7 +45,7 @@ const (
 	MbcHuC1RAMBATTERY             mbcType = 0xFF
 )
 
-func getCartridge(memory []byte) Memory {
+func getCartridge(memory []byte) go_gb.Cartridge {
 	cartridgeType := memory[CartridgeTypeAddr]
 	switch cartridgeType {
 	case 0x00:
@@ -57,40 +57,47 @@ func getCartridge(memory []byte) Memory {
 	case 0x05, 0x06:
 		panic("implement MBC2")
 	case 0x08, 0x09:
-		return &noMBC{ram: make([]byte, ExternalRAMEnd-ExternalRAMStart+1)}
+		mbc := &noMBC{ram: make([]byte, ExternalRAMEnd-ExternalRAMStart+1)}
+		mbc.LoadRom(memory)
+		return mbc
 	}
 	panic(fmt.Errorf("implement cartridge type %X", cartridgeType))
 }
 
 func getRomBanks(memory []byte) *bank {
 	banks := memory[CartridgeROMSizeAddr]
+	var bank *bank
 	switch banks {
 	case 0x00:
-		return newBank(1, 32*KiB)
+		bank = newBank(1, 32*KiB)
 	case 0x01:
-		return newBank(4, 16*KiB)
+		bank = newBank(4, 16*KiB)
 	case 0x02:
-		return newBank(8, 16*KiB)
+		bank = newBank(8, 16*KiB)
 	case 0x03:
-		return newBank(16, 16*KiB)
+		bank = newBank(16, 16*KiB)
 	case 0x04:
-		return newBank(32, 16*KiB)
+		bank = newBank(32, 16*KiB)
 	case 0x05:
-		return newBank(64, 16*KiB)
+		bank = newBank(64, 16*KiB)
 	case 0x06:
-		return newBank(128, 16*KiB)
+		bank = newBank(128, 16*KiB)
 	case 0x07:
-		return newBank(256, 16*KiB)
+		bank = newBank(256, 16*KiB)
 	case 0x08:
-		return newBank(512, 16*KiB)
+		bank = newBank(512, 16*KiB)
 	case 0x52:
-		return newBank(72, 16*KiB)
+		bank = newBank(72, 16*KiB)
 	case 0x53:
-		return newBank(80, 16*KiB)
+		bank = newBank(80, 16*KiB)
 	case 0x54:
-		return newBank(96, 16*KiB)
+		bank = newBank(96, 16*KiB)
 	}
-	panic("invalid number of banks")
+	if bank == nil {
+		panic("invalid number of banks")
+	}
+	bank.LoadRom(memory)
+	return bank
 }
 
 func getRamBanks(memory []byte) *bank {
@@ -119,7 +126,7 @@ type bank struct {
 
 func newBank(numOfParts, partSize uint16) *bank {
 	return &bank{
-		memory:   make([]byte, numOfParts*partSize),
+		memory:   make([]byte, int(numOfParts)*int(partSize)),
 		partSize: partSize,
 	}
 }
@@ -147,6 +154,15 @@ func (b *bank) Store(bank, pointer uint16, val byte) {
 	b.memory[b.address(bank, pointer)] = val
 }
 
+func (b *bank) LoadRom(bytes []byte) int {
+	n := len(b.memory)
+	if n > len(bytes) {
+		n = len(bytes)
+	}
+	copy(b.memory, bytes[:n])
+	return n
+}
+
 type noMBC struct {
 	rom [ROMBankNEnd + 1]byte
 	ram []byte
@@ -170,15 +186,27 @@ func (n2 *noMBC) Read(pointer uint16) byte {
 }
 
 func (n2 *noMBC) StoreBytes(pointer uint16, bytes []byte) {
-	if n2.ram == nil {
+	if n2.ram == nil || pointer < ExternalRAMStart {
 		return
 	}
-	address := pointer - ExternalRAMStart
-	copy(n2.ram[address:address+uint16(len(bytes))], bytes)
+	address := int(pointer) - int(ExternalRAMStart)
+	if address < 0 {
+		return
+	}
+	copy(n2.ram[address:address+len(bytes)], bytes)
 }
 
 func (n2 *noMBC) Store(pointer uint16, val byte) {
 	n2.StoreBytes(pointer, []byte{val})
+}
+
+func (n2 *noMBC) LoadRom(bytes []byte) int {
+	n := len(n2.rom)
+	if n > len(bytes) {
+		n = len(bytes)
+	}
+	copy(n2.rom[:], bytes[:n])
+	return n
 }
 
 type mbc1 struct {
@@ -238,4 +266,8 @@ func (m *mbc1) StoreBytes(pointer uint16, bytes []byte) {
 
 func (m *mbc1) Store(pointer uint16, val byte) {
 	m.StoreBytes(pointer, []byte{val})
+}
+
+func (m *mbc1) LoadRom(bytes []byte) int {
+	return m.romBank.LoadRom(bytes)
 }

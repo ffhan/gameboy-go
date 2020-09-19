@@ -2,6 +2,7 @@ package cpu
 
 import (
 	go_gb "go-gb"
+	"go-gb/memory"
 	"testing"
 )
 
@@ -50,11 +51,12 @@ func checkMd(c *cpu, i int) func() []byte {
 }
 
 func TestLoad(t *testing.T) {
-	c := NewCpu()
+	c := initCpu(nil)
+	c.pc = memory.WRAMBank0Start
 	table := []loadTest{
 		{nil, checkReg(c, BC), load(rx(BC), dx(16)), []byte{0xFA, 0xCE}},
-		{nil, checkReg(c, DE), load(rx(DE), dx(16)), []byte{0x12, 0x34}},
-		{nil, checkReg(c, HL), load(rx(HL), dx(16)), []byte{0x56, 0x78}},
+		{nil, checkReg(c, DE), load(rx(DE), dx(16)), []byte{0xFE, 0xCE}},
+		{nil, checkReg(c, HL), load(rx(HL), dx(16)), []byte{0xCE, 0xFF}},
 		{nil, checkSp(c), load(sp(), dx(16)), []byte{0x9A, 0xBC}},
 
 		{func() { c.rMap[A][0] = 0xAE }, checkMr(c, BC), load(mr(BC), rx(A)), []byte{0xAE}},
@@ -62,13 +64,13 @@ func TestLoad(t *testing.T) {
 
 		{nil, checkReg(c, B), load(rx(B), dx(8)), []byte{0x56}},
 		{nil, checkReg(c, D), load(rx(D), dx(8)), []byte{0x57}},
-		{nil, checkReg(c, H), load(rx(H), dx(8)), []byte{0x58}},
-		{nil, checkMr(c, HL), load(mr(HL), dx(8)), []byte{0x59}},
+		{nil, checkReg(c, H), load(rx(H), dx(8)), []byte{0xAA}},
+		{nil, checkMr(c, HL), load(mr(HL), dx(8)), []byte{0xAB}},
 
 		{func() { c.sp = 0xFFFE }, checkMd(c, 16), load(md(16), sp()), []byte{0xFE, 0xFF}},
 
-		{func() { c.memory.StoreBytes(0, []byte{0x0A}); c.rMap[BC][0] = 0; c.rMap[BC][1] = 0 }, checkReg(c, A), load(rx(A), mr(BC)), []byte{0x0A}},
-		{func() { c.memory.StoreBytes(0, []byte{0x1A}); c.rMap[DE][0] = 0; c.rMap[DE][1] = 0 }, checkReg(c, A), load(rx(A), mr(DE)), []byte{0x1A}},
+		{func() { c.memory.StoreBytes(0xFBFA, []byte{0x0A}); c.rMap[BC][0] = 0xFA; c.rMap[BC][1] = 0xFB }, checkReg(c, A), load(rx(A), mr(BC)), []byte{0x0A}},
+		{func() { c.memory.StoreBytes(0xFCFB, []byte{0x1A}); c.rMap[DE][0] = 0xFB; c.rMap[DE][1] = 0xFC }, checkReg(c, A), load(rx(A), mr(DE)), []byte{0x1A}},
 
 		{nil, checkReg(c, C), load(rx(C), dx(8)), []byte{0x5A}},
 		{nil, checkReg(c, E), load(rx(E), dx(8)), []byte{0x5B}},
@@ -76,10 +78,10 @@ func TestLoad(t *testing.T) {
 		{nil, checkReg(c, A), load(rx(A), dx(8)), []byte{0x5D}},
 	}
 	c.memory.StoreBytes(c.pc, []byte{
-		0xFA, 0xCE, 0x12, 0x34,
-		0x56, 0x78, 0x9A, 0xBC,
-		0x56, 0x57, 0x58, 0x59,
-		0x00, 0x00, // load (nn), SP test moves PC
+		0xFA, 0xCE, 0xFE, 0xCE,
+		0xCE, 0xFF, 0x9A, 0xBC,
+		0x56, 0x57, 0xAA, 0xAB,
+		0xCD, 0xAB, // load (nn), SP test moves PC
 		0x5A, 0x5B, 0x5C, 0x5D,
 	})
 	for i, test := range table {
@@ -88,11 +90,12 @@ func TestLoad(t *testing.T) {
 		}
 		test.in(c)
 		checkBytes(i+1, t, test.expected, test.results())
+		t.Logf("test %d completed", i+1)
 	}
 }
 
 func TestLoadHl(t *testing.T) {
-	c := NewCpu()
+	c := initCpu(nil)
 	c.rMap[HL][1] = 0xAB
 	c.rMap[HL][0] = 0xCD
 	hlLSB := byte(0xCD)
@@ -135,7 +138,7 @@ type spTest struct {
 }
 
 func TestPush(t *testing.T) {
-	c := NewCpu()
+	c := initCpu(nil)
 	start := c.pc
 	startSp := c.sp
 	table := []spTest{
@@ -154,7 +157,11 @@ func TestPush(t *testing.T) {
 		if c.sp != test.expectedSp {
 			t.Errorf("test %d expected SP %X, got %X\n", i+1, test.expectedSp, c.sp)
 		}
-		checkBytes(i+1, t, test.expected, c.popStack(2, nil))
+		var mc go_gb.MC
+		checkBytes(i+1, t, test.expected, c.popStack(2, &mc))
+		if mc != 2 {
+			t.Errorf("expected 2 cycles, got %d\n", mc)
+		}
 	}
 }
 
@@ -164,8 +171,13 @@ func TestPop(t *testing.T) { // todo: test flags
 		expectedSp uint16
 		expected   []byte
 	}
-	c := NewCpu()
-	c.pushStack([]byte{0xAB, 0xCD, 0xDE, 0xF0, 0xF1, 0xA1, 0xB2, 0xC4}, nil)
+	c := initCpu(nil)
+	var mc go_gb.MC
+	in := []byte{0xAB, 0xCD, 0xDE, 0xF0, 0xF1, 0xA1, 0xB2, 0xC4}
+	c.pushStack(in, &mc)
+	if mc != go_gb.MC(len(in)) {
+		t.Errorf("expected %d cycles, got %d\n", len(in), mc)
+	}
 	startSp := c.sp
 	table := []poptest{
 		{BC, startSp + 2, []byte{0xC4, 0xB2}},
@@ -183,7 +195,8 @@ func TestPop(t *testing.T) { // todo: test flags
 }
 
 func TestLoadHlSp(t *testing.T) {
-	c := NewCpu()
+	c := initCpu(nil)
+	c.pc = 0xA000
 	type hlsptest struct {
 		prepare    func()
 		z, n, h, c bool

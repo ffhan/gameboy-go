@@ -31,13 +31,6 @@ const (
 	InterruptEnableRegister uint16 = 0xFFFF
 )
 
-type Memory interface {
-	ReadBytes(pointer, n uint16) []byte
-	Read(pointer uint16) byte
-	StoreBytes(pointer uint16, bytes []byte)
-	Store(pointer uint16, val byte)
-}
-
 type mmap struct {
 	start, end   uint16
 	memory       []byte
@@ -61,6 +54,12 @@ func (m *mmap) StoreBytes(pointer uint16, bytes []byte) {
 
 func (m *mmap) Store(pointer uint16, val byte) {
 	m.memory[pointer-m.start] = val
+}
+
+func (m *mmap) LoadRom(bytes []byte) int {
+	n := len(m.memory)
+	copy(m.memory, bytes[:n])
+	return n
 }
 
 type wram struct {
@@ -102,15 +101,15 @@ func newMmap(start uint16, end uint16, memory []byte) *mmap {
 
 type mmu struct {
 	completeMem             [0xFFFF + 1]byte
-	cartridge               Memory
-	vram                    Memory
-	wram                    Memory
-	echo                    Memory
-	oam                     Memory
-	unusable                Memory
-	io                      Memory
-	hram                    Memory
-	interruptEnableRegister Memory
+	cartridge               go_gb.Cartridge
+	vram                    go_gb.Memory
+	wram                    go_gb.Memory
+	echo                    go_gb.Memory
+	oam                     go_gb.Memory
+	unusable                go_gb.Memory
+	io                      go_gb.Memory
+	hram                    go_gb.Memory
+	interruptEnableRegister go_gb.Memory
 }
 
 func NewMMU() *mmu {
@@ -135,7 +134,7 @@ func (m *mmu) createMmap(start, end uint16) *mmap {
 }
 
 func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
-	var wramMemory Memory
+	var wramMemory go_gb.Memory
 	if gbType == go_gb.CGB {
 		wramMemory = &wram{bank: newBank(8, 1<<12), selectedBank: 1}
 	} else {
@@ -153,7 +152,7 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 }
 
 // takes a pointer and returns a whole portion of the memory responsible
-func (m *mmu) Route(pointer uint16) Memory {
+func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	if inInterval(pointer, ROMBank0Start, ROMBankNEnd) {
 		return m.cartridge
 	} else if inInterval(pointer, VRAMStart, VRAMEnd) {
@@ -192,4 +191,8 @@ func (m *mmu) StoreBytes(pointer uint16, bytes []byte) {
 
 func (m *mmu) Store(pointer uint16, val byte) {
 	m.Route(pointer).Store(pointer, val)
+}
+
+func (m *mmu) LoadRom(rom []byte) int {
+	return m.cartridge.LoadRom(rom)
 }
