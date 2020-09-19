@@ -42,6 +42,8 @@ type mmu struct {
 	io                      go_gb.Memory
 	hram                    go_gb.Memory
 	interruptEnableRegister go_gb.Memory
+
+	locked *lockedMemory
 }
 
 func NewMMU() *mmu {
@@ -81,6 +83,8 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 	m.io = m.createMmap(IOPortsStart, IOPortsEnd)
 	m.hram = m.createMmap(HRAMStart, HRAMEnd)
 	m.interruptEnableRegister = m.createMmap(InterruptEnableRegister, InterruptEnableRegister)
+
+	m.locked = &lockedMemory{}
 }
 
 // takes a pointer and returns a whole portion of the memory responsible
@@ -88,6 +92,10 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	if inInterval(pointer, ROMBank0Start, ROMBankNEnd) {
 		return m.cartridge
 	} else if inInterval(pointer, VRAMStart, VRAMEnd) {
+		locked := m.Read(go_gb.LCDStatusRegister)&0x3 == 3
+		if !locked {
+			return m.locked
+		}
 		return m.vram
 	} else if inInterval(pointer, ExternalRAMStart, ExternalRAMEnd) {
 		return m.cartridge
@@ -96,6 +104,10 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	} else if inInterval(pointer, ECHORAMStart, ECHORAMEnd) {
 		return m.echo
 	} else if inInterval(pointer, OAMStart, OAMEnd) {
+		locked := m.Read(go_gb.LCDStatusRegister)&0x3 > 1
+		if locked {
+			return m.locked
+		}
 		return m.oam
 	} else if inInterval(pointer, UnusableStart, UnusableEnd) {
 		return m.unusable

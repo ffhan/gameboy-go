@@ -1,11 +1,12 @@
 package memory
 
-import "fmt"
-
 type mmap struct {
-	start, end   uint16
-	memory       []byte
-	rLock, wLock bool
+	start, end uint16
+	memory     []byte
+}
+
+func newMmap(start uint16, end uint16, memory []byte) *mmap {
+	return &mmap{start: start, end: end, memory: memory}
 }
 
 func (m *mmap) ReadBytes(pointer, n uint16) []byte {
@@ -33,39 +34,23 @@ func (m *mmap) LoadRom(bytes []byte) int {
 	return n
 }
 
-func newMmap(start uint16, end uint16, memory []byte) *mmap {
-	return &mmap{start: start, end: end, memory: memory}
+type lockedMemory struct {
 }
 
-type wram struct {
-	bank         *bank
-	selectedBank int
-}
-
-func (w *wram) ReadBytes(pointer, n uint16) []byte {
-	if WRAMBank0Start <= pointer && pointer <= WRAMBank0End {
-		return w.bank.ReadBytes(0, pointer-WRAMBank0Start, n)
-	} else if WRAMBankNStart <= pointer && pointer <= WRAMBankNEnd {
-		return w.bank.ReadBytes(uint16(w.selectedBank), pointer-WRAMBankNStart, n)
+func (l *lockedMemory) ReadBytes(pointer, n uint16) []byte {
+	bytes := make([]byte, n)
+	for i := range bytes {
+		bytes[i] = 0xFF
 	}
-	panic(fmt.Errorf("invalid address %X", pointer))
+	return bytes
 }
 
-func (w *wram) Read(pointer uint16) byte {
-	return w.ReadBytes(pointer, 1)[0]
+func (l *lockedMemory) Read(pointer uint16) byte {
+	return l.ReadBytes(pointer, 1)[0]
 }
 
-func (w *wram) StoreBytes(pointer uint16, bytes []byte) {
-	if WRAMBank0Start <= pointer && pointer <= WRAMBank0End {
-		w.bank.StoreBytes(0, pointer-WRAMBank0Start, bytes)
-		return
-	} else if WRAMBankNStart <= pointer && pointer <= WRAMBankNEnd {
-		w.bank.StoreBytes(uint16(w.selectedBank), pointer-WRAMBankNStart, bytes)
-		return
-	}
-	panic(fmt.Errorf("invalid address %X", pointer))
+func (l *lockedMemory) StoreBytes(pointer uint16, bytes []byte) {
 }
 
-func (w *wram) Store(pointer uint16, val byte) {
-	w.StoreBytes(pointer, []byte{val})
+func (l *lockedMemory) Store(pointer uint16, val byte) {
 }
