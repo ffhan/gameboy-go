@@ -6,7 +6,7 @@ type Cpu interface {
 
 // picture processing unit
 type PPU interface {
-	Paint()
+	Step(mc MC)
 }
 
 // sound processing unit
@@ -18,4 +18,15 @@ type GameBoy struct {
 	mmu Memory
 	ppu PPU
 	spu SPU
+}
+
+func (g *GameBoy) Run() {
+	const (
+		cpuFreq = 4_194_304 // Hz
+		ppuFreq = 59.73     // Hz
+	)
+	for {
+		mc := g.cpu.Step()
+		g.ppu.Step(mc)
+	}
 }

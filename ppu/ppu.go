@@ -17,6 +17,9 @@ type ppu struct {
 	colorMapping [4 * 3]byte
 
 	bgMapA [256 * 256 * 4]byte
+
+	currentCycles go_gb.MC
+	cpuCycles     go_gb.MC
 }
 
 func (p *ppu) getTileMapAddr() uint16 {
@@ -79,5 +82,24 @@ func (p *ppu) calcBg(row byte) {
 			colorval = (p.memory.Read(tileData+(uint16(tileId)*2)+(offY%8*2)) >> (7 - (offX % 8)) & 0x1) + (p.memory.Read(tileData+(uint16(tileId)*2)+(offY%8*2)+1)>>(7-(offX%8))&0x1)*2
 		}
 		p.setBgColor(int(row), j, pVal, colorval)
+	}
+}
+
+func (p *ppu) Step(mc go_gb.MC) {
+	const (
+		vBlankCycles = 17_556
+		hBlankCycles = 114
+	)
+	p.cpuCycles += mc
+	p.currentCycles += mc
+
+	if p.currentCycles >= hBlankCycles {
+		// todo: draw one line & hblank interrupt
+		// todo: switch modes for VRAM
+		p.currentCycles -= hBlankCycles
+	}
+	if p.cpuCycles >= vBlankCycles {
+		// todo: vblank interrupt
+		p.cpuCycles -= vBlankCycles
 	}
 }
