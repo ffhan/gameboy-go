@@ -158,6 +158,7 @@ func (c *cpu) Step() go_gb.MC {
 	} else {
 		cycles = 1
 	}
+	// todo: handle PPU BEFORE interrupts (hblank/vblank/stat interrupts)
 	c.handleEiDi()
 	cycles += c.handleInterrupts()
 	return cycles

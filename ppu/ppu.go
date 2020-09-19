@@ -9,17 +9,13 @@ const (
 )
 
 type ppu struct {
-	memory go_gb.Memory
+	memory go_gb.Memory // used for usual memory access
+	vram   go_gb.Memory // for skipping locks
+	oam    go_gb.Memory // for skipping locks
 
-	frameBuffer  [160 * 144 * 3]byte
-	frameBufferA [frameBufASize]byte
-
-	colorMapping [4 * 3]byte
-
-	bgMapA [256 * 256 * 4]byte
-
-	currentCycles go_gb.MC
-	cpuCycles     go_gb.MC
+	currentLine int
+	currentMode byte
+	modeClock   go_gb.MC
 }
 
 func (p *ppu) getTileMapAddr() uint16 {
@@ -29,6 +25,26 @@ func (p *ppu) getTileMapAddr() uint16 {
 	return 0x9800
 }
 
+func (p *ppu) getScXY() (byte, byte) {
+	scx := p.memory.Read(go_gb.LCDSCX)
+	scy := p.memory.Read(go_gb.LCDSCY)
+	return scx, scy
+}
+
+func (p *ppu) getLy() byte {
+	return p.memory.Read(go_gb.LCDLY)
+}
+
+func (p *ppu) updateLy() {
+	p.memory.Store(go_gb.LCDLY, byte(p.currentLine))
+}
+
+func (p *ppu) getWindowPosition() (byte, byte) {
+	wx := p.memory.Read(go_gb.LCDWX)
+	wy := p.memory.Read(go_gb.LCDWY)
+	return wx, wy
+}
+
 func (p *ppu) getTileDataAddr() uint16 {
 	if go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister), 4) {
 		return 0x8000
@@ -36,70 +52,67 @@ func (p *ppu) getTileDataAddr() uint16 {
 	return 0x8800
 }
 
-func (p *ppu) GetFrameBuffer() [frameBufASize]byte {
-	return p.frameBufferA
+func (p *ppu) setMode(mode byte) {
+	mode &= 0x3
+	stat := p.memory.Read(go_gb.LCDStatusRegister) | mode
+	p.memory.Store(go_gb.LCDStatusRegister, stat)
+	p.modeClock = 0
+	p.currentMode = mode
 }
 
-func (p *ppu) setBgColor(row, col int, pVal, colorval byte) {
-	colorFromPalette := (pVal >> (2 * colorval)) & 3
-	p.bgMapA[(row*256*4)+(col*4)] = p.colorMapping[colorFromPalette*3]
-	p.bgMapA[(row*256*4)+(col*4)+1] = p.colorMapping[colorFromPalette*3+1]
-	p.bgMapA[(row*256*4)+(col*4)+2] = p.colorMapping[colorFromPalette*3+2]
-	p.bgMapA[(row*256*4)+(col*4)+3] = 0xFF
-}
+func (p *ppu) compareLyLyc() {
+	val := p.memory.Read(go_gb.LCDLYC) == p.getLy()
+	stat := p.memory.Read(go_gb.LCDStatusRegister)
+	go_gb.Set(&stat, go_gb.LCDSTATCoincidenceFlag, val)
+	go_gb.Set(&stat, go_gb.LCDSTATCoincidenceInterrupt, val)
+	p.memory.Store(go_gb.LCDStatusRegister, stat)
 
-func (p *ppu) drawFrame() {
-	for r := 0; r < 144; r++ {
-		for col := 0; col < 160; col++ {
-			yOffA := r * 256 * 4
-			xOffA := col * 4
-			p.frameBufferA[(r*160*4)+(col*4)] = p.bgMapA[yOffA+xOffA]
-			p.frameBufferA[(r*160*4)+(col*4)+1] = p.bgMapA[yOffA+xOffA+1]
-			p.frameBufferA[(r*160*4)+(col*4)+2] = p.bgMapA[yOffA+xOffA+2]
-			p.frameBufferA[(r*160*4)+(col*4)+3] = p.bgMapA[yOffA+xOffA+3]
-		}
-	}
-}
-
-func (p *ppu) calcBg(row byte) {
-	scx := p.memory.Read(go_gb.LCDSCX)
-	scy := p.memory.Read(go_gb.LCDSCY)
-
-	tileMap := p.getTileMapAddr()
-	tileData := p.getTileDataAddr()
-
-	pVal := p.memory.Read(go_gb.LCDBGP)
-	for j := 0; j < 256; j++ {
-		offY := uint16(row + scy)
-		offX := uint16(byte(j) + scx)
-
-		tileId := p.memory.Read(tileMap + ((offY / 8 * 32) + (offX / 8)))
-
-		var colorval byte
-		if tileData == 0x8800 {
-			colorval = (p.memory.Read(tileData+0x800+uint16(int8(tileId)*0x10)+(offY%8*2)) >> (7 - (offX % 8)) & 0x1) + ((p.memory.Read(tileData+0x800+uint16(int8(tileId)*0x10)+(offY%8*2)+1) >> (7 - (offX % 8)) & 0x1) * 2)
-		} else {
-			colorval = (p.memory.Read(tileData+(uint16(tileId)*2)+(offY%8*2)) >> (7 - (offX % 8)) & 0x1) + (p.memory.Read(tileData+(uint16(tileId)*2)+(offY%8*2)+1)>>(7-(offX%8))&0x1)*2
-		}
-		p.setBgColor(int(row), j, pVal, colorval)
+	interrupt := p.memory.Read(go_gb.IF)
+	if val {
+		go_gb.Set(&interrupt, 1, true)
+		p.memory.Store(go_gb.IF, interrupt)
 	}
 }
 
 func (p *ppu) Step(mc go_gb.MC) {
-	const (
-		vBlankCycles = 17_556
-		hBlankCycles = 114
-	)
-	p.cpuCycles += mc
-	p.currentCycles += mc
+	defer p.compareLyLyc()
+	p.modeClock += mc
 
-	if p.currentCycles >= hBlankCycles {
-		// todo: draw one line & hblank interrupt
-		// todo: switch modes for VRAM
-		p.currentCycles -= hBlankCycles
+	switch p.currentMode {
+	case 2:
+		if p.modeClock >= 20 {
+			p.setMode(3)
+		}
+	case 3:
+		if p.modeClock >= 43 {
+			// todo: HBLANK interrupt
+			p.setMode(0)
+			p.renderScanline()
+		}
+	case 0:
+		if p.modeClock >= 22 {
+			p.currentLine += 1
+			p.updateLy()
+			if p.currentLine == 143 {
+				p.setMode(1)
+				// todo: VBLANK interrupt
+				// todo: render to display
+			} else {
+				p.setMode(2)
+			}
+		}
+	case 1:
+		if p.modeClock >= 114 {
+			p.currentLine += 1
+			if p.currentLine > 153 {
+				p.currentLine = 0
+				p.setMode(2)
+			}
+			p.updateLy()
+		}
 	}
-	if p.cpuCycles >= vBlankCycles {
-		// todo: vblank interrupt
-		p.cpuCycles -= vBlankCycles
-	}
+}
+
+func (p *ppu) renderScanline() {
+
 }

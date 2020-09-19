@@ -130,11 +130,17 @@ func (m *mmu) Read(pointer uint16) byte {
 }
 
 func (m *mmu) StoreBytes(pointer uint16, bytes []byte) {
+	if pointer == go_gb.LCDDMA {
+		source := go_gb.FromBytes(bytes)
+		bytes := m.ReadBytes(source, 0x9F+1)
+		m.StoreBytes(OAMStart, bytes)
+		return
+	}
 	m.Route(pointer).StoreBytes(pointer, bytes)
 }
 
 func (m *mmu) Store(pointer uint16, val byte) {
-	m.Route(pointer).Store(pointer, val)
+	m.StoreBytes(pointer, []byte{val})
 }
 
 func (m *mmu) LoadRom(rom []byte) int {

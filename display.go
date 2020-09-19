@@ -48,3 +48,11 @@ const (
 	LCDHDMA4 uint16 = 0xFF54 // LCD CGB Mode Only - New DMA Destination, Low
 	LCDHDMA5 uint16 = 0xFF55 // LCD CGB Mode Only - New DMA Length/Mode/Start
 )
+
+const (
+	LCDSTATCoincidenceFlag = iota + 2
+	LCDSTATHBlankFlag
+	LCDSTATVBlankFlag
+	LCDSTATOAMInterruptFlag
+	LCDSTATCoincidenceInterrupt
+)
