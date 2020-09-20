@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Game boy</title>
+</head>
+<body>
+<canvas id="screen" width="160" height="144"></canvas>
+<input type="file" id="rom">
+<button onclick="run()">Run</button>
+<script src="wasm_exec.js"></script>
+<script type="application/javascript">
+    document.scanLine = 0;
+    document.bufferLine = new Uint8Array(160 * 144);
+
+    let canvas = document.getElementById('screen');
+    const ctx = canvas.getContext('2d');
+
+    async function loadBoot() {
+        return new Uint8Array(await (await fetch('boot.gb')).arrayBuffer());
+    }
+
+    loadBoot().then(value => document.boot = value)
+
+    document.getElementById('rom').addEventListener('change', function () {
+        var reader = new FileReader();
+        reader.onload = function () {
+            console.log(new Uint8Array(document.boot));
+            console.log(new Uint8Array(this.result));
+            document.rom = new Uint8Array(document.boot.byteLength + this.result.byteLength);
+            document.rom.set(document.boot);
+            document.rom.set(new Uint8Array(this.result), document.boot.byteLength);
+            console.log(document.rom);
+        }
+        reader.readAsArrayBuffer(this.files[0]);
+    }, false);
+
+    function remap(color) {
+        switch (color) {
+            case 0:
+                return '#FFFFFF'
+            case 1:
+                return '#CCCCCC'
+            case 2:
+                return '#777777'
+            case 3:
+                return '#000000'
+        }
+        return '#FF0000'
+    }
+
+    function draw() {
+        console.log(document.bufferLine);
+        for (let i = 0; i < 160; i++) {
+            let color = document.bufferLine[i];
+            ctx.fillStyle = remap(color)
+            ctx.fillRect(i, document.scanLine, 1, 1)
+        }
+    }
+</script>
+<script src="wasm.js"></script>
+</body>
+</html>

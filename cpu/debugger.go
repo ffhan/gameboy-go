@@ -16,7 +16,7 @@ func NewDebugger(cpu *cpu, output io.Writer) *debugger {
 }
 
 func (d *debugger) Step() go_gb.MC {
-	defer d.print(d.cpu.memory.Read(d.cpu.pc))
+	d.print(d.cpu.memory.Read(d.cpu.pc))
 	return d.cpu.Step()
 }
 

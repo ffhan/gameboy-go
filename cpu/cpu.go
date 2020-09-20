@@ -128,7 +128,7 @@ func (c *cpu) getRegister(r registerName) []byte {
 
 func (c *cpu) init() {
 	//c.pc = 0x0100
-	c.sp = 0xFFFE
+	//c.sp = 0xFFFE boot room fills this
 	// todo: set r to init values
 	// setting references to register arr
 	c.af = c.r[F : A+1]

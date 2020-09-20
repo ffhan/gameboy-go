@@ -27,10 +27,12 @@ type ppu struct {
 	currentLine int
 	currentMode byte
 	modeClock   go_gb.MC
+
+	display go_gb.Display
 }
 
-func NewPpu(memory go_gb.Memory, vram go_gb.Memory, oam go_gb.Memory) *ppu {
-	return &ppu{memory: memory, vram: vram, oam: oam, currentMode: 2}
+func NewPpu(memory go_gb.Memory, vram go_gb.Memory, oam go_gb.Memory, display go_gb.Display) *ppu {
+	return &ppu{memory: memory, vram: vram, oam: oam, currentMode: 2, display: display}
 }
 
 func (p *ppu) getBgTileMapAddr() uint16 {
@@ -266,6 +268,7 @@ func (p *ppu) Step(mc go_gb.MC) {
 			// todo: render scanline to display
 			p.setMode(0)
 			p.renderScanline()
+			p.display.Draw(p.currentLine, p.frameBuffer[p.currentLine*160:(p.currentLine+1)*160])
 		}
 	case 0:
 		if p.modeClock >= 22 {

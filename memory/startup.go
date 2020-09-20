@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"fmt"
 	"go-gb"
 )
 
@@ -23,7 +22,10 @@ func getCartridge(memory []byte) go_gb.Cartridge {
 		mbc.LoadRom(memory)
 		return mbc
 	}
-	panic(fmt.Errorf("implement cartridge type %X", cartridgeType))
+	//panic(fmt.Errorf("implement cartridge type %X", cartridgeType))
+	c := &noMBC{}
+	c.LoadRom(memory)
+	return c
 }
 
 func getRomBanks(memory []byte) *bank {

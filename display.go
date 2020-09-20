@@ -56,3 +56,7 @@ const (
 	LCDSTATOAMInterruptFlag
 	LCDSTATCoincidenceInterrupt
 )
+
+type Display interface {
+	Draw(scanLine int, bufferLine []byte)
+}
