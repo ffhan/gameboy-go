@@ -9,7 +9,9 @@ func getCartridge(memory []byte) go_gb.Cartridge {
 	cartridgeType := memory[CartridgeTypeAddr]
 	switch cartridgeType {
 	case 0x00:
-		return &noMBC{}
+		n := &noMBC{}
+		n.LoadRom(memory)
+		return n
 	case 0x01:
 		return NewMbc1(getRomBanks(memory), nil)
 	case 0x02, 0x03: // todo: implement battery (save in files)

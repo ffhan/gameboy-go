@@ -89,8 +89,16 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 	m.locked = &lockedMemory{}
 
 	m.storeFuncs = map[uint16]func(bytes []byte){
-		go_gb.LCDDMA: dma(m.oam),
+		go_gb.LCDDMA: dma(m, m.oam),
 	}
+}
+
+func (m *mmu) OAM() go_gb.Memory {
+	return m.oam
+}
+
+func (m *mmu) VRAM() go_gb.Memory {
+	return m.vram
 }
 
 // takes a pointer and returns a whole portion of the memory responsible
@@ -99,7 +107,7 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 		return m.cartridge
 	} else if inInterval(pointer, VRAMStart, VRAMEnd) {
 		locked := m.Read(go_gb.LCDSTAT)&0x3 == 3
-		if !locked {
+		if locked {
 			return m.locked
 		}
 		return m.vram
@@ -142,11 +150,11 @@ func (m *mmu) StoreBytes(pointer uint16, bytes []byte) {
 	m.Route(pointer).StoreBytes(pointer, bytes)
 }
 
-func dma(m go_gb.Memory) func([]byte) {
+func dma(src, dst go_gb.Memory) func([]byte) {
 	return func(bytes []byte) {
-		source := go_gb.FromBytes(bytes)
-		result := m.ReadBytes(source, 0x9F+1)
-		m.StoreBytes(OAMStart, result)
+		source := go_gb.FromBytes(bytes) << 8
+		result := src.ReadBytes(source, 0x9F+1)
+		dst.StoreBytes(OAMStart, result)
 	}
 }
 

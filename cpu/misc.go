@@ -10,7 +10,8 @@ func NOP(c *cpu) go_gb.MC {
 }
 
 func STOP(c *cpu) go_gb.MC { // todo: halt until button pressed (joypad interrupt?)
-	panic("implement me")
+	c.stop = true
+	return 0
 }
 
 func halt(c *cpu) go_gb.MC {

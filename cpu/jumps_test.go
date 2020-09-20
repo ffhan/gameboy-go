@@ -13,8 +13,7 @@ type jptest struct {
 }
 
 func TestJp(t *testing.T) {
-	c := NewCpu()
-	c.Init(make([]byte, 0xFFFF+1), go_gb.GB)
+	c := initCpu(nil)
 	c.pc = 0xC000
 	start := c.pc
 	table := []jptest{

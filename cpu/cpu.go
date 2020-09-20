@@ -2,7 +2,6 @@ package cpu
 
 import (
 	"go-gb"
-	memory2 "go-gb/memory"
 )
 
 const (
@@ -48,14 +47,19 @@ type cpu struct {
 	memory go_gb.Memory
 
 	halt      bool
+	stop      bool
 	eiWaiting byte
 	diWaiting byte
 	ime       bool // Interrupt master enable
 	cbLookup  bool
+
+	ppu go_gb.PPU
 }
 
-func NewCpu() *cpu {
-	return &cpu{}
+func NewCpu(mmu go_gb.Memory, ppu go_gb.PPU) *cpu {
+	c := &cpu{memory: mmu, ppu: ppu}
+	c.init()
+	return c
 }
 
 func (c *cpu) readOpcode(mc *go_gb.MC) byte {
@@ -122,12 +126,8 @@ func (c *cpu) getRegister(r registerName) []byte {
 	return c.rMap[r]
 }
 
-func (c *cpu) Init(rom []byte, gbType go_gb.GameboyType) {
-	mmu := memory2.NewMMU()
-	mmu.Init(rom, gbType)
-	c.memory = mmu
-
-	c.pc = 0x0100
+func (c *cpu) init() {
+	//c.pc = 0x0100
 	c.sp = 0xFFFE
 	// todo: set r to init values
 	// setting references to register arr
@@ -144,7 +144,7 @@ func (c *cpu) Init(rom []byte, gbType go_gb.GameboyType) {
 
 func (c *cpu) Step() go_gb.MC {
 	var cycles go_gb.MC
-	if !c.halt {
+	if !c.halt || !c.stop {
 		opcode := c.readOpcode(&cycles)
 		var instr Instr
 		if c.cbLookup {
@@ -157,7 +157,9 @@ func (c *cpu) Step() go_gb.MC {
 	} else {
 		cycles = 1
 	}
-	// todo: handle PPU BEFORE interrupts (hblank/vblank/stat interrupts)
+	if c.ppu != nil {
+		c.ppu.Step(cycles)
+	}
 	c.handleEiDi()
 	cycles += c.handleInterrupts()
 	return cycles
@@ -193,6 +195,9 @@ func (c *cpu) serviceInterrupt(ifR byte, interrupt go_gb.Interrupt) go_gb.MC {
 	c.memory.Store(go_gb.IF, ifR) // todo: should we update cycles during interrupts?
 	cycles += 1
 	callAddr(c, go_gb.ToBytesReverse(interrupt.JpAddr, true), &cycles)
+	if interrupt.Bit == go_gb.BitJoypad {
+		c.stop = false // joypad interrupt removed stop
+	}
 	return cycles
 }
 

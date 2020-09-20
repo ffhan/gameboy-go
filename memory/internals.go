@@ -6,7 +6,7 @@ type mmap struct {
 }
 
 func newMmap(start uint16, end uint16, memory []byte) *mmap {
-	return &mmap{start: start, end: end, memory: memory}
+	return &mmap{start: start, end: end + 1, memory: memory}
 }
 
 func (m *mmap) ReadBytes(pointer, n uint16) []byte {

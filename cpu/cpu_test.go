@@ -7,7 +7,8 @@ import (
 )
 
 func initCpu(fill map[uint16]byte) *cpu {
-	c := NewCpu()
+	mmu := memory.NewMMU()
+	c := NewCpu(mmu, nil)
 	bytes := make([]byte, 0xFFFF+1)
 	if fill != nil {
 		for addr, val := range fill {
@@ -17,7 +18,7 @@ func initCpu(fill map[uint16]byte) *cpu {
 	bytes[memory.CartridgeTypeAddr] = byte(memory.MbcROMRAM)
 	bytes[memory.CartridgeROMSizeAddr] = 0x05
 	bytes[memory.CartridgeRAMSizeAddr] = 0x03
-	c.Init(bytes, go_gb.GB)
+	mmu.Init(bytes, go_gb.GB)
 	return c
 }
 
@@ -43,7 +44,7 @@ func TestCPU_doubleRegister_changeSingleRegister(t *testing.T) {
 }
 
 func TestCpu_readOpcode(t *testing.T) {
-	c := initCpu(map[uint16]byte{0x100: 0x12})
+	c := initCpu(map[uint16]byte{0x0: 0x12})
 
 	var cycles go_gb.MC
 
@@ -53,7 +54,7 @@ func TestCpu_readOpcode(t *testing.T) {
 	if cycles != 1 {
 		t.Errorf("expectd 1 cycle, got %d\n", cycles)
 	}
-	if c.pc != 0x101 {
+	if c.pc != 1 {
 		t.Fatal("PC invalid after reading opcode")
 	}
 }
@@ -141,7 +142,6 @@ func TestCpu_setFlag(t *testing.T) {
 
 func TestCpu_Step_NOP(t *testing.T) {
 	c := initCpu(nil)
-	c.Init(make([]byte, 0xFFFF+1), go_gb.GB)
 	startPC := c.pc
 	c.memory.Store(c.pc, 0)
 	mc := c.Step()
