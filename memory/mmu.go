@@ -43,6 +43,8 @@ type mmu struct {
 	hram                    go_gb.Memory
 	interruptEnableRegister go_gb.Memory
 
+	storeFuncs map[uint16]func(bytes []byte)
+
 	locked *lockedMemory
 }
 
@@ -85,6 +87,10 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 	m.interruptEnableRegister = m.createMmap(InterruptEnableRegister, InterruptEnableRegister)
 
 	m.locked = &lockedMemory{}
+
+	m.storeFuncs = map[uint16]func(bytes []byte){
+		go_gb.LCDDMA: dma(m.oam),
+	}
 }
 
 // takes a pointer and returns a whole portion of the memory responsible
@@ -130,7 +136,18 @@ func (m *mmu) Read(pointer uint16) byte {
 }
 
 func (m *mmu) StoreBytes(pointer uint16, bytes []byte) {
+	if f, ok := m.storeFuncs[pointer]; ok {
+		f(bytes)
+	}
 	m.Route(pointer).StoreBytes(pointer, bytes)
+}
+
+func dma(m go_gb.Memory) func([]byte) {
+	return func(bytes []byte) {
+		source := go_gb.FromBytes(bytes)
+		result := m.ReadBytes(source, 0x9F+1)
+		m.StoreBytes(OAMStart, result)
+	}
 }
 
 func (m *mmu) Store(pointer uint16, val byte) {

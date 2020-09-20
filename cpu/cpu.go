@@ -52,8 +52,6 @@ type cpu struct {
 	diWaiting byte
 	ime       bool // Interrupt master enable
 	cbLookup  bool
-
-	storeFunctions map[uint16]func(*cpu, []byte)
 }
 
 func NewCpu() *cpu {
@@ -80,9 +78,6 @@ func (c *cpu) read(pointer uint16, mc *go_gb.MC) byte {
 
 func (c *cpu) storeBytes(pointer uint16, b []byte, mc *go_gb.MC) {
 	*mc += go_gb.MC(len(b))
-	if f, ok := c.storeFunctions[pointer]; ok {
-		f(c, b)
-	}
 	c.memory.StoreBytes(pointer, b)
 }
 
@@ -145,15 +140,6 @@ func (c *cpu) Init(rom []byte, gbType go_gb.GameboyType) {
 		c.r[E : E+1], c.r[D : D+1], c.r[L : L+1], c.r[H : H+1],
 		c.af, c.bc, c.de, c.hl,
 	}
-	c.storeFunctions = map[uint16]func(c *cpu, bytes []byte){
-		go_gb.LCDDMA: dma,
-	}
-}
-
-func dma(c *cpu, bytes []byte) {
-	source := go_gb.FromBytes(bytes)
-	result := c.memory.ReadBytes(source, 0x9F+1)
-	c.memory.StoreBytes(memory2.OAMStart, result)
 }
 
 func (c *cpu) Step() go_gb.MC {
