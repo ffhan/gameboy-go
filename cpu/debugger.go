@@ -16,8 +16,10 @@ func NewDebugger(cpu *cpu, output io.Writer) *debugger {
 }
 
 func (d *debugger) Step() go_gb.MC {
-	d.print(d.cpu.memory.Read(d.cpu.pc))
-	return d.cpu.Step()
+	op := d.cpu.memory.Read(d.cpu.pc)
+	mc := d.cpu.Step()
+	d.print(op)
+	return mc
 }
 
 func (d *debugger) print(opcode byte) {

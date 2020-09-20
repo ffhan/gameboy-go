@@ -10,10 +10,9 @@ import (
 	"os"
 	"sync"
 	"syscall/js"
-	"time"
 )
 
-func run() {
+func run() go_gb.Cpu {
 	const (
 		CpuFrequency = 4_194_304
 	)
@@ -29,21 +28,21 @@ func run() {
 	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), lcd)
 	c := cpu.NewCpu(mmu, ppu)
 
-	sleepTime := time.Second
-
-	debug := cpu.NewDebugger(c, os.Stdout)
-
-	for {
-		debug.Step()
-		time.Sleep(sleepTime)
-	}
+	return cpu.NewDebugger(c, os.Stdout)
 }
 
 func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
+
+	var c go_gb.Cpu
+
 	js.Global().Set("run", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		go run()
+		c = run()
+		return nil
+	}))
+	js.Global().Set("step", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		c.Step()
 		return nil
 	}))
 	wg.Wait()
