@@ -18,6 +18,12 @@ type Memory interface {
 	Store(pointer uint16, val byte)
 }
 
+func Update(memory Memory, address uint16, updateFunc func(b byte) byte) {
+	val := memory.Read(address)
+	val = updateFunc(val)
+	memory.Store(address, val)
+}
+
 type RomLoader interface {
 	LoadRom(rom []byte) int
 }

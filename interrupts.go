@@ -14,17 +14,18 @@ const (
 )
 
 type Interrupt struct {
-	Bit    InterruptBit
-	JpAddr uint16
+	Address uint16
+	Bit     InterruptBit
+	JpAddr  uint16
 }
 
 var (
 	Interrupts = [...]Interrupt{
-		{BitVBlank, 0x40},
-		{BitLCD, 0x48},
-		{BitTimer, 0x50},
-		{BitSerial, 0x58},
-		{BitJoypad, 0x60},
+		{IF, BitVBlank, 0x40},
+		{IF, BitLCD, 0x48},
+		{IF, BitTimer, 0x50},
+		{IF, BitSerial, 0x58},
+		{IF, BitJoypad, 0x60},
 	}
 )
 

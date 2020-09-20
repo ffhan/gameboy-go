@@ -2,10 +2,19 @@ package ppu
 
 import (
 	go_gb "go-gb"
+	"go-gb/memory"
 )
 
 const (
 	frameBufASize = 160 * 144 * 4
+)
+const (
+	White byte = iota
+	LightGray
+	DarkGray
+	Black
+
+	Transparent = White
 )
 
 type ppu struct {
@@ -13,11 +22,15 @@ type ppu struct {
 	vram   go_gb.Memory // for skipping locks
 	oam    go_gb.Memory // for skipping locks
 
-	frameBuffer [160 * 144 * 3]byte
+	frameBuffer [160 * 144]byte // map colors in the display!
 
 	currentLine int
 	currentMode byte
 	modeClock   go_gb.MC
+}
+
+func NewPpu(memory go_gb.Memory, vram go_gb.Memory, oam go_gb.Memory) *ppu {
+	return &ppu{memory: memory, vram: vram, oam: oam, currentMode: 2}
 }
 
 func (p *ppu) getBgTileMapAddr() uint16 {
@@ -34,6 +47,7 @@ func (p *ppu) getWindowTileMapAddr() uint16 {
 	return 0x9800
 }
 
+// returns tile data block 0 address and if addressing used unsigned offsets
 func (p *ppu) getTileDataAddr() (uint16, bool) {
 	if go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister), 4) {
 		return 0x8000, true
@@ -47,6 +61,13 @@ func (p *ppu) backgroundEnabled() bool {
 
 func (p *ppu) windowEnabled() bool {
 	return go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister), 5)
+}
+
+func (p *ppu) vblankInterrupt() {
+	go_gb.Update(p.memory, go_gb.IF, func(b byte) byte {
+		go_gb.Set(&b, int(go_gb.BitVBlank), true)
+		return b
+	})
 }
 
 func (p *ppu) getScroll() (byte, byte) {
@@ -71,18 +92,19 @@ func (p *ppu) getWindow() (byte, byte) {
 
 func (p *ppu) setMode(mode byte) {
 	mode &= 0x3
-	stat := p.memory.Read(go_gb.LCDStatusRegister) | mode
-	p.memory.Store(go_gb.LCDStatusRegister, stat)
+	go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
+		return (b & 0xFC) | mode
+	})
 	p.modeClock = 0
 	p.currentMode = mode
 }
 
 func (p *ppu) compareLyLyc() {
 	val := p.memory.Read(go_gb.LCDLYC) == p.getLine()
-	stat := p.memory.Read(go_gb.LCDStatusRegister)
+	stat := p.memory.Read(go_gb.LCDSTAT)
 	go_gb.Set(&stat, go_gb.LCDSTATCoincidenceFlag, val)
 	go_gb.Set(&stat, go_gb.LCDSTATCoincidenceInterrupt, val)
-	p.memory.Store(go_gb.LCDStatusRegister, stat)
+	p.memory.Store(go_gb.LCDSTAT, stat)
 
 	interrupt := p.memory.Read(go_gb.IF)
 	if val {
@@ -91,24 +113,17 @@ func (p *ppu) compareLyLyc() {
 	}
 }
 
-func (p *ppu) getBgColor(colorNum byte) (byte, byte, byte) {
-	col := (p.memory.Read(go_gb.LCDBGP) >> (colorNum * 2)) & 0x3
-	switch col {
-	case 0:
-		return 0xFF, 0xFF, 0xFF
-	case 1:
-		return 0xCC, 0xCC, 0xCC
-	case 2:
-		return 0x77, 0x77, 0x77
-	case 3:
-		return 0, 0, 0
-	}
-	panic("invalid color number")
+func (p *ppu) use8x16Sprites() bool {
+	return go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister), 2)
+}
+
+func (p *ppu) getColor(colorNum byte, address uint16) byte {
+	return (p.memory.Read(address) >> (colorNum * 2)) & 0x3
 }
 
 func (p *ppu) renderScanline() {
 	p.renderBackgroundScanLine()
-	p.renderSpriteOnScanLine()
+	p.renderSpritesOnScanLine()
 }
 
 func (p *ppu) renderBackgroundScanLine() {
@@ -116,13 +131,8 @@ func (p *ppu) renderBackgroundScanLine() {
 	wx, wy := p.getWindow()
 
 	line := p.getLine()
+	usingWindow := p.windowEnabled() && wy <= line
 
-	usingWindow := true
-	if p.windowEnabled() {
-		if wy <= line {
-			usingWindow = false
-		}
-	}
 	var yPos byte
 	tileData, unsigned := p.getTileDataAddr()
 	var mapAddr uint16
@@ -143,41 +153,102 @@ func (p *ppu) renderBackgroundScanLine() {
 
 		tileLocation := tileData
 		tileAddress := mapAddr + tileRow + tileCol
-		tileId := uint16(p.memory.Read(tileAddress))
+		tileId := uint16(p.vram.Read(tileAddress))
 		if unsigned {
 			tileLocation += tileId * 16
 		} else {
-			tileLocation = uint16(int(tileLocation) + (int(tileId)+128)*16)
+			if tileId < 128 {
+				tileLocation += (tileId + 128) * 16
+			} else {
+				tileLocation -= (tileId - 128) * 16
+			}
 		}
 
 		lineNum := yPos % 8
 		lineNum *= 2
-		data1 := p.memory.Read(tileLocation + uint16(lineNum))
-		data2 := p.memory.Read(tileLocation + uint16(lineNum) + 1)
+		data1 := p.vram.Read(tileLocation + uint16(lineNum))
+		data2 := p.vram.Read(tileLocation + uint16(lineNum) + 1)
 
-		colorBit := int(xPos) % 8
-		colorBit -= 7
-		colorBit *= -1
+		colorBit := 7 - xPos%8
 
-		colorNum := (data2 >> colorBit) & 1
-		colorNum <<= 1
-		colorNum |= (data1 >> colorBit) & 1
+		colorNum := p.getColorNum(data1, data2, colorBit)
 
 		finally := int(line)
 		if finally < 0 || finally > 143 || pixel < 0 || pixel > 159 {
 			continue
 		}
 
-		red, green, blue := p.getBgColor(colorNum)
-
-		p.frameBuffer[line*160+pixel] = red
-		p.frameBuffer[line*160+pixel+1] = green
-		p.frameBuffer[line*160+pixel+2] = blue
+		// real color palettes will be done on the front end display
+		colorId := p.getColor(colorNum, go_gb.LCDBGP)
+		p.frameBuffer[line*160+pixel] = colorId
 	}
 }
 
-func (p *ppu) renderSpriteOnScanLine() {
+func (p *ppu) getColorNum(data1 byte, data2 byte, colorBit byte) byte {
+	colorNum := (data2 >> colorBit) & 1
+	colorNum <<= 1
+	colorNum |= (data1 >> colorBit) & 1
+	return colorNum
+}
 
+func (p *ppu) renderSpritesOnScanLine() {
+	use8x16 := p.use8x16Sprites()
+
+	scanLine := p.getLine()
+	ySize := byte(8)
+	if use8x16 {
+		ySize = 16
+	}
+
+	for sprite := byte(0); sprite < 40; sprite++ {
+		index := sprite * 4
+		spriteData := p.oam.ReadBytes(memory.OAMStart+uint16(index), 4)
+		yPos := spriteData[0] - 16
+		xPos := spriteData[1] - 8
+		tileLocation := spriteData[2]
+		attributes := spriteData[3]
+
+		xFlip := go_gb.Bit(attributes, 5)
+		yFlip := go_gb.Bit(attributes, 6)
+
+		if scanLine >= yPos && scanLine < (yPos+ySize) {
+			line := scanLine - yPos // line of the sprite
+
+			if yFlip {
+				line = ySize - 1 - line
+			}
+
+			line *= 2 // 2 bytes in a line
+
+			dataAddress := (0x8000 + uint16(tileLocation)*16) + uint16(line)
+			data := p.vram.ReadBytes(dataAddress, 2)
+			data1 := data[0]
+			data2 := data[1]
+
+			for tilePixel := 7; tilePixel >= 0; tilePixel-- {
+				colorBit := tilePixel
+				if xFlip {
+					colorBit = 7 - colorBit
+				}
+
+				colorNum := p.getColorNum(data1, data2, byte(colorBit))
+				var colorAddr uint16
+				if go_gb.Bit(attributes, 4) {
+					colorAddr = go_gb.LCDOBP1
+				} else {
+					colorAddr = go_gb.LCDOBP0
+				}
+
+				col := p.getColor(colorNum, colorAddr)
+				if col == Transparent {
+					continue // don't update frame buffer
+				}
+
+				pixel := xPos + byte(tilePixel)
+				p.frameBuffer[scanLine*160+pixel] = col
+			}
+		}
+	}
 }
 
 func (p *ppu) Step(mc go_gb.MC) {
@@ -202,7 +273,7 @@ func (p *ppu) Step(mc go_gb.MC) {
 			p.updateLine()
 			if p.currentLine == 143 {
 				p.setMode(1)
-				// todo: VBLANK interrupt
+				p.vblankInterrupt()
 			} else {
 				p.setMode(2)
 			}

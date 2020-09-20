@@ -92,7 +92,7 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	if inInterval(pointer, ROMBank0Start, ROMBankNEnd) {
 		return m.cartridge
 	} else if inInterval(pointer, VRAMStart, VRAMEnd) {
-		locked := m.Read(go_gb.LCDStatusRegister)&0x3 == 3
+		locked := m.Read(go_gb.LCDSTAT)&0x3 == 3
 		if !locked {
 			return m.locked
 		}
@@ -104,7 +104,7 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	} else if inInterval(pointer, ECHORAMStart, ECHORAMEnd) {
 		return m.echo
 	} else if inInterval(pointer, OAMStart, OAMEnd) {
-		locked := m.Read(go_gb.LCDStatusRegister)&0x3 > 1
+		locked := m.Read(go_gb.LCDSTAT)&0x3 > 1
 		if locked {
 			return m.locked
 		}
@@ -130,12 +130,6 @@ func (m *mmu) Read(pointer uint16) byte {
 }
 
 func (m *mmu) StoreBytes(pointer uint16, bytes []byte) {
-	if pointer == go_gb.LCDDMA {
-		source := go_gb.FromBytes(bytes)
-		bytes := m.ReadBytes(source, 0x9F+1)
-		m.StoreBytes(OAMStart, bytes)
-		return
-	}
 	m.Route(pointer).StoreBytes(pointer, bytes)
 }
 

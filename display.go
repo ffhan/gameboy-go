@@ -2,7 +2,7 @@ package go_gb
 
 const (
 	LCDControlRegister uint16 = 0xFF40
-	LCDStatusRegister  uint16 = 0xFF41
+	LCDSTAT            uint16 = 0xFF41
 
 	LCDSCY uint16 = 0xFF42 // Scroll Y (R/W)
 	LCDSCX uint16 = 0xFF43 // Scroll X (R/W)
@@ -51,8 +51,8 @@ const (
 
 const (
 	LCDSTATCoincidenceFlag = iota + 2
-	LCDSTATHBlankFlag
-	LCDSTATVBlankFlag
+	LCDSTATHBlankInterrupt
+	LCDSTATVBlankInterrupt
 	LCDSTATOAMInterruptFlag
 	LCDSTATCoincidenceInterrupt
 )
