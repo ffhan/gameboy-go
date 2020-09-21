@@ -51,7 +51,6 @@ type cpu struct {
 	eiWaiting byte
 	diWaiting byte
 	ime       bool // Interrupt master enable
-	cbLookup  bool
 
 	ppu go_gb.PPU
 }
@@ -147,9 +146,9 @@ func (c *cpu) Step() go_gb.MC {
 	if !c.halt || !c.stop {
 		opcode := c.readOpcode(&cycles)
 		var instr Instr
-		if c.cbLookup {
+		if opcode == 0xCB {
+			opcode = c.readOpcode(&cycles)
 			instr = cbOptable[opcode]
-			c.cbLookup = false
 		} else {
 			instr = optable[opcode]
 		}

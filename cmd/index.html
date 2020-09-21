@@ -9,6 +9,7 @@
 <input type="file" id="rom">
 <button onclick="run()">Run</button>
 <button onclick="step()">Step</button>
+<button onclick="start()">Start</button>
 <script src="wasm_exec.js"></script>
 <script type="application/javascript">
     document.scanLine = 0;
@@ -16,6 +17,9 @@
 
     let canvas = document.getElementById('screen');
     const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(0, 0, 160, 144)
 
     async function loadBoot() {
         return new Uint8Array(await (await fetch('boot.gb')).arrayBuffer());
@@ -51,12 +55,17 @@
     }
 
     function draw() {
-        console.log(document.bufferLine);
         for (let i = 0; i < 160; i++) {
             let color = document.bufferLine[i];
             ctx.fillStyle = remap(color)
             ctx.fillRect(i, document.scanLine, 1, 1)
         }
+    }
+
+    function start() {
+        setInterval(() => {
+            step();
+        }, 1 / 4_194_304);
     }
 </script>
 <script src="wasm.js"></script>

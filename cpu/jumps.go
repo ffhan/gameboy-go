@@ -1,6 +1,8 @@
 package cpu
 
-import "go-gb"
+import (
+	"go-gb"
+)
 
 func jr(c *cpu) go_gb.MC {
 	var cycles go_gb.MC
@@ -13,19 +15,25 @@ func jr(c *cpu) go_gb.MC {
 
 func jrnc(bit int) Instr {
 	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
 		if !c.getFlag(bit) {
 			return jr(c)
+		} else {
+			c.readOpcode(&mc)
 		}
-		return 1
+		return 1 + mc
 	}
 }
 
 func jrc(bit int) Instr {
 	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
 		if c.getFlag(bit) {
 			return jr(c)
+		} else {
+			c.readOpcode(&mc)
 		}
-		return 1
+		return 1 + mc
 	}
 }
 
@@ -74,10 +82,13 @@ func jp(dst Ptr) Instr { // note: don't forget to check if it's a jump command (
 func jpnc(bit int, dst Ptr) Instr {
 	instr := jp(dst)
 	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
 		if !c.getFlag(bit) {
 			return instr(c)
+		} else {
+			c.readOpcode(&mc)
 		}
-		return 2
+		return 2 + mc
 	}
 }
 
@@ -85,10 +96,13 @@ func jpnc(bit int, dst Ptr) Instr {
 func jpc(bit int, dst Ptr) Instr {
 	instr := jp(dst)
 	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
 		if c.getFlag(bit) {
 			return instr(c)
+		} else {
+			c.readOpcode(&mc)
 		}
-		return 2
+		return 2 + mc
 	}
 }
 
@@ -110,19 +124,25 @@ func callAddr(c *cpu, addr []byte, mc *go_gb.MC) {
 
 func callc(bit int) Instr {
 	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
 		if c.getFlag(bit) {
 			return call(c)
+		} else {
+			c.readOpcode(&mc)
 		}
-		return 2
+		return 2 + mc
 	}
 }
 
 func callcc(bit int) Instr {
 	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
 		if !c.getFlag(bit) {
 			return call(c)
+		} else {
+			c.readOpcode(&mc)
 		}
-		return 2
+		return 2 + mc
 	}
 }
 

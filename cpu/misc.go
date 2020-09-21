@@ -34,7 +34,6 @@ func ccf(c *cpu) go_gb.MC {
 }
 
 func prefix(c *cpu) go_gb.MC {
-	c.cbLookup = true
 	return 0
 }
 
