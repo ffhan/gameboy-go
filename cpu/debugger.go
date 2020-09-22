@@ -16,15 +16,21 @@ func NewDebugger(cpu *cpu, output io.Writer) *debugger {
 }
 
 func (d *debugger) Step() go_gb.MC {
+	//pc := d.cpu.pc
 	op := uint16(d.cpu.memory.Read(d.cpu.pc))
 	if op == 0xCB {
 		op = (op << 8) | uint16(d.cpu.memory.Read(d.cpu.pc+1))
 	}
 	mc := d.cpu.Step()
-	d.print(op)
+	//d.print(op, pc)
 	return mc
 }
 
-func (d *debugger) print(opcode uint16) {
-	fmt.Fprintf(d.output, "OP: %X\tPC: %X\tSP: %X\ta: %X\tf: %X\tb: %X\tc: %X\td: %X\te: %X\th: %X\tl: %X\tZNHC: %b\n", opcode, d.cpu.pc, d.cpu.sp, d.cpu.r[A], d.cpu.r[F], d.cpu.r[B], d.cpu.r[C], d.cpu.r[D], d.cpu.r[E], d.cpu.r[H], d.cpu.r[L], d.cpu.r[F])
+func (d *debugger) print(opcode uint16, pc uint16) {
+	fmt.Fprintf(d.output, "OP: %X\tPC: %X\tSP: %X\ta: %X\tf: %X\tb: %X\tc: %X\td: %X\te: %X\th: %X\tl: %X\tZNHC: %b\n",
+		opcode, pc, d.cpu.sp,
+		d.cpu.r[A], d.cpu.r[F],
+		d.cpu.r[B], d.cpu.r[C],
+		d.cpu.r[D], d.cpu.r[E],
+		d.cpu.r[H], d.cpu.r[L], d.cpu.r[F]>>4)
 }

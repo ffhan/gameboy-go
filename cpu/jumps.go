@@ -1,22 +1,29 @@
 package cpu
 
 import (
+	"fmt"
 	"go-gb"
 )
 
 func jr(c *cpu) go_gb.MC {
 	var cycles go_gb.MC
+	startPc := c.pc
 	opcode := c.readOpcode(&cycles)
-	e := int(opcode)
-	pc := int(c.pc) + e
-	c.setPc(uint16(pc), &cycles)
+	e := int8(opcode)
+	var pc uint16
+	if e > 0 {
+		pc = startPc + uint16(e)
+	} else {
+		pc = startPc - uint16(0xFF^byte(e))
+	}
+	c.setPc(pc, &cycles)
 	return cycles
 }
 
 func jrnc(bit int) Instr {
 	return func(c *cpu) go_gb.MC {
 		var mc go_gb.MC
-		if !c.getFlag(bit) {
+		if c.getFlag(bit) {
 			return jr(c)
 		} else {
 			c.readOpcode(&mc)
@@ -28,7 +35,7 @@ func jrnc(bit int) Instr {
 func jrc(bit int) Instr {
 	return func(c *cpu) go_gb.MC {
 		var mc go_gb.MC
-		if c.getFlag(bit) {
+		if !c.getFlag(bit) {
 			return jr(c)
 		} else {
 			c.readOpcode(&mc)
@@ -83,7 +90,8 @@ func jpnc(bit int, dst Ptr) Instr {
 	instr := jp(dst)
 	return func(c *cpu) go_gb.MC {
 		var mc go_gb.MC
-		if !c.getFlag(bit) {
+		fmt.Printf("%X %d\n", c.r[F], bit)
+		if c.getFlag(bit) {
 			return instr(c)
 		} else {
 			c.readOpcode(&mc)
@@ -97,7 +105,7 @@ func jpc(bit int, dst Ptr) Instr {
 	instr := jp(dst)
 	return func(c *cpu) go_gb.MC {
 		var mc go_gb.MC
-		if c.getFlag(bit) {
+		if !c.getFlag(bit) {
 			return instr(c)
 		} else {
 			c.readOpcode(&mc)

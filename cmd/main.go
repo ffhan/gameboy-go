@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync"
 	"syscall/js"
+	"time"
 )
 
 func run() go_gb.Cpu {
@@ -25,8 +26,10 @@ func run() go_gb.Cpu {
 
 	lcd := wasm.NewWasmDisplay()
 
-	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), lcd)
-	c := cpu.NewCpu(mmu, ppu)
+	mmuD := memory.NewDebugger(mmu, os.Stdout)
+
+	ppu := ppu.NewPpu(mmuD, memory.NewDebugger(mmu.VRAM(), os.Stdout), memory.NewDebugger(mmu.OAM(), os.Stdout), lcd)
+	c := cpu.NewCpu(mmuD, ppu)
 
 	return cpu.NewDebugger(c, os.Stdout)
 }
@@ -43,6 +46,23 @@ func main() {
 	}))
 	js.Global().Set("step", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		c.Step()
+		return nil
+	}))
+	js.Global().Set("start", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		go func() {
+			every := time.Second / 4_194_304
+			last := time.Now()
+			for {
+				c.Step()
+				for {
+					time.Sleep(100 * time.Nanosecond)
+					if time.Now().Sub(last) >= every {
+						last = time.Now()
+						break
+					}
+				}
+			}
+		}()
 		return nil
 	}))
 	wg.Wait()

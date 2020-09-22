@@ -146,6 +146,9 @@ func (p *ppu) renderBackgroundScanLine() {
 		yPos = line - wy
 	}
 	tileRow := uint16(yPos/8) * 32
+
+	//fmt.Printf("rendering background: line %d -> scx %d scy %d wx %d wy %d tiledata %X tileMap %X bg? %t tileRow %d\n",
+	//	line, scx, scy, wx, wy, tileData, mapAddr, !usingWindow, tileRow)
 	for pixel := byte(0); pixel < 160; pixel++ {
 		xPos := pixel + scx
 		if usingWindow && pixel >= wx {
@@ -183,6 +186,9 @@ func (p *ppu) renderBackgroundScanLine() {
 		// real color palettes will be done on the front end display
 		colorId := p.getColor(colorNum, go_gb.LCDBGP)
 		p.frameBuffer[line*160+pixel] = colorId
+
+		//fmt.Printf("pixel %d -> xPos %d tileCol %d tileLocation %X tileAddress %X tileId %d lineNum %d colorBit %d colorNum %d",
+		//	pixel, xPos, tileCol, tileLocation, tileAddress, tileId, lineNum, colorBit, colorNum)
 	}
 }
 

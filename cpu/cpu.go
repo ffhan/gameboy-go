@@ -1,6 +1,7 @@
 package cpu
 
 import (
+	"fmt"
 	"go-gb"
 )
 
@@ -114,8 +115,8 @@ func (c *cpu) popStack(size int, mc *go_gb.MC) []byte {
 }
 
 func (c *cpu) pushStack(b []byte, mc *go_gb.MC) {
-	for _, val := range b {
-		c.memory.Store(c.sp, val)
+	for i := len(b) - 1; i >= 0; i-- {
+		c.memory.Store(c.sp, b[i])
 		*mc += 1
 		c.sp -= 1
 	}
@@ -188,6 +189,7 @@ func (c *cpu) handleInterrupts() go_gb.MC { // todo: should we count the cycles 
 }
 
 func (c *cpu) serviceInterrupt(ifR byte, interrupt go_gb.Interrupt) go_gb.MC {
+	fmt.Printf("servicing an interrupt %d\n\n", interrupt.Bit)
 	var cycles go_gb.MC
 	go_gb.Set(&ifR, int(interrupt.Bit), false)
 	c.ime = false

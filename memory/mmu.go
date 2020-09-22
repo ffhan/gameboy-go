@@ -154,6 +154,7 @@ func dma(src, dst go_gb.Memory) func([]byte) {
 	return func(bytes []byte) {
 		source := go_gb.FromBytes(bytes) << 8
 		result := src.ReadBytes(source, 0x9F+1)
+		fmt.Printf("started dma from source %X to %X: %v\n", source, OAMStart, result)
 		dst.StoreBytes(OAMStart, result)
 	}
 }
