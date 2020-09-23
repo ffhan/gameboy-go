@@ -4,19 +4,17 @@ import (
 	"fmt"
 	go_gb "go-gb"
 	"go-gb/cpu"
+	"go-gb/debugger"
 	"go-gb/memory"
 	"go-gb/ppu"
+	"go-gb/scheduler"
 	"go-gb/wasm"
 	"os"
 	"sync"
 	"syscall/js"
-	"time"
 )
 
-func run() go_gb.Cpu {
-	const (
-		CpuFrequency = 4_194_304
-	)
+func run() (debugger.CpuDebugger, debugger.MemoryDebugger, go_gb.PPU) {
 	mmu := memory.NewMMU()
 	rom := make([]byte, 2*1<<20)
 	n := js.CopyBytesToGo(rom, js.Global().Get("document").Get("rom"))
@@ -26,43 +24,53 @@ func run() go_gb.Cpu {
 
 	lcd := wasm.NewWasmDisplay()
 
+	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), lcd)
 	mmuD := memory.NewDebugger(mmu, os.Stdout)
-
-	ppu := ppu.NewPpu(mmuD, memory.NewDebugger(mmu.VRAM(), os.Stdout), memory.NewDebugger(mmu.OAM(), os.Stdout), lcd)
 	c := cpu.NewCpu(mmuD, ppu)
 
-	return cpu.NewDebugger(c, os.Stdout)
+	return cpu.NewDebugger(c, os.Stdout), mmuD, ppu
 }
 
 func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	var c go_gb.Cpu
+	var c debugger.CpuDebugger
+	var p go_gb.PPU
+	var m debugger.MemoryDebugger
+
+	var systemDebugger debugger.Debugger
 
 	js.Global().Set("run", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		c = run()
+		c, m, p = run()
+		systemDebugger = debugger.NewSystemDebugger(c, m)
+		systemDebugger.Debug(false)
 		return nil
 	}))
+	var once sync.Once
+	var wg2 sync.WaitGroup
+	wg2.Add(1)
 	js.Global().Set("step", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		once.Do(func() {
+			go func() {
+				defer wg2.Done()
+				for {
+					if c.PC() < 0xC {
+						c.Step()
+					} else {
+						systemDebugger.Debug(true)
+						return
+					}
+				}
+			}()
+		})
+		wg2.Wait()
 		c.Step()
 		return nil
 	}))
+	breakpoint := uint16(0xC)
 	js.Global().Set("start", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		go func() {
-			every := time.Second / 4_194_304
-			last := time.Now()
-			for {
-				c.Step()
-				for {
-					time.Sleep(100 * time.Nanosecond)
-					if time.Now().Sub(last) >= every {
-						last = time.Now()
-						break
-					}
-				}
-			}
-		}()
+		go scheduler.NewScheduler(c, p, &breakpoint).Run()
 		return nil
 	}))
 	wg.Wait()

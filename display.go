@@ -58,5 +58,5 @@ const (
 )
 
 type Display interface {
-	Draw(scanLine int, bufferLine []byte)
+	Draw(bufferLine []byte)
 }

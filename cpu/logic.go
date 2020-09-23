@@ -1,6 +1,8 @@
 package cpu
 
-import go_gb "go-gb"
+import (
+	go_gb "go-gb"
+)
 
 func rlca(c *cpu) go_gb.MC {
 	return rc(c, rx(A), true, true) - 1

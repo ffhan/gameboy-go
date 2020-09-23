@@ -72,6 +72,10 @@ func (p *ppu) vblankInterrupt() {
 	})
 }
 
+func (p *ppu) IsVBlank() bool {
+	return go_gb.Bit(p.memory.Read(go_gb.IF), int(go_gb.BitVBlank))
+}
+
 func (p *ppu) getScroll() (byte, byte) {
 	scx := p.memory.Read(go_gb.LCDSCX)
 	scy := p.memory.Read(go_gb.LCDSCY)
@@ -274,15 +278,15 @@ func (p *ppu) Step(mc go_gb.MC) {
 			// todo: render scanline to display
 			p.setMode(0)
 			p.renderScanline()
-			p.display.Draw(p.currentLine, p.frameBuffer[p.currentLine*160:(p.currentLine+1)*160])
 		}
 	case 0:
-		if p.modeClock >= 22 {
+		if p.modeClock >= 51 {
 			p.currentLine += 1
 			p.updateLine()
 			if p.currentLine == 143 {
 				p.setMode(1)
 				p.vblankInterrupt()
+				p.display.Draw(p.frameBuffer[:])
 			} else {
 				p.setMode(2)
 			}

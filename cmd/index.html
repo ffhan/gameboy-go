@@ -13,53 +13,26 @@
 <script src="wasm_exec.js"></script>
 <script type="application/javascript">
     document.scanLine = 0;
-    document.bufferLine = new Uint8Array(160 * 144);
-
     let canvas = document.getElementById('screen');
+
     const ctx = canvas.getContext('2d');
-
     ctx.fillStyle = '#000000'
+
     ctx.fillRect(0, 0, 160, 144)
-
-    async function loadBoot() {
-        return new Uint8Array(await (await fetch('boot.gb')).arrayBuffer());
-    }
-
-    loadBoot().then(value => document.boot = value)
+    document.image = ctx.getImageData(0, 0, 160, 144);
+    document.buffer = document.image.data;
 
     document.getElementById('rom').addEventListener('change', function () {
         var reader = new FileReader();
         reader.onload = function () {
-            console.log(new Uint8Array(document.boot));
-            console.log(new Uint8Array(this.result));
-            document.rom = new Uint8Array(document.boot.byteLength + this.result.byteLength);
-            document.rom.set(document.boot);
-            document.rom.set(new Uint8Array(this.result), document.boot.byteLength);
+            document.rom = new Uint8Array(this.result);
             console.log(document.rom);
         }
         reader.readAsArrayBuffer(this.files[0]);
     }, false);
 
-    function remap(color) {
-        switch (color) {
-            case 0:
-                return '#FFFFFF'
-            case 1:
-                return '#CCCCCC'
-            case 2:
-                return '#777777'
-            case 3:
-                return '#000000'
-        }
-        return '#FF0000'
-    }
-
     function draw() {
-        for (let i = 0; i < 160; i++) {
-            let color = document.bufferLine[i];
-            ctx.fillStyle = remap(color)
-            ctx.fillRect(i, document.scanLine, 1, 1)
-        }
+        ctx.putImageData(document.image, 0, 0)
     }
 </script>
 <script src="wasm.js"></script>

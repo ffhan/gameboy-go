@@ -45,6 +45,7 @@ type cpu struct {
 
 	rMap [][]byte // register mappings
 
+	bios   go_gb.Memory
 	memory go_gb.Memory
 
 	halt      bool
@@ -140,6 +141,10 @@ func (c *cpu) init() {
 		c.r[E : E+1], c.r[D : D+1], c.r[L : L+1], c.r[H : H+1],
 		c.af, c.bc, c.de, c.hl,
 	}
+}
+
+func (c *cpu) PC() uint16 {
+	return c.pc
 }
 
 func (c *cpu) Step() go_gb.MC {

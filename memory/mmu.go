@@ -33,6 +33,7 @@ const (
 
 type mmu struct {
 	internalMemory          [0xFFFF + 1]byte
+	bios                    go_gb.Memory
 	cartridge               go_gb.Cartridge
 	vram                    go_gb.Memory
 	wram                    go_gb.Memory
@@ -46,6 +47,7 @@ type mmu struct {
 	storeFuncs map[uint16]func(bytes []byte)
 
 	locked *lockedMemory
+	booted bool
 }
 
 func NewMMU() *mmu {
@@ -76,6 +78,7 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 	} else {
 		wramMemory = &wram{bank: newBank(2, 1<<12), selectedBank: 1}
 	}
+	m.bios = NewBios()
 	m.cartridge = getCartridge(rom)
 	m.vram = m.createMmap(VRAMStart, VRAMEnd)
 	m.wram = wramMemory
@@ -90,6 +93,7 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 
 	m.storeFuncs = map[uint16]func(bytes []byte){
 		go_gb.LCDDMA: dma(m, m.oam),
+		0xFF50:       m.unmapBios(),
 	}
 }
 
@@ -103,6 +107,9 @@ func (m *mmu) VRAM() go_gb.Memory {
 
 // takes a pointer and returns a whole portion of the memory responsible
 func (m *mmu) Route(pointer uint16) go_gb.Memory {
+	if !m.booted && inInterval(pointer, 0, 0xFF) {
+		return m.bios
+	}
 	if inInterval(pointer, ROMBank0Start, ROMBankNEnd) {
 		return m.cartridge
 	} else if inInterval(pointer, VRAMStart, VRAMEnd) {
@@ -156,6 +163,15 @@ func dma(src, dst go_gb.Memory) func([]byte) {
 		result := src.ReadBytes(source, 0x9F+1)
 		fmt.Printf("started dma from source %X to %X: %v\n", source, OAMStart, result)
 		dst.StoreBytes(OAMStart, result)
+	}
+}
+
+func (m *mmu) unmapBios() func([]byte) {
+	return func(bytes []byte) {
+		if go_gb.FromBytes(bytes)&0x3 == 0x01 {
+			m.booted = true
+			fmt.Println("boot completed, unmapped the boot rom")
+		}
 	}
 }
 
