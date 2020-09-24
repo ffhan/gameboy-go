@@ -5,7 +5,7 @@ import go_gb "go-gb"
 func bit(bit hardcoded, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
-		c.setFlag(BitZ, go_gb.Bit(src.Load(c, &cycles)[0], int(bit.Load(c, &cycles)[0])))
+		c.setFlag(BitZ, !go_gb.Bit(src.Load(c, &cycles)[0], int(bit.Load(c, &cycles)[0])))
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, true)
 		return cycles + 1

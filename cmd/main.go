@@ -68,9 +68,8 @@ func main() {
 		c.Step()
 		return nil
 	}))
-	breakpoint := uint16(0xC)
 	js.Global().Set("start", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		go scheduler.NewScheduler(c, p, &breakpoint).Run()
+		go scheduler.NewScheduler(c, p).Run()
 		return nil
 	}))
 	wg.Wait()
