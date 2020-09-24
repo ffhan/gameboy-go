@@ -41,7 +41,7 @@ func FromBytesReverse(b []byte) uint16 {
 		panic(fmt.Errorf("%v cannot be transformed to uint16", b))
 	}
 	if len(b) == 2 {
-		return (uint16(b[1]) << 8) | uint16(b[0])
+		return (uint16(b[0]) << 8) | uint16(b[1])
 	}
 	return uint16(b[0])
 }

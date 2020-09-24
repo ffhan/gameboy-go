@@ -47,7 +47,7 @@ func jrc(bit int) Instr {
 func ret(c *cpu) go_gb.MC {
 	var cycles go_gb.MC
 	addrBytes := c.popStack(2, &cycles)
-	c.setPc((uint16(addrBytes[1])<<8)|uint16(addrBytes[0]), &cycles)
+	c.setPc(go_gb.FromBytesReverse(addrBytes), &cycles)
 	return cycles
 }
 
