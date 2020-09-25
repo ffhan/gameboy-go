@@ -1,5 +1,7 @@
 package memory
 
+import "fmt"
+
 type mmap struct {
 	start, end uint16
 	memory     []byte
@@ -50,7 +52,9 @@ func (l *lockedMemory) Read(pointer uint16) byte {
 }
 
 func (l *lockedMemory) StoreBytes(pointer uint16, bytes []byte) {
+	fmt.Printf("storing locked bytes at %X\n", pointer)
 }
 
 func (l *lockedMemory) Store(pointer uint16, val byte) {
+	fmt.Printf("storing a locked byte at %X\n", pointer)
 }

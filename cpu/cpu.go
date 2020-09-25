@@ -63,6 +63,10 @@ func NewCpu(mmu go_gb.Memory, ppu go_gb.PPU) *cpu {
 	return c
 }
 
+func (c *cpu) IME() bool {
+	return c.ime
+}
+
 func (c *cpu) readOpcode(mc *go_gb.MC) byte {
 	val := c.memory.Read(c.pc)
 	*mc += 1 // we purposefully don't check for nil in mc because it should always be cycle counted
@@ -132,6 +136,7 @@ func (c *cpu) init() {
 	//c.sp = 0xFFFE boot room fills this
 	// todo: set r to init values
 	// setting references to register arr
+	//c.ime = true
 	c.af = c.r[F : A+1]
 	c.bc = c.r[C : B+1]
 	c.de = c.r[E : D+1]
@@ -162,7 +167,7 @@ func (c *cpu) Step() go_gb.MC {
 	} else {
 		cycles = 1
 	}
-	if c.ppu != nil {
+	if c.ppu != nil && c.ppu.Enabled() {
 		c.ppu.Step(cycles)
 	}
 	c.handleEiDi()
@@ -178,7 +183,7 @@ func (c *cpu) handleInterrupts() go_gb.MC { // todo: should we count the cycles 
 	ifRegister := c.memory.Read(go_gb.IF)
 	ieRegister := c.memory.Read(go_gb.IE)
 
-	cycles += 2
+	//cycles += 2
 
 	if ifRegister == 0 { // no interrupt flags set
 		return cycles
@@ -199,12 +204,12 @@ func (c *cpu) serviceInterrupt(ifR byte, interrupt go_gb.Interrupt) go_gb.MC {
 	go_gb.Set(&ifR, int(interrupt.Bit), false)
 	c.ime = false
 	c.memory.Store(go_gb.IF, ifR) // todo: should we update cycles during interrupts?
-	cycles += 1
-	callAddr(c, go_gb.ToBytesReverse(interrupt.JpAddr, true), &cycles)
+	//cycles += 1
+	callAddr(c, go_gb.ToBytes(interrupt.JpAddr, true), &cycles)
 	if interrupt.Bit == go_gb.BitJoypad {
 		c.stop = false // joypad interrupt removed stop
 	}
-	return cycles
+	return 5
 }
 
 func (c *cpu) handleEiDi() {

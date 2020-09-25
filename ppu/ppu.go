@@ -74,7 +74,7 @@ func (p *ppu) vblankInterrupt() {
 }
 
 func (p *ppu) IsVBlank() bool {
-	return go_gb.Bit(p.memory.Read(go_gb.IF), int(go_gb.BitVBlank))
+	return go_gb.Bit(p.memory.Read(go_gb.IF), int(go_gb.BitVBlank)) && go_gb.Bit(p.memory.Read(go_gb.IE), int(go_gb.BitVBlank))
 }
 
 func (p *ppu) getScroll() (byte, byte) {
@@ -102,9 +102,9 @@ func (p *ppu) setMode(mode byte) {
 	go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
 		return (b & 0xFC) | mode
 	})
-	p.modeClock = 0
 	p.currentMode = mode
-	fmt.Printf("mode %d clock %d line %d\n", p.currentMode, p.modeClock, p.currentLine)
+	//fmt.Printf("mode %d clock %d line %d\n", p.currentMode, p.modeClock, p.currentLine)
+	p.modeClock = 0
 }
 
 func (p *ppu) compareLyLyc() {
@@ -132,6 +132,10 @@ func (p *ppu) getColor(colorNum byte, address uint16) byte {
 func (p *ppu) renderScanline() {
 	p.renderBackgroundScanLine()
 	p.renderSpritesOnScanLine()
+}
+
+func (p *ppu) Enabled() bool {
+	return go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister), 7)
 }
 
 func (p *ppu) renderBackgroundScanLine() {
@@ -271,18 +275,18 @@ func (p *ppu) Step(mc go_gb.MC) {
 
 	switch p.currentMode {
 	case 2:
-		if p.modeClock >= 20 {
+		if p.modeClock > 20 {
 			p.setMode(3)
 		}
 	case 3:
-		if p.modeClock >= 43 {
+		if p.modeClock > 43 {
 			// todo: HBLANK interrupt
 			// todo: render scanline to display
 			p.setMode(0)
 			p.renderScanline()
 		}
 	case 0:
-		if p.modeClock >= 51 {
+		if p.modeClock > 51 {
 			p.currentLine += 1
 			p.updateLine()
 			if p.currentLine == 143 {
@@ -295,7 +299,7 @@ func (p *ppu) Step(mc go_gb.MC) {
 			}
 		}
 	case 1:
-		if p.modeClock >= 114 {
+		if p.modeClock > 114 {
 			p.currentLine += 1
 			if p.currentLine > 153 {
 				p.currentLine = 0

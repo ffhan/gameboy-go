@@ -55,7 +55,7 @@ func main() {
 			go func() {
 				defer wg2.Done()
 				for {
-					if c.PC() < 0xC {
+					if c.PC() < 0x55 {
 						c.Step()
 					} else {
 						systemDebugger.Debug(true)

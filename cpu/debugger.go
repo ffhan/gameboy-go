@@ -35,6 +35,10 @@ func (d *debugger) Step() go_gb.MC {
 	return mc
 }
 
+func (d *debugger) IME() bool {
+	return d.cpu.ime
+}
+
 func (d *debugger) print(opcode uint16, pc uint16) {
 	if d.debugOn {
 		fmt.Fprintf(d.output, "OP: %X\tPC: %X\tSP: %X\ta: %X\tf: %X\tb: %X\tc: %X\td: %X\te: %X\th: %X\tl: %X\tZNHC: %b\n",

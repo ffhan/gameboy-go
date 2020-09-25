@@ -14,9 +14,9 @@ const (
 )
 
 type Interrupt struct {
-	Address uint16
-	Bit     InterruptBit
-	JpAddr  uint16
+	InterruptRegister uint16
+	Bit               InterruptBit
+	JpAddr            uint16
 }
 
 var (

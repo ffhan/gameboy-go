@@ -89,11 +89,14 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 	m.hram = m.createMmap(HRAMStart, HRAMEnd)
 	m.interruptEnableRegister = m.createMmap(InterruptEnableRegister, InterruptEnableRegister)
 
+	//m.interruptEnableRegister.Store(InterruptEnableRegister, 1)
+
 	m.locked = &lockedMemory{}
 
 	m.storeFuncs = map[uint16]func(bytes []byte){
 		go_gb.LCDDMA: dma(m, m.oam),
 		0xFF50:       m.unmapBios(),
+		// add on lcd turn on - write to display
 	}
 }
 
@@ -113,10 +116,10 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	if inInterval(pointer, ROMBank0Start, ROMBankNEnd) {
 		return m.cartridge
 	} else if inInterval(pointer, VRAMStart, VRAMEnd) {
-		locked := m.Read(go_gb.LCDSTAT)&0x3 == 3
-		if locked {
-			return m.locked
-		}
+		//locked := m.Read(go_gb.LCDSTAT)&0x3 == 3
+		//if locked {
+		//	return m.locked
+		//}
 		return m.vram
 	} else if inInterval(pointer, ExternalRAMStart, ExternalRAMEnd) {
 		return m.cartridge
@@ -125,10 +128,10 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	} else if inInterval(pointer, ECHORAMStart, ECHORAMEnd) {
 		return m.echo
 	} else if inInterval(pointer, OAMStart, OAMEnd) {
-		locked := m.Read(go_gb.LCDSTAT)&0x3 > 1
-		if locked {
-			return m.locked
-		}
+		//locked := m.Read(go_gb.LCDSTAT)&0x3 > 1
+		//if locked {
+		//	return m.locked
+		//}
 		return m.oam
 	} else if inInterval(pointer, UnusableStart, UnusableEnd) {
 		return m.unusable

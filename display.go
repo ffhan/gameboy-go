@@ -1,5 +1,7 @@
 package go_gb
 
+import "fmt"
+
 const (
 	LCDControlRegister uint16 = 0xFF40
 	LCDSTAT            uint16 = 0xFF41
@@ -59,4 +61,22 @@ const (
 
 type Display interface {
 	Draw(bufferLine []byte)
+}
+
+type nopDisplay struct {
+	debugOn bool
+}
+
+func NewNopDisplay() *nopDisplay {
+	return &nopDisplay{}
+}
+
+func (n *nopDisplay) Debug(val bool) {
+	n.debugOn = val
+}
+
+func (n *nopDisplay) Draw(bufferLine []byte) {
+	if n.debugOn {
+		fmt.Printf("screen buffer: %v\n", bufferLine)
+	}
 }

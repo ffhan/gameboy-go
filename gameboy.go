@@ -3,12 +3,14 @@ package go_gb
 type Cpu interface {
 	Step() MC
 	PC() uint16
+	IME() bool
 }
 
 // picture processing unit
 type PPU interface {
 	Step(mc MC)
 	IsVBlank() bool
+	Enabled() bool
 }
 
 // sound processing unit

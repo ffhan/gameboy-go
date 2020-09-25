@@ -11,7 +11,7 @@ func jr(c *cpu) go_gb.MC {
 	e := int8(opcode)
 	var pc uint16
 	if e > 0 {
-		pc = startPc + uint16(e)
+		pc = startPc + uint16(e) + 1
 	} else {
 		pc = startPc - uint16(0xFF^byte(e))
 	}
