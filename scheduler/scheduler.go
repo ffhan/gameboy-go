@@ -42,6 +42,7 @@ func (s *scheduler) Run() {
 		s.cpu.Step()
 		if s.cpu.IME() && s.ppu.IsVBlank() {
 			time.Sleep(time.Until(start.Add(ppuFreq)))
+			time.Sleep(100 * time.Millisecond)
 			atomic.AddUint64(&frames, 1)
 		}
 	}

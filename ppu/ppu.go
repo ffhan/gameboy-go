@@ -1,7 +1,6 @@
 package ppu
 
 import (
-	"fmt"
 	go_gb "go-gb"
 	"go-gb/memory"
 )
@@ -344,7 +343,6 @@ func (p *ppu) Step(mc go_gb.MC) {
 				p.setMode(1, 51)
 				p.vblankInterrupt()
 				p.display.Draw(p.frameBuffer[:])
-				fmt.Printf("drawing %v\n", p.frameBuffer)
 			} else {
 				p.setMode(2, 51)
 			}

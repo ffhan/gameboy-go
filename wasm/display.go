@@ -1,7 +1,6 @@
 package wasm
 
 import (
-	"fmt"
 	"syscall/js"
 )
 
@@ -40,7 +39,6 @@ func (w *wasmDisplay) Draw(buffer []byte) {
 		w.buffer[i*4+1] = g
 		w.buffer[i*4+2] = b
 	}
-	fmt.Println("buffer", w.buffer)
 	js.CopyBytesToJS(js.Global().Get("document").Get("buffer"), w.buffer)
 	js.Global().Get("draw").Invoke()
 }

@@ -45,7 +45,6 @@ func main() {
 		c, m, p = run()
 		systemDebugger = debugger.NewSystemDebugger(c, m)
 		systemDebugger.Debug(false)
-		c.Debug(true)
 		return nil
 	}))
 	js.Global().Set("step", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
