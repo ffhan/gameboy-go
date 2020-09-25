@@ -180,6 +180,8 @@ func (p *ppu) Enabled() bool {
 	return go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister), 7)
 }
 
+var seen = make(map[uint16]byte)
+
 func (p *ppu) renderBackgroundScanLine() {
 	scx, scy := p.getScroll()
 	wx, wy := p.getWindow()
@@ -237,7 +239,8 @@ func (p *ppu) renderBackgroundScanLine() {
 
 		// real color palettes will be done on the front end display
 		colorId := p.getColor(colorNum, go_gb.LCDBGP)
-		p.frameBuffer[line*160+pixel] = colorId
+		bufferAddr := uint(line)*160 + uint(pixel)
+		p.frameBuffer[bufferAddr] = colorId
 
 		//fmt.Printf("pixel %d -> xPos %d tileCol %d tileLocation %X tileAddress %X tileId %d lineNum %d colorBit %d colorNum %d",
 		//	pixel, xPos, tileCol, tileLocation, tileAddress, tileId, lineNum, colorBit, colorNum)
