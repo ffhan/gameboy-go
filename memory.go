@@ -1,5 +1,7 @@
 package go_gb
 
+import "io"
+
 const (
 	MemEntrypoint        uint16 = 0x0100
 	MemNintendoLogoStart uint16 = 0x0104
@@ -16,6 +18,15 @@ type Memory interface {
 	Read(pointer uint16) byte
 	StoreBytes(pointer uint16, bytes []byte)
 	Store(pointer uint16, val byte)
+}
+
+type Dumper interface {
+	Dump(writer io.Writer)
+}
+
+type DumpableMemory interface {
+	Memory
+	Dumper
 }
 
 func Update(memory Memory, address uint16, updateFunc func(b byte) byte) {

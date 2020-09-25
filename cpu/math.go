@@ -181,7 +181,6 @@ func cp(dst, src Ptr) Instr {
 		c.setFlag(BitN, true)
 		c.setFlag(BitH, (orig&0xF)-(srcVal&0xF) < 0)
 		c.setFlag(BitC, dstVal < 0)
-		dst.Store(c, []byte{result}, &cycles)
 		return cycles
 	}
 }

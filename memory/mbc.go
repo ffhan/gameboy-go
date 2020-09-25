@@ -5,44 +5,9 @@ import (
 	go_gb "go-gb"
 )
 
-type mbcType int
-
 const (
-	CartridgeTypeAddr    uint16 = 0x147
-	CartridgeROMSizeAddr uint16 = 0x148
-	CartridgeRAMSizeAddr uint16 = 0x149
-
 	MiB = 1 << 20
 	KiB = 1 << 10
-
-	MbcROMOnly                    mbcType = 0x00
-	MbcMBC1                       mbcType = 0x01
-	MbcMBC1RAM                    mbcType = 0x02
-	MbcMBC1BATTERY                mbcType = 0x03
-	MbcMBC2                       mbcType = 0x05
-	MbcMBC2BATTERY                mbcType = 0x06
-	MbcROMRAM                     mbcType = 0x08
-	MbcROMRAMBATTERY              mbcType = 0x09
-	MbcMMM01                      mbcType = 0x0B
-	MbcMMM01RAM                   mbcType = 0x0C
-	MbcMMM01RAMBATTERY            mbcType = 0x0D
-	MbcMBC3TIMERBATTERY           mbcType = 0x0F
-	MbcMBC3TIMERRAMBATTERY        mbcType = 0x10
-	MbcMBC3                       mbcType = 0x11
-	MbcMBC3RAM                    mbcType = 0x12
-	MbcMBC3RAMBATTERY             mbcType = 0x13
-	MbcMBC5                       mbcType = 0x19
-	MbcMBC5RAM                    mbcType = 0x1A
-	MbcMBC5RAMBATTERY             mbcType = 0x1B
-	MbcMBC5RUMBLE                 mbcType = 0x1C
-	MbcMBC5RUMBLERAM              mbcType = 0x1D
-	MbcMBC5RUMBLERAMBATTERY       mbcType = 0x1E
-	MbcMBC6                       mbcType = 0x20
-	MbcMBC7SENSORRUMBLERAMBATTERY mbcType = 0x22
-	MbcPOCKETCAMERA               mbcType = 0xFC
-	MbcBANDAITAMA5                mbcType = 0xFD
-	MbcHuC3                       mbcType = 0xFE
-	MbcHuC1RAMBATTERY             mbcType = 0xFF
 )
 
 type noMBC struct {

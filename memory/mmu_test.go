@@ -11,9 +11,9 @@ func TestMemoryBus_Read_Store(t *testing.T) {
 	for i := range b {
 		b[i] = byte(i)
 	}
-	b[CartridgeTypeAddr] = 0x08    // ROM+RAM
-	b[CartridgeROMSizeAddr] = 0x05 // 1MByte in 64 banks
-	b[CartridgeRAMSizeAddr] = 0x03 // 32 KByte in 4 banks
+	b[go_gb.CartridgeTypeAddr] = 0x08    // ROM+RAM
+	b[go_gb.CartridgeROMSizeAddr] = 0x05 // 1MByte in 64 banks
+	b[go_gb.CartridgeRAMSizeAddr] = 0x03 // 32 KByte in 4 banks
 	m.Init(b[:], go_gb.GB)
 
 	for i := VRAMStart; i <= VRAMEnd; i++ {
@@ -26,17 +26,17 @@ func TestMemoryBus_Read_Store(t *testing.T) {
 
 	for i := 0; i <= 0xFFFF; i++ {
 		val := m.Read(uint16(i))
-		if uint16(i) == CartridgeTypeAddr {
+		if uint16(i) == go_gb.CartridgeTypeAddr {
 			if val != 0x08 {
 				t.Fatalf("memlocation %X: expected %X, got %X\n", i, 0x02, val)
 			}
 			continue
-		} else if uint16(i) == CartridgeROMSizeAddr {
+		} else if uint16(i) == go_gb.CartridgeROMSizeAddr {
 			if val != 0x05 {
 				t.Fatalf("memlocation %X: expected %X, got %X\n", i, 0x05, val)
 			}
 			continue
-		} else if uint16(i) == CartridgeRAMSizeAddr {
+		} else if uint16(i) == go_gb.CartridgeRAMSizeAddr {
 			if val != 0x03 {
 				t.Fatalf("memlocation %X: expected %X, got %X\n", i, 0x03, val)
 			}

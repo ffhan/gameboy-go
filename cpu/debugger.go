@@ -41,11 +41,12 @@ func (d *debugger) IME() bool {
 
 func (d *debugger) print(opcode uint16, pc uint16) {
 	if d.debugOn {
-		fmt.Fprintf(d.output, "OP: %X\tPC: %X\tSP: %X\ta: %X\tf: %X\tb: %X\tc: %X\td: %X\te: %X\th: %X\tl: %X\tZNHC: %b\n",
+		fmt.Fprintf(d.output, "OP: %X\tPC: %X\tSP: %X\ta: %X\tf: %X\tb: %X\tc: %X\td: %X\te: %X\th: %X\tl: %X\tZNHC: %b PPU mode: %d line: %d\n",
 			opcode, pc, d.cpu.sp,
 			d.cpu.r[A], d.cpu.r[F],
 			d.cpu.r[B], d.cpu.r[C],
 			d.cpu.r[D], d.cpu.r[E],
-			d.cpu.r[H], d.cpu.r[L], d.cpu.r[F]>>4)
+			d.cpu.r[H], d.cpu.r[L], d.cpu.r[F]>>4,
+			d.cpu.ppu.Mode(), d.cpu.ppu.CurrentLine())
 	}
 }

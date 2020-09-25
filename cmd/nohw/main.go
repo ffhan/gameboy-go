@@ -4,7 +4,6 @@ import (
 	"fmt"
 	go_gb "go-gb"
 	"go-gb/cpu"
-	"go-gb/debugger"
 	"go-gb/memory"
 	"go-gb/ppu"
 	"io/ioutil"
@@ -20,17 +19,20 @@ func main() {
 		panic(err)
 	}
 
+	fmt.Println(go_gb.NewGame(rom))
+
 	mmu.Init(rom, go_gb.GB)
 
 	fmt.Println("initialized mmu")
 
 	lcd := go_gb.NewNopDisplay()
 
-	mmuD := memory.NewDebugger(mmu, os.Stdout)
-	ppu := ppu.NewPpu(mmuD, mmu.VRAM(), mmu.OAM(), lcd)
-	c := cpu.NewDebugger(cpu.NewCpu(mmuD, ppu), os.Stdout)
+	//mmuD := memory.NewDebugger(mmu, os.Stdout)
+	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), lcd)
+	c := cpu.NewDebugger(cpu.NewCpu(mmu, ppu), os.Stdout)
 
-	sysD := debugger.NewSystemDebugger(c, mmuD)
+	//sysD := debugger.NewSystemDebugger(c, mmuD)
+	c.Debug(true)
 
 	for {
 		c.Step()
@@ -38,9 +40,9 @@ func main() {
 		if ppu.IsVBlank() {
 			print()
 		}
-		if c.PC() == 0x55 {
-			sysD.Debug(true)
-			lcd.Debug(true)
+		if c.PC() == 0x64 {
+			//sysD.Debug(true)
+			//lcd.Debug(true)
 			print()
 		}
 	}

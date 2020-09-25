@@ -35,7 +35,7 @@ type mmu struct {
 	internalMemory          [0xFFFF + 1]byte
 	bios                    go_gb.Memory
 	cartridge               go_gb.Cartridge
-	vram                    go_gb.Memory
+	vram                    go_gb.DumpableMemory
 	wram                    go_gb.Memory
 	echo                    go_gb.Memory
 	oam                     go_gb.Memory
@@ -96,6 +96,9 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 	m.storeFuncs = map[uint16]func(bytes []byte){
 		go_gb.LCDDMA: dma(m, m.oam),
 		0xFF50:       m.unmapBios(),
+		//go_gb.LCDLY: func(bytes []byte) {
+		//	fmt.Printf("storing %v to LCDLY\n", bytes)
+		//},
 		// add on lcd turn on - write to display
 	}
 }
@@ -104,7 +107,7 @@ func (m *mmu) OAM() go_gb.Memory {
 	return m.oam
 }
 
-func (m *mmu) VRAM() go_gb.Memory {
+func (m *mmu) VRAM() go_gb.DumpableMemory {
 	return m.vram
 }
 

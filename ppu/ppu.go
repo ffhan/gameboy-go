@@ -19,9 +19,9 @@ const (
 )
 
 type ppu struct {
-	memory go_gb.Memory // used for usual memory access
-	vram   go_gb.Memory // for skipping locks
-	oam    go_gb.Memory // for skipping locks
+	memory go_gb.Memory         // used for usual memory access
+	vram   go_gb.DumpableMemory // for skipping locks
+	oam    go_gb.Memory         // for skipping locks
 
 	frameBuffer [160 * 144]byte // map colors in the display!
 
@@ -32,7 +32,7 @@ type ppu struct {
 	display go_gb.Display
 }
 
-func NewPpu(memory go_gb.Memory, vram go_gb.Memory, oam go_gb.Memory, display go_gb.Display) *ppu {
+func NewPpu(memory go_gb.Memory, vram go_gb.DumpableMemory, oam go_gb.Memory, display go_gb.Display) *ppu {
 	return &ppu{memory: memory, vram: vram, oam: oam, currentMode: 2, display: display}
 }
 
@@ -66,7 +66,44 @@ func (p *ppu) windowEnabled() bool {
 	return go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister), 5)
 }
 
+func (p *ppu) coincidenceInterrupt() {
+	go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
+		go_gb.Set(&b, 6, true)
+		return b
+	})
+	go_gb.Update(p.memory, go_gb.IF, func(b byte) byte {
+		go_gb.Set(&b, int(go_gb.BitLCD), true)
+		return b
+	})
+}
+
+func (p *ppu) oamInterrupt() {
+	go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
+		go_gb.Set(&b, 5, true)
+		return b
+	})
+	go_gb.Update(p.memory, go_gb.IF, func(b byte) byte {
+		go_gb.Set(&b, int(go_gb.BitLCD), true)
+		return b
+	})
+}
+
+func (p *ppu) hblankInterrupt() {
+	go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
+		go_gb.Set(&b, 3, true)
+		return b
+	})
+	go_gb.Update(p.memory, go_gb.IF, func(b byte) byte {
+		go_gb.Set(&b, int(go_gb.BitLCD), true)
+		return b
+	})
+}
+
 func (p *ppu) vblankInterrupt() {
+	go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
+		go_gb.Set(&b, 4, true)
+		return b
+	})
 	go_gb.Update(p.memory, go_gb.IF, func(b byte) byte {
 		go_gb.Set(&b, int(go_gb.BitVBlank), true)
 		return b
@@ -88,7 +125,12 @@ func (p *ppu) getLine() byte {
 }
 
 func (p *ppu) updateLine() {
+	p.coincidenceInterrupt()
 	p.memory.Store(go_gb.LCDLY, byte(p.currentLine))
+}
+
+func (p *ppu) CurrentLine() int {
+	return p.currentLine
 }
 
 func (p *ppu) getWindow() (byte, byte) {
@@ -97,14 +139,14 @@ func (p *ppu) getWindow() (byte, byte) {
 	return wx, wy
 }
 
-func (p *ppu) setMode(mode byte) {
+func (p *ppu) setMode(mode byte, max go_gb.MC) {
 	mode &= 0x3
 	go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
 		return (b & 0xFC) | mode
 	})
 	p.currentMode = mode
 	//fmt.Printf("mode %d clock %d line %d\n", p.currentMode, p.modeClock, p.currentLine)
-	p.modeClock = 0
+	p.modeClock -= max
 }
 
 func (p *ppu) compareLyLyc() {
@@ -144,6 +186,10 @@ func (p *ppu) renderBackgroundScanLine() {
 
 	line := p.getLine()
 	usingWindow := p.windowEnabled() && wy <= line
+
+	//file, _ := os.Create("temp.txt")
+	//p.vram.Dump(file)
+	//file.Close()
 
 	var yPos byte
 	tileData, unsigned := p.getTileDataAddr()
@@ -269,6 +315,10 @@ func (p *ppu) renderSpritesOnScanLine() {
 	}
 }
 
+func (p *ppu) Mode() byte {
+	return p.currentMode
+}
+
 func (p *ppu) Step(mc go_gb.MC) {
 	defer p.compareLyLyc()
 	p.modeClock += mc
@@ -276,26 +326,28 @@ func (p *ppu) Step(mc go_gb.MC) {
 	switch p.currentMode {
 	case 2:
 		if p.modeClock > 20 {
-			p.setMode(3)
+			p.oamInterrupt()
+			p.setMode(3, 20)
 		}
 	case 3:
 		if p.modeClock > 43 {
+			p.hblankInterrupt()
 			// todo: HBLANK interrupt
 			// todo: render scanline to display
-			p.setMode(0)
+			p.setMode(0, 43)
 			p.renderScanline()
 		}
 	case 0:
 		if p.modeClock > 51 {
 			p.currentLine += 1
 			p.updateLine()
-			if p.currentLine == 143 {
-				p.setMode(1)
+			if p.currentLine == 144 {
+				p.setMode(1, 51)
 				p.vblankInterrupt()
 				p.display.Draw(p.frameBuffer[:])
 				fmt.Printf("drawing %v\n", p.frameBuffer)
 			} else {
-				p.setMode(2)
+				p.setMode(2, 51)
 			}
 		}
 	case 1:
@@ -303,7 +355,7 @@ func (p *ppu) Step(mc go_gb.MC) {
 			p.currentLine += 1
 			if p.currentLine > 153 {
 				p.currentLine = 0
-				p.setMode(2)
+				p.setMode(2, 114)
 			}
 			p.updateLine()
 		}

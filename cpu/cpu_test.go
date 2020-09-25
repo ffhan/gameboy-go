@@ -15,9 +15,9 @@ func initCpu(fill map[uint16]byte) *cpu {
 			bytes[addr] = val
 		}
 	}
-	bytes[memory.CartridgeTypeAddr] = byte(memory.MbcROMRAM)
-	bytes[memory.CartridgeROMSizeAddr] = 0x05
-	bytes[memory.CartridgeRAMSizeAddr] = 0x03
+	bytes[go_gb.CartridgeTypeAddr] = byte(go_gb.MbcROMRAM)
+	bytes[go_gb.CartridgeROMSizeAddr] = 0x05
+	bytes[go_gb.CartridgeRAMSizeAddr] = 0x03
 	mmu.Init(bytes, go_gb.GB)
 	return c
 }

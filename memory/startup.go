@@ -5,7 +5,7 @@ import (
 )
 
 func getCartridge(memory []byte) go_gb.Cartridge {
-	cartridgeType := memory[CartridgeTypeAddr]
+	cartridgeType := memory[go_gb.CartridgeTypeAddr]
 	switch cartridgeType {
 	case 0x00:
 		n := &noMBC{}
@@ -29,7 +29,7 @@ func getCartridge(memory []byte) go_gb.Cartridge {
 }
 
 func getRomBanks(memory []byte) *bank {
-	banks := memory[CartridgeROMSizeAddr]
+	banks := memory[go_gb.CartridgeROMSizeAddr]
 	var bank *bank
 	switch banks {
 	case 0x00:
@@ -65,7 +65,7 @@ func getRomBanks(memory []byte) *bank {
 }
 
 func getRamBanks(memory []byte) *bank {
-	val := memory[CartridgeRAMSizeAddr]
+	val := memory[go_gb.CartridgeRAMSizeAddr]
 	switch val {
 	case 0x00:
 		return nil

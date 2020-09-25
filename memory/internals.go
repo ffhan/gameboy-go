@@ -1,6 +1,9 @@
 package memory
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
 type mmap struct {
 	start, end uint16
@@ -9,6 +12,12 @@ type mmap struct {
 
 func newMmap(start uint16, end uint16, memory []byte) *mmap {
 	return &mmap{start: start, end: end + 1, memory: memory}
+}
+
+func (m *mmap) Dump(writer io.Writer) {
+	for i := m.start; i < m.end; i++ {
+		fmt.Fprintf(writer, "%X: %08b (%02X)\n", i, m.memory[i-m.start], m.memory[i-m.start])
+	}
 }
 
 func (m *mmap) ReadBytes(pointer, n uint16) []byte {
