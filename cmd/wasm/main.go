@@ -45,27 +45,18 @@ func main() {
 		c, m, p = run()
 		systemDebugger = debugger.NewSystemDebugger(c, m)
 		systemDebugger.Debug(false)
+		c.Debug(true)
 		return nil
 	}))
-	var once sync.Once
-	var wg2 sync.WaitGroup
-	wg2.Add(1)
 	js.Global().Set("step", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		once.Do(func() {
-			go func() {
-				defer wg2.Done()
-				for {
-					if c.PC() < 0x55 {
-						c.Step()
-					} else {
-						systemDebugger.Debug(true)
-						return
-					}
+		go func() {
+			for {
+				c.Step()
+				if p.IsVBlank() || p.Mode() == 1 {
+					return
 				}
-			}()
-		})
-		wg2.Wait()
-		c.Step()
+			}
+		}()
 		return nil
 	}))
 	js.Global().Set("start", js.FuncOf(func(this js.Value, args []js.Value) interface{} {

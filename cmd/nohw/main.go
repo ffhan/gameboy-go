@@ -6,24 +6,24 @@ import (
 	"go-gb/cpu"
 	"go-gb/memory"
 	"go-gb/ppu"
-	"io/ioutil"
 	"os"
 )
 
 func main() {
 	mmu := memory.NewMMU()
-	rom := make([]byte, 2*1<<20)
-
-	rom, err := ioutil.ReadFile("roms/Tetris (World) (Rev A).gb")
+	file, err := os.Open("roms/Tetris (World) (Rev A).gb")
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(go_gb.NewGame(rom))
+	game, err := go_gb.LoadGame(file)
+	if err != nil {
+		panic(err)
+	}
 
-	mmu.Init(rom, go_gb.GB)
+	fmt.Println(game)
 
-	fmt.Println("initialized mmu")
+	mmu.Init(game.Rom, go_gb.GB)
 
 	lcd := go_gb.NewNopDisplay()
 
@@ -32,7 +32,7 @@ func main() {
 	c := cpu.NewDebugger(cpu.NewCpu(mmu, ppu), os.Stdout)
 
 	//sysD := debugger.NewSystemDebugger(c, mmuD)
-	c.Debug(true)
+	c.Debug(false)
 
 	for {
 		c.Step()
@@ -40,7 +40,7 @@ func main() {
 		if ppu.IsVBlank() {
 			print()
 		}
-		if c.PC() == 0x64 {
+		if c.PC() == 0x8c {
 			//sysD.Debug(true)
 			//lcd.Debug(true)
 			print()

@@ -15,8 +15,42 @@ func newMmap(start uint16, end uint16, memory []byte) *mmap {
 }
 
 func (m *mmap) Dump(writer io.Writer) {
-	for i := m.start; i < m.end; i++ {
-		fmt.Fprintf(writer, "%X: %08b (%02X)\n", i, m.memory[i-m.start], m.memory[i-m.start])
+	for i := uint16(0x9800); i < m.end; i++ {
+		o := i - 0x9800
+		if o > 0 && o%32 == 0 {
+			fmt.Fprintln(writer)
+		}
+		fmt.Fprintf(writer, "%02X ", m.memory[i-m.start])
+	}
+	fmt.Fprintln(writer)
+	fmt.Fprintln(writer)
+
+	for i := uint16(0x8000); i <= 0x97FF; {
+		pxl1 := m.memory[i-m.start]
+		pxl2 := m.memory[i-m.start+1]
+		i += 2
+		for p := 7; p >= 0; p-- {
+			color := (((pxl2 >> p) & 1) << 1) | ((pxl1 >> p) & 1)
+			var char rune
+			switch color {
+			case 0:
+				char = '▓'
+			case 1:
+				char = '▒'
+			case 2:
+				char = '░'
+			case 3:
+				char = '▁'
+			}
+			fmt.Fprint(writer, string(char))
+		}
+		o := i - 0x8000
+		if o > 0 && o%2 == 0 {
+			fmt.Fprintln(writer)
+		}
+		if o > 0 && o%16 == 0 {
+			fmt.Fprintln(writer)
+		}
 	}
 }
 

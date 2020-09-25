@@ -1,7 +1,9 @@
 package go_gb
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 )
 
 type Cpu interface {
@@ -90,6 +92,16 @@ func NewGame(rom []byte) *Game {
 		RamSize:       RamSize(rom[CartridgeRAMSizeAddr]),
 		NonJapanese:   rom[0x14A] != 0,
 	}
+}
+
+func LoadGame(rom io.ReadCloser) (*Game, error) {
+	defer rom.Close()
+	var buf bytes.Buffer
+	_, err := buf.ReadFrom(rom)
+	if err != nil {
+		return nil, err
+	}
+	return NewGame(buf.Bytes()), nil
 }
 
 type GameBoy struct {

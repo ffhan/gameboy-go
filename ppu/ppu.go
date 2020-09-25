@@ -187,10 +187,6 @@ func (p *ppu) renderBackgroundScanLine() {
 	line := p.getLine()
 	usingWindow := p.windowEnabled() && wy <= line
 
-	//file, _ := os.Create("temp.txt")
-	//p.vram.Dump(file)
-	//file.Close()
-
 	var yPos byte
 	tileData, unsigned := p.getTileDataAddr()
 	var mapAddr uint16
