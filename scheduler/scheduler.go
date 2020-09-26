@@ -61,11 +61,11 @@ func (s *scheduler) Run() {
 		if _, ok := s.stoppers[s.cpu.PC()]; ok {
 			return
 		}
-		start := time.Now()
+		//start := time.Now()
 		mc := s.cpu.Step()
 		atomic.AddUint64(&cycles, uint64(mc))
 		if s.lcd.IsDrawing() {
-			time.Sleep(time.Until(start.Add(ppuFreq)))
+			time.Sleep(ppuFreq)
 			atomic.AddUint64(&frames, 1)
 			//fmt.Println(time.Now().Sub(start))
 		}

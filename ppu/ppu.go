@@ -124,6 +124,7 @@ func (p *ppu) getLine() byte {
 }
 
 func (p *ppu) updateLine() {
+	p.compareLyLyc()
 	p.coincidenceInterrupt()
 	p.io.Store(go_gb.LCDLY, byte(p.currentLine))
 }
@@ -205,18 +206,15 @@ func (p *ppu) renderBackgroundScanLine() {
 
 	tileIds := p.vram.ReadBytes(mapAddr+tileRow+uint16(scx)/8, 20)
 
-	//fmt.Printf("rendering background: line %d -> scx %d scy %d wx %d wy %d tiledata %X tileMap %X bg? %t tileRow %d\n",
-	//	line, scx, scy, wx, wy, tileData, mapAddr, !usingWindow, tileRow)
-	for pixel := byte(0); pixel < 160; pixel++ {
-		xPos := pixel + scx
-		if usingWindow && pixel >= wx {
-			xPos = pixel - wx
-		}
-		//tileCol := uint16(xPos) / 8
+	lineNum := uint16(yPos % 8)
+	lineNum *= 2
 
+	var data1 [20]byte
+	var data2 [20]byte
+	for i := 0; i < 20; i++ {
 		tileLocation := tileData
 		//tileAddress := mapAddr + tileRow + tileCol
-		tileId := uint16(tileIds[pixel/8])
+		tileId := uint16(tileIds[i])
 		if unsigned {
 			tileLocation += tileId * 16
 		} else {
@@ -227,22 +225,34 @@ func (p *ppu) renderBackgroundScanLine() {
 			}
 		}
 
-		lineNum := yPos % 8
-		lineNum *= 2
-		data1 := p.vram.Read(tileLocation + uint16(lineNum))
-		data2 := p.vram.Read(tileLocation + uint16(lineNum) + 1)
+		data1[i] = p.vram.Read(tileLocation + lineNum)
+		data2[i] = p.vram.Read(tileLocation + lineNum + 1)
+	}
+
+	var colors [4]byte
+	for i := byte(0); i < 4; i++ {
+		colors[i] = p.getBgColor(i)
+	}
+
+	//fmt.Printf("rendering background: line %d -> scx %d scy %d wx %d wy %d tiledata %X tileMap %X bg? %t tileRow %d\n",
+	//	line, scx, scy, wx, wy, tileData, mapAddr, !usingWindow, tileRow)
+	for pixel := byte(0); pixel < 160; pixel++ {
+		pixel := pixel
+		xPos := pixel + scx
+		if usingWindow && pixel >= wx {
+			xPos = pixel - wx
+		}
+		//tileCol := uint16(xPos) / 8
+
+		data1 := data1[pixel/8]
+		data2 := data2[pixel/8]
 
 		colorBit := 7 - xPos%8
 
 		colorNum := p.getColorNum(data1, data2, colorBit)
 
-		finally := int(line)
-		if finally < 0 || finally > 143 || pixel < 0 || pixel > 159 {
-			continue
-		}
-
 		// real color palettes will be done on the front end display
-		colorId := p.getBgColor(colorNum)
+		colorId := colors[colorNum]
 		bufferAddr := uint(line)*160 + uint(pixel)
 		p.frameBuffer[bufferAddr] = colorId
 
@@ -323,7 +333,6 @@ func (p *ppu) Mode() byte {
 }
 
 func (p *ppu) Step(mc go_gb.MC) {
-	defer p.compareLyLyc()
 	p.modeClock += mc
 
 	switch p.currentMode {
