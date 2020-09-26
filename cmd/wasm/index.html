@@ -15,7 +15,7 @@
         <input type="file" id="rom">
         <button onclick="runGame()">Run</button>
         <button onclick="step()">Step</button>
-        <button onclick="start()">Start</button>
+        <button onclick="startGame()">Start</button>
     </div>
     <div class="info">
         <span id="cartridgeType"></span><br>
@@ -31,44 +31,47 @@
     document.scanLine = 0;
     let canvas = document.getElementById('screen');
 
+    const worker = new Worker('worker.js');
+    worker.onmessage = ev => {
+        if (ev.data.type === 'console') {
+            console.log(ev.data.msg);
+        } else if (ev.data.type === 'buffer') {
+            document.image.data = ev.data.msg;
+            draw();
+        } else if (ev.data.type === 'game') {
+            setup(ev.data.msg);
+        }
+    }
+
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#000000'
 
     ctx.fillRect(0, 0, 160, 144)
     document.image = ctx.getImageData(0, 0, 160, 144);
-    document.buffer = new Uint8Array(160 * 144);
 
     document.getElementById('rom').addEventListener('change', function () {
         var reader = new FileReader();
         reader.onload = function () {
             document.rom = new Uint8Array(this.result);
             console.log(document.rom);
+            worker.postMessage({type: 'run', msg: document.rom});
         }
         reader.readAsArrayBuffer(this.files[0]);
     }, false);
 
-    function mapColor(col) {
-        switch (col) {
-            case 0:
-                return [255, 255, 255, 255]
-            case 1:
-                return [0xCC, 0xCC, 0xCC, 255]
-            case 2:
-                return [0x77, 0x77, 0x77, 255]
-            case 3:
-                return [0, 0, 0, 255]
-        }
+
+    function startGame() {
+        worker.postMessage({type: 'start'});
     }
 
-    function runGame() {
-        run()
-        document.getElementById('title').innerText = document.title;
-        document.getElementById('cartridgeType').innerText = document.cartridgeType;
-        document.getElementById('sgb').innerText = document.sgb;
-        document.getElementById('cgb').innerText = document.cgb;
-        document.getElementById('romSize').innerText = document.romSize;
-        document.getElementById('ramSize').innerText = document.ramSize;
-        if (document.nonJapanese === true) {
+    function setup(game) {
+        document.getElementById('title').innerText = game.title;
+        document.getElementById('cartridgeType').innerText = game.cartridgeType;
+        document.getElementById('sgb').innerText = game.sgb;
+        document.getElementById('cgb').innerText = game.cgb;
+        document.getElementById('romSize').innerText = game.romSize;
+        document.getElementById('ramSize').innerText = game.ramSize;
+        if (game.nonJapanese === true) {
             document.getElementById('non-japanese').innerText = 'Non Japanese';
         } else {
             document.getElementById('non-japanese').innerText = 'Japanese';
@@ -76,13 +79,6 @@
     }
 
     function draw() {
-        for (let i = 0; i < 160 * 144; i++) {
-            let [r, g, b, a] = mapColor(document.buffer[i]);
-            document.image.data[i * 4] = r
-            document.image.data[i * 4 + 1] = g
-            document.image.data[i * 4 + 2] = b
-            document.image.data[i * 4 + 3] = a
-        }
         ctx.putImageData(document.image, 0, 0);
     }
 </script>

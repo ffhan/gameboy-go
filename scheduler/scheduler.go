@@ -24,7 +24,6 @@ func (s *scheduler) AddStopper(addr uint16) {
 }
 
 func (s *scheduler) Run() {
-	fmt.Println("started sched")
 	const (
 		CpuFrequency float64 = 4_194_304 / 4
 		PpuFrequency         = 59.7
@@ -57,15 +56,16 @@ func (s *scheduler) Run() {
 		}
 	}()
 
+	start := time.Now()
 	for {
 		if _, ok := s.stoppers[s.cpu.PC()]; ok {
 			return
 		}
-		//start := time.Now()
 		mc := s.cpu.Step()
 		atomic.AddUint64(&cycles, uint64(mc))
 		if s.lcd.IsDrawing() {
-			time.Sleep(ppuFreq)
+			start = start.Add(ppuFreq)
+			time.Sleep(time.Until(start))
 			atomic.AddUint64(&frames, 1)
 			//fmt.Println(time.Now().Sub(start))
 		}

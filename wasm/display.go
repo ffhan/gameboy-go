@@ -28,7 +28,7 @@ func (w *wasmDisplay) mapColor(col byte) (r, g, b byte) {
 
 func (w *wasmDisplay) Draw(buffer []byte) {
 	w.drawing = true
-	js.CopyBytesToJS(js.Global().Get("document").Get("buffer"), buffer)
+	js.CopyBytesToJS(js.Global().Get("buffer"), buffer)
 	js.Global().Get("draw").Invoke()
 }
 

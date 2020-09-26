@@ -17,20 +17,20 @@ import (
 func run() (go_gb.Cpu, go_gb.Memory, go_gb.PPU, go_gb.Display) {
 	mmu := memory.NewMMU()
 	rom := make([]byte, 2*1<<20)
-	n := js.CopyBytesToGo(rom, js.Global().Get("document").Get("rom"))
+	n := js.CopyBytesToGo(rom, js.Global().Get("rom"))
 	mmu.Init(rom[:n], go_gb.GB)
 
 	game, err := go_gb.LoadGame(ioutil.NopCloser(bytes.NewBuffer(rom[:n])))
 	if err != nil {
 		panic(err)
 	}
-	js.Global().Get("document").Set("title", game.Title)
-	js.Global().Get("document").Set("cartridgeType", game.CartridgeType.String())
-	js.Global().Get("document").Set("sgb", game.SGBFlag.String())
-	js.Global().Get("document").Set("cgb", game.CGBFlag.String())
-	js.Global().Get("document").Set("romSize", game.RomSize.String())
-	js.Global().Get("document").Set("ramSize", game.RamSize.String())
-	js.Global().Get("document").Set("nonJapanese", game.NonJapanese)
+	js.Global().Set("title", game.Title)
+	js.Global().Set("cartridgeType", game.CartridgeType.String())
+	js.Global().Set("sgb", game.SGBFlag.String())
+	js.Global().Set("cgb", game.CGBFlag.String())
+	js.Global().Set("romSize", game.RomSize.String())
+	js.Global().Set("ramSize", game.RamSize.String())
+	js.Global().Set("nonJapanese", game.NonJapanese)
 
 	fmt.Println("initialized mmu")
 
@@ -44,6 +44,7 @@ func run() (go_gb.Cpu, go_gb.Memory, go_gb.PPU, go_gb.Display) {
 
 type Runner interface {
 	Run()
+	AddStopper(addr uint16)
 }
 
 func main() {
@@ -60,6 +61,7 @@ func main() {
 	js.Global().Set("run", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		cpu, mmu, ppu, lcd = run()
 		sched = scheduler.NewScheduler(cpu, ppu, lcd)
+		sched.AddStopper(0x100)
 		return nil
 	}))
 	js.Global().Set("step", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -67,7 +69,7 @@ func main() {
 		return nil
 	}))
 	js.Global().Set("start", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		go sched.Run()
+		sched.Run()
 		return nil
 	}))
 	wg.Wait()
