@@ -99,18 +99,14 @@ func (p *ppu) hblankInterrupt() {
 }
 
 func (p *ppu) vblankInterrupt() {
-	go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
-		go_gb.Set(&b, 4, true)
-		return b
-	})
+	//go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
+	//	go_gb.Set(&b, 4, true)
+	//	return b
+	//})
 	go_gb.Update(p.memory, go_gb.IF, func(b byte) byte {
 		go_gb.Set(&b, int(go_gb.BitVBlank), true)
 		return b
 	})
-}
-
-func (p *ppu) IsVBlank() bool {
-	return go_gb.Bit(p.memory.Read(go_gb.IF), int(go_gb.BitVBlank)) && go_gb.Bit(p.memory.Read(go_gb.IE), int(go_gb.BitVBlank))
 }
 
 func (p *ppu) getScroll() (byte, byte) {

@@ -11,13 +11,15 @@ import (
 type scheduler struct {
 	cpu go_gb.Cpu
 	ppu go_gb.PPU
+	lcd go_gb.Display
 }
 
-func NewScheduler(cpu go_gb.Cpu, ppu go_gb.PPU) *scheduler {
-	return &scheduler{cpu: cpu, ppu: ppu}
+func NewScheduler(cpu go_gb.Cpu, ppu go_gb.PPU, lcd go_gb.Display) *scheduler {
+	return &scheduler{cpu: cpu, ppu: ppu, lcd: lcd}
 }
 
 func (s *scheduler) Run() {
+	fmt.Println("started sched")
 	const (
 		CpuFrequency float64 = 4_194_304 / 4
 		PpuFrequency         = 59.7
@@ -40,9 +42,8 @@ func (s *scheduler) Run() {
 	for {
 		start := time.Now()
 		s.cpu.Step()
-		if s.cpu.IME() && s.ppu.IsVBlank() {
+		if s.lcd.IsDrawing() {
 			time.Sleep(time.Until(start.Add(ppuFreq)))
-			time.Sleep(100 * time.Millisecond)
 			atomic.AddUint64(&frames, 1)
 		}
 	}

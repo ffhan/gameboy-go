@@ -61,6 +61,8 @@ const (
 
 type Display interface {
 	Draw(bufferLine []byte)
+	// calling this method returns if the display is drawing, and sets it to false after the method call
+	IsDrawing() bool
 }
 
 type nopDisplay struct {

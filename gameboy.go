@@ -15,7 +15,6 @@ type Cpu interface {
 // picture processing unit
 type PPU interface {
 	Step(mc MC)
-	IsVBlank() bool
 	Enabled() bool
 	Mode() byte
 	CurrentLine() int

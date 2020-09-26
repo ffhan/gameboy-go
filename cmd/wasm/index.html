@@ -20,7 +20,7 @@
 
     ctx.fillRect(0, 0, 160, 144)
     document.image = ctx.getImageData(0, 0, 160, 144);
-    document.buffer = document.image.data;
+    document.buffer = new Uint8Array(160 * 144);
 
     document.getElementById('rom').addEventListener('change', function () {
         var reader = new FileReader();
@@ -31,7 +31,27 @@
         reader.readAsArrayBuffer(this.files[0]);
     }, false);
 
+    function mapColor(col) {
+        switch (col) {
+            case 0:
+                return [255, 255, 255, 255]
+            case 1:
+                return [0xCC, 0xCC, 0xCC, 255]
+            case 2:
+                return [0x77, 0x77, 0x77, 255]
+            case 3:
+                return [0, 0, 0, 255]
+        }
+    }
+
     function draw() {
+        for (let i = 0; i < 160 * 144; i++) {
+            let [r, g, b, a] = mapColor(document.buffer[i]);
+            document.image.data[i * 4] = r
+            document.image.data[i * 4 + 1] = g
+            document.image.data[i * 4 + 2] = b
+            document.image.data[i * 4 + 3] = a
+        }
         ctx.putImageData(document.image, 0, 0);
     }
 </script>

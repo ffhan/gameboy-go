@@ -14,7 +14,7 @@ import (
 	"syscall/js"
 )
 
-func run() (debugger.CpuDebugger, debugger.MemoryDebugger, go_gb.PPU) {
+func run() (debugger.CpuDebugger, debugger.MemoryDebugger, go_gb.PPU, go_gb.Display) {
 	mmu := memory.NewMMU()
 	rom := make([]byte, 2*1<<20)
 	n := js.CopyBytesToGo(rom, js.Global().Get("document").Get("rom"))
@@ -28,38 +28,38 @@ func run() (debugger.CpuDebugger, debugger.MemoryDebugger, go_gb.PPU) {
 	mmuD := memory.NewDebugger(mmu, os.Stdout)
 	c := cpu.NewCpu(mmuD, ppu)
 
-	return cpu.NewDebugger(c, os.Stdout), mmuD, ppu
+	return cpu.NewDebugger(c, os.Stdout), mmuD, ppu, lcd
+}
+
+type Runner interface {
+	Run()
 }
 
 func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	var c debugger.CpuDebugger
-	var p go_gb.PPU
-	var m debugger.MemoryDebugger
+	var cpu debugger.CpuDebugger
+	var ppu go_gb.PPU
+	var mmu debugger.MemoryDebugger
+	var lcd go_gb.Display
 
 	var systemDebugger debugger.Debugger
+	var sched Runner
 
 	js.Global().Set("run", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		c, m, p = run()
-		systemDebugger = debugger.NewSystemDebugger(c, m)
+		cpu, mmu, ppu, lcd = run()
+		systemDebugger = debugger.NewSystemDebugger(cpu, mmu)
 		systemDebugger.Debug(false)
+		sched = scheduler.NewScheduler(cpu, ppu, lcd)
 		return nil
 	}))
 	js.Global().Set("step", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		go func() {
-			for {
-				c.Step()
-				if p.IsVBlank() || p.Mode() == 1 {
-					return
-				}
-			}
-		}()
+		cpu.Step()
 		return nil
 	}))
 	js.Global().Set("start", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		go scheduler.NewScheduler(c, p).Run()
+		go sched.Run()
 		return nil
 	}))
 	wg.Wait()

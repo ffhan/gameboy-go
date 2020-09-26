@@ -5,17 +5,11 @@ import (
 )
 
 type wasmDisplay struct {
-	buffer []byte
+	drawing bool
 }
 
 func NewWasmDisplay() *wasmDisplay {
-	buffer := make([]byte, 160*144*4)
-	for i := range buffer {
-		if i%4 == 3 {
-			buffer[i] = 255
-		}
-	}
-	return &wasmDisplay{buffer: buffer}
+	return &wasmDisplay{}
 }
 
 func (w *wasmDisplay) mapColor(col byte) (r, g, b byte) {
@@ -33,12 +27,14 @@ func (w *wasmDisplay) mapColor(col byte) (r, g, b byte) {
 }
 
 func (w *wasmDisplay) Draw(buffer []byte) {
-	for i, pixel := range buffer {
-		r, g, b := w.mapColor(pixel)
-		w.buffer[i*4] = r
-		w.buffer[i*4+1] = g
-		w.buffer[i*4+2] = b
-	}
-	js.CopyBytesToJS(js.Global().Get("document").Get("buffer"), w.buffer)
+	w.drawing = true
+	js.CopyBytesToJS(js.Global().Get("document").Get("buffer"), buffer)
 	js.Global().Get("draw").Invoke()
+}
+
+func (w *wasmDisplay) IsDrawing() bool {
+	defer func() {
+		w.drawing = false
+	}()
+	return w.drawing
 }
