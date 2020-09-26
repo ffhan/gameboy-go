@@ -67,7 +67,7 @@ func (s *scheduler) Run() {
 		if s.lcd.IsDrawing() {
 			time.Sleep(time.Until(start.Add(ppuFreq)))
 			atomic.AddUint64(&frames, 1)
-			fmt.Println(time.Now().Sub(start))
+			//fmt.Println(time.Now().Sub(start))
 		}
 	}
 }

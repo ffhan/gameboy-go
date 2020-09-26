@@ -203,6 +203,8 @@ func (p *ppu) renderBackgroundScanLine() {
 	}
 	tileRow := uint16(yPos/8) * 32
 
+	tileIds := p.vram.ReadBytes(mapAddr+tileRow+uint16(scx)/8, 20)
+
 	//fmt.Printf("rendering background: line %d -> scx %d scy %d wx %d wy %d tiledata %X tileMap %X bg? %t tileRow %d\n",
 	//	line, scx, scy, wx, wy, tileData, mapAddr, !usingWindow, tileRow)
 	for pixel := byte(0); pixel < 160; pixel++ {
@@ -210,11 +212,11 @@ func (p *ppu) renderBackgroundScanLine() {
 		if usingWindow && pixel >= wx {
 			xPos = pixel - wx
 		}
-		tileCol := uint16(xPos) / 8
+		//tileCol := uint16(xPos) / 8
 
 		tileLocation := tileData
-		tileAddress := mapAddr + tileRow + tileCol
-		tileId := uint16(p.vram.Read(tileAddress))
+		//tileAddress := mapAddr + tileRow + tileCol
+		tileId := uint16(tileIds[pixel/8])
 		if unsigned {
 			tileLocation += tileId * 16
 		} else {
@@ -328,14 +330,12 @@ func (p *ppu) Step(mc go_gb.MC) {
 	case 2:
 		if p.modeClock > 20 {
 			p.setMode(3, 20)
-			p.renderMutex.Lock()
 			p.hblankInterrupt()
 			p.renderScanline()
 		}
 	case 3:
 		if p.modeClock > 43 {
 			p.setMode(0, 43)
-			p.renderMutex.Unlock()
 		}
 	case 0:
 		if p.modeClock > 51 {
