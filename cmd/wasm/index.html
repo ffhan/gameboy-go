@@ -3,13 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <title>Game boy</title>
+    <link href="style.css" rel="stylesheet">
 </head>
 <body>
-<canvas id="screen" width="160" height="144"></canvas>
-<input type="file" id="rom">
-<button onclick="run()">Run</button>
-<button onclick="step()">Step</button>
-<button onclick="start()">Start</button>
+<div class="container">
+    <h1 id="title"></h1>
+    <div class="display">
+        <canvas id="screen" width="160" height="144"></canvas>
+    </div>
+    <div class="controls">
+        <input type="file" id="rom">
+        <button onclick="runGame()">Run</button>
+        <button onclick="step()">Step</button>
+        <button onclick="start()">Start</button>
+    </div>
+    <div class="info">
+        <span id="cartridgeType"></span><br>
+        <span id="romSize"></span><br>
+        <span id="ramSize"></span><br>
+        <span id="sgb"></span><br>
+        <span id="cgb"></span><br>
+        <span id="non-japanese"></span><br>
+    </div>
+</div>
 <script src="wasm_exec.js"></script>
 <script type="application/javascript">
     document.scanLine = 0;
@@ -41,6 +57,21 @@
                 return [0x77, 0x77, 0x77, 255]
             case 3:
                 return [0, 0, 0, 255]
+        }
+    }
+
+    function runGame() {
+        run()
+        document.getElementById('title').innerText = document.title;
+        document.getElementById('cartridgeType').innerText = document.cartridgeType;
+        document.getElementById('sgb').innerText = document.sgb;
+        document.getElementById('cgb').innerText = document.cgb;
+        document.getElementById('romSize').innerText = document.romSize;
+        document.getElementById('ramSize').innerText = document.ramSize;
+        if (document.nonJapanese === true) {
+            document.getElementById('non-japanese').innerText = 'Non Japanese';
+        } else {
+            document.getElementById('non-japanese').innerText = 'Japanese';
         }
     }
 

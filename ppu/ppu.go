@@ -3,6 +3,7 @@ package ppu
 import (
 	go_gb "go-gb"
 	"go-gb/memory"
+	"sync"
 )
 
 const (
@@ -28,6 +29,8 @@ type ppu struct {
 	currentLine int
 	currentMode byte
 	modeClock   go_gb.MC
+
+	renderMutex sync.Mutex
 
 	display go_gb.Display
 }
@@ -324,16 +327,15 @@ func (p *ppu) Step(mc go_gb.MC) {
 	switch p.currentMode {
 	case 2:
 		if p.modeClock > 20 {
-			p.oamInterrupt()
 			p.setMode(3, 20)
+			p.renderMutex.Lock()
+			p.hblankInterrupt()
+			p.renderScanline()
 		}
 	case 3:
 		if p.modeClock > 43 {
-			p.hblankInterrupt()
-			// todo: HBLANK interrupt
-			// todo: render scanline to display
 			p.setMode(0, 43)
-			p.renderScanline()
+			p.renderMutex.Unlock()
 		}
 	case 0:
 		if p.modeClock > 51 {
@@ -345,6 +347,7 @@ func (p *ppu) Step(mc go_gb.MC) {
 				p.display.Draw(p.frameBuffer[:])
 			} else {
 				p.setMode(2, 51)
+				p.oamInterrupt()
 			}
 		}
 	case 1:
@@ -353,6 +356,7 @@ func (p *ppu) Step(mc go_gb.MC) {
 			if p.currentLine > 153 {
 				p.currentLine = 0
 				p.setMode(2, 114)
+				p.oamInterrupt()
 			}
 			p.updateLine()
 		}
