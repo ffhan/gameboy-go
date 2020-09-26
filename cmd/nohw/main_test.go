@@ -8,11 +8,10 @@ import (
 	"go-gb/ppu"
 	"go-gb/scheduler"
 	"os"
+	"testing"
 )
 
-import _ "net/http/pprof"
-
-func main() {
+func TestRunning(t *testing.T) {
 	mmu := memory.NewMMU()
 	file, err := os.Open("roms/Tetris (World) (Rev A).gb")
 	if err != nil {
@@ -39,5 +38,6 @@ func main() {
 	//c.Debug(false)
 
 	sched := scheduler.NewScheduler(realCpu, ppu, lcd)
+	sched.AddStopper(0x100)
 	sched.Run()
 }

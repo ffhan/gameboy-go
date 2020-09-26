@@ -29,7 +29,16 @@ func (m *noMBC) ReadBytes(pointer, n uint16) []byte {
 }
 
 func (m *noMBC) Read(pointer uint16) byte {
-	return m.ReadBytes(pointer, 1)[0]
+	if pointer <= ROMBankNEnd {
+		return m.rom[pointer]
+	} else if ExternalRAMStart <= pointer && pointer <= ExternalRAMEnd {
+		if m.ram == nil {
+			return 0
+		}
+		address := pointer - ExternalRAMStart
+		return m.ram[address]
+	}
+	panic(fmt.Errorf("invalid memory access at address %X", pointer))
 }
 
 func (m *noMBC) StoreBytes(pointer uint16, bytes []byte) {
@@ -44,7 +53,14 @@ func (m *noMBC) StoreBytes(pointer uint16, bytes []byte) {
 }
 
 func (m *noMBC) Store(pointer uint16, val byte) {
-	m.StoreBytes(pointer, []byte{val})
+	if m.ram == nil || pointer < ExternalRAMStart {
+		return
+	}
+	address := int(pointer) - int(ExternalRAMStart)
+	if address < 0 {
+		return
+	}
+	m.ram[address] = val
 }
 
 func (m *noMBC) LoadRom(bytes []byte) int {
@@ -88,7 +104,20 @@ func (m *mbc1) ReadBytes(pointer, n uint16) []byte {
 }
 
 func (m *mbc1) Read(pointer uint16) byte {
-	return m.ReadBytes(pointer, 1)[0]
+	if pointer <= ROMBank0End {
+		return m.romBank.Read(0, pointer)
+	} else if pointer <= ROMBankNEnd {
+		return m.romBank.Read(uint16(m.selectedRomBank), pointer)
+	} else if ExternalRAMStart <= pointer && pointer <= ExternalRAMEnd {
+		if !m.ramEnable {
+			return 0
+		}
+		if m.ramBankingMode {
+			return m.ramBank.Read(uint16(m.selectedRamBank), pointer-ExternalRAMStart)
+		}
+		return m.ramBank.Read(0, pointer-ExternalRAMStart)
+	}
+	panic(fmt.Errorf("invalid address %X", pointer))
 }
 
 func (m *mbc1) StoreBytes(pointer uint16, bytes []byte) {

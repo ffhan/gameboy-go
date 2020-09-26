@@ -108,12 +108,7 @@ func (d data) Store(c *cpu, b []byte, mc *go_gb.MC) {
 
 func (d data) Load(c *cpu, mc *go_gb.MC) []byte {
 	n := d.size / 8
-	bytes := make([]byte, n)
-	for i := 0; i < n; i++ {
-		b := c.readOpcode(mc)
-		bytes[i] = b
-	}
-	return bytes
+	return c.readFromPc(uint16(n), mc)
 }
 
 type stackPtr struct {

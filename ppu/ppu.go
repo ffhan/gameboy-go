@@ -21,6 +21,7 @@ type ppu struct {
 	memory go_gb.Memory         // used for usual memory access
 	vram   go_gb.DumpableMemory // for skipping locks
 	oam    go_gb.Memory         // for skipping locks
+	io     go_gb.Memory         // optimized access to IO
 
 	frameBuffer [160 * 144]byte // map colors in the display!
 
@@ -31,8 +32,8 @@ type ppu struct {
 	display go_gb.Display
 }
 
-func NewPpu(memory go_gb.Memory, vram go_gb.DumpableMemory, oam go_gb.Memory, display go_gb.Display) *ppu {
-	return &ppu{memory: memory, vram: vram, oam: oam, currentMode: 2, display: display}
+func NewPpu(memory go_gb.Memory, vram go_gb.DumpableMemory, oam go_gb.Memory, io go_gb.Memory, display go_gb.Display) *ppu {
+	return &ppu{memory: memory, vram: vram, oam: oam, io: io, currentMode: 2, display: display}
 }
 
 func (p *ppu) getBgTileMapAddr() uint16 {
@@ -116,12 +117,12 @@ func (p *ppu) getScroll() (byte, byte) {
 }
 
 func (p *ppu) getLine() byte {
-	return p.memory.Read(go_gb.LCDLY)
+	return p.io.Read(go_gb.LCDLY)
 }
 
 func (p *ppu) updateLine() {
 	p.coincidenceInterrupt()
-	p.memory.Store(go_gb.LCDLY, byte(p.currentLine))
+	p.io.Store(go_gb.LCDLY, byte(p.currentLine))
 }
 
 func (p *ppu) CurrentLine() int {
@@ -145,16 +146,16 @@ func (p *ppu) setMode(mode byte, max go_gb.MC) {
 }
 
 func (p *ppu) compareLyLyc() {
-	val := p.memory.Read(go_gb.LCDLYC) == p.getLine()
-	stat := p.memory.Read(go_gb.LCDSTAT)
+	val := p.io.Read(go_gb.LCDLYC) == p.getLine()
+	stat := p.io.Read(go_gb.LCDSTAT)
 	go_gb.Set(&stat, go_gb.LCDSTATCoincidenceFlag, val)
 	go_gb.Set(&stat, go_gb.LCDSTATCoincidenceInterrupt, val)
-	p.memory.Store(go_gb.LCDSTAT, stat)
+	p.io.Store(go_gb.LCDSTAT, stat)
 
-	interrupt := p.memory.Read(go_gb.IF)
+	interrupt := p.io.Read(go_gb.IF)
 	if val {
 		go_gb.Set(&interrupt, 1, true)
-		p.memory.Store(go_gb.IF, interrupt)
+		p.io.Store(go_gb.IF, interrupt)
 	}
 }
 
@@ -162,8 +163,11 @@ func (p *ppu) use8x16Sprites() bool {
 	return go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister), 2)
 }
 
-func (p *ppu) getColor(colorNum byte, address uint16) byte {
-	return (p.memory.Read(address) >> (colorNum * 2)) & 0x3
+func (p *ppu) getBgColor(colorNum byte) byte {
+	return (p.io.Read(go_gb.LCDBGP) >> (colorNum * 2)) & 0x3
+}
+func (p *ppu) getSpriteColor(colorNum byte, address uint16) byte {
+	return (p.io.Read(address) >> (colorNum * 2)) & 0x3
 }
 
 func (p *ppu) renderScanline() {
@@ -233,7 +237,7 @@ func (p *ppu) renderBackgroundScanLine() {
 		}
 
 		// real color palettes will be done on the front end display
-		colorId := p.getColor(colorNum, go_gb.LCDBGP)
+		colorId := p.getBgColor(colorNum)
 		bufferAddr := uint(line)*160 + uint(pixel)
 		p.frameBuffer[bufferAddr] = colorId
 
@@ -297,7 +301,7 @@ func (p *ppu) renderSpritesOnScanLine() {
 					colorAddr = go_gb.LCDOBP0
 				}
 
-				col := p.getColor(colorNum, colorAddr)
+				col := p.getSpriteColor(colorNum, colorAddr)
 				if col == Transparent {
 					continue // don't update frame buffer
 				}

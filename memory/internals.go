@@ -91,7 +91,7 @@ func (l *lockedMemory) ReadBytes(pointer, n uint16) []byte {
 }
 
 func (l *lockedMemory) Read(pointer uint16) byte {
-	return l.ReadBytes(pointer, 1)[0]
+	return 0xFF
 }
 
 func (l *lockedMemory) StoreBytes(pointer uint16, bytes []byte) {

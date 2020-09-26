@@ -44,8 +44,6 @@ type mmu struct {
 	hram                    go_gb.Memory
 	interruptEnableRegister go_gb.Memory
 
-	storeFuncs map[uint16]func(bytes []byte)
-
 	locked *lockedMemory
 	booted bool
 }
@@ -92,15 +90,6 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 	//m.interruptEnableRegister.Store(InterruptEnableRegister, 1)
 
 	m.locked = &lockedMemory{}
-
-	m.storeFuncs = map[uint16]func(bytes []byte){
-		go_gb.LCDDMA: dma(m, m.oam),
-		0xFF50:       m.unmapBios(),
-		//go_gb.LCDLY: func(bytes []byte) {
-		//	fmt.Printf("storing %v to LCDLY\n", bytes)
-		//},
-		// add on lcd turn on - write to display
-	}
 }
 
 func (m *mmu) OAM() go_gb.Memory {
@@ -157,34 +146,48 @@ func (m *mmu) Read(pointer uint16) byte {
 }
 
 func (m *mmu) StoreBytes(pointer uint16, bytes []byte) {
-	if f, ok := m.storeFuncs[pointer]; ok {
-		f(bytes)
+	switch pointer {
+	case go_gb.LCDDMA:
+		m.dma(bytes...)
+	case 0xFF50:
+		m.unmapBios(bytes...)
 	}
 	m.Route(pointer).StoreBytes(pointer, bytes)
 }
 
-func dma(src, dst go_gb.Memory) func([]byte) {
-	return func(bytes []byte) {
-		source := go_gb.FromBytes(bytes) << 8
-		result := src.ReadBytes(source, 0x9F+1)
-		fmt.Printf("started dma from source %X to %X: %v\n", source, OAMStart, result)
-		dst.StoreBytes(OAMStart, result)
-	}
+func (m *mmu) dma(b ...byte) {
+	source := go_gb.FromBytes(b) << 8
+	result := m.ReadBytes(source, 0x9F+1)
+	fmt.Printf("started dma from source %X to %X: %v\n", source, OAMStart, result)
+	m.oam.StoreBytes(OAMStart, result)
 }
 
-func (m *mmu) unmapBios() func([]byte) {
-	return func(bytes []byte) {
-		if go_gb.FromBytes(bytes)&0x3 == 0x01 {
-			m.booted = true
-			fmt.Println("boot completed, unmapped the boot rom")
-		}
+func (m *mmu) unmapBios(b ...byte) {
+	if go_gb.FromBytes(b)&0x3 == 0x01 {
+		m.booted = true
+		fmt.Println("boot completed, unmapped the boot rom")
 	}
 }
 
 func (m *mmu) Store(pointer uint16, val byte) {
-	m.StoreBytes(pointer, []byte{val})
+	switch pointer {
+	case go_gb.LCDDMA:
+		m.dma(val)
+	case 0xFF50:
+		m.unmapBios(val)
+		// add on lcd turn on - write to display
+	}
+	m.Route(pointer).Store(pointer, val)
 }
 
 func (m *mmu) LoadRom(rom []byte) int {
 	return m.cartridge.LoadRom(rom)
+}
+
+func (m *mmu) IO() go_gb.Memory {
+	return m.io
+}
+
+func (m *mmu) HRAM() go_gb.Memory {
+	return m.hram
 }

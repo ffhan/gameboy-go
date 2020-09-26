@@ -37,6 +37,12 @@ const (
 // executes specific things on the cpu and returns the number of m cycles it took to execute
 type Instr func(c *cpu) go_gb.MC
 
+type memoryBus interface {
+	go_gb.Memory
+	HRAM() go_gb.Memory
+	IO() go_gb.Memory
+}
+
 type cpu struct {
 	pc, sp uint16
 
@@ -47,6 +53,8 @@ type cpu struct {
 
 	bios   go_gb.Memory
 	memory go_gb.Memory
+	hram   go_gb.Memory // used for direct stack access
+	io     go_gb.Memory // used for direct IO access
 
 	halt      bool
 	stop      bool
@@ -57,8 +65,8 @@ type cpu struct {
 	ppu go_gb.PPU
 }
 
-func NewCpu(mmu go_gb.Memory, ppu go_gb.PPU) *cpu {
-	c := &cpu{memory: mmu, ppu: ppu}
+func NewCpu(mmu memoryBus, ppu go_gb.PPU) *cpu {
+	c := &cpu{memory: mmu, ppu: ppu, hram: mmu.HRAM()}
 	c.init()
 	return c
 }
@@ -91,7 +99,8 @@ func (c *cpu) storeBytes(pointer uint16, b []byte, mc *go_gb.MC) {
 }
 
 func (c *cpu) store(pointer uint16, val byte, mc *go_gb.MC) {
-	c.storeBytes(pointer, []byte{val}, mc)
+	*mc += go_gb.MC(1)
+	c.memory.Store(pointer, val)
 }
 
 func (c *cpu) readFromPc(size uint16, mc *go_gb.MC) []byte {
@@ -112,7 +121,7 @@ func (c *cpu) popStack(size int, mc *go_gb.MC) []byte {
 	bytes := make([]byte, size)
 	for i := 0; i < size; i++ {
 		c.sp += 1
-		v := c.memory.Read(c.sp)
+		v := c.hram.Read(c.sp)
 		*mc += 1
 		bytes[i] = v
 	}
@@ -121,7 +130,7 @@ func (c *cpu) popStack(size int, mc *go_gb.MC) []byte {
 
 func (c *cpu) pushStack(b []byte, mc *go_gb.MC) {
 	for i := len(b) - 1; i >= 0; i-- {
-		c.memory.Store(c.sp, b[i])
+		c.hram.Store(c.sp, b[i])
 		*mc += 1
 		c.sp -= 1
 	}
@@ -167,7 +176,7 @@ func (c *cpu) Step() go_gb.MC {
 	} else {
 		cycles = 1
 	}
-	if c.ppu != nil && c.ppu.Enabled() {
+	if c.ppu.Enabled() {
 		c.ppu.Step(cycles)
 	}
 	c.handleEiDi()
@@ -180,8 +189,8 @@ func (c *cpu) handleInterrupts() go_gb.MC { // todo: should we count the cycles 
 	if !c.ime { // interrupt master disabled
 		return cycles
 	}
-	ifRegister := c.memory.Read(go_gb.IF)
-	ieRegister := c.memory.Read(go_gb.IE)
+	ifRegister := c.io.Read(go_gb.IF)
+	ieRegister := c.io.Read(go_gb.IE)
 
 	//cycles += 2
 
@@ -203,7 +212,7 @@ func (c *cpu) serviceInterrupt(ifR byte, interrupt go_gb.Interrupt) go_gb.MC {
 	var cycles go_gb.MC
 	go_gb.Set(&ifR, int(interrupt.Bit), false)
 	c.ime = false
-	c.memory.Store(go_gb.IF, ifR) // todo: should we update cycles during interrupts?
+	c.io.Store(go_gb.IF, ifR) // todo: should we update cycles during interrupts?
 	//cycles += 1
 	callAddr(c, go_gb.ToBytes(interrupt.JpAddr, true), &cycles)
 	if interrupt.Bit == go_gb.BitJoypad {

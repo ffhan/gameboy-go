@@ -17,7 +17,12 @@ func (w *wram) ReadBytes(pointer, n uint16) []byte {
 }
 
 func (w *wram) Read(pointer uint16) byte {
-	return w.ReadBytes(pointer, 1)[0]
+	if WRAMBank0Start <= pointer && pointer <= WRAMBank0End {
+		return w.bank.Read(0, pointer-WRAMBank0Start)
+	} else if WRAMBankNStart <= pointer && pointer <= WRAMBankNEnd {
+		return w.bank.Read(uint16(w.selectedBank), pointer-WRAMBankNStart)
+	}
+	panic(fmt.Errorf("invalid address %X", pointer))
 }
 
 func (w *wram) StoreBytes(pointer uint16, bytes []byte) {
@@ -32,5 +37,12 @@ func (w *wram) StoreBytes(pointer uint16, bytes []byte) {
 }
 
 func (w *wram) Store(pointer uint16, val byte) {
-	w.StoreBytes(pointer, []byte{val})
+	if WRAMBank0Start <= pointer && pointer <= WRAMBank0End {
+		w.bank.Store(0, pointer-WRAMBank0Start, val)
+		return
+	} else if WRAMBankNStart <= pointer && pointer <= WRAMBankNEnd {
+		w.bank.Store(uint16(w.selectedBank), pointer-WRAMBankNStart, val)
+		return
+	}
+	panic(fmt.Errorf("invalid address %X", pointer))
 }

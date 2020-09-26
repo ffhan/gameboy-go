@@ -24,7 +24,7 @@ func run() (debugger.CpuDebugger, debugger.MemoryDebugger, go_gb.PPU, go_gb.Disp
 
 	lcd := wasm.NewWasmDisplay()
 
-	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), lcd)
+	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), mmu.IO(), lcd)
 	mmuD := memory.NewDebugger(mmu, os.Stdout)
 	c := cpu.NewCpu(mmuD, ppu)
 
