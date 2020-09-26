@@ -6,6 +6,7 @@ import (
 	"go-gb/cpu"
 	"go-gb/memory"
 	"go-gb/ppu"
+	"go-gb/scheduler"
 	"os"
 )
 
@@ -29,21 +30,12 @@ func main() {
 
 	//mmuD := memory.NewDebugger(mmu, os.Stdout)
 	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), lcd)
-	c := cpu.NewDebugger(cpu.NewCpu(mmu, ppu), os.Stdout)
+	realCpu := cpu.NewCpu(mmu, ppu)
+	//c := cpu.NewDebugger(realCpu, os.Stdout)
 
 	//sysD := debugger.NewSystemDebugger(c, mmuD)
-	c.Debug(false)
+	//c.Debug(false)
 
-	for {
-		c.Step()
-		c.PC()
-		if ppu.IsVBlank() {
-			print()
-		}
-		if c.PC() == 0x8c {
-			//sysD.Debug(true)
-			//lcd.Debug(true)
-			print()
-		}
-	}
+	sched := scheduler.NewScheduler(realCpu, ppu, lcd)
+	sched.Run()
 }

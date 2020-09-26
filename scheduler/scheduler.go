@@ -29,22 +29,27 @@ func (s *scheduler) Run() {
 	fmt.Println(ppuFreq)
 
 	var frames uint64
+	var cycles uint64
 
 	go func() {
 		t := time.NewTicker(time.Second)
 		for range t.C {
 			fps := atomic.LoadUint64(&frames)
+			inst := atomic.LoadUint64(&cycles)
 			atomic.StoreUint64(&frames, 0)
-			fmt.Printf("FPS: %d\n", fps)
+			atomic.StoreUint64(&cycles, 0)
+			fmt.Printf("FPS: %d\tCPU m cycles: %d\n", fps, inst)
 		}
 	}()
 
 	for {
 		start := time.Now()
-		s.cpu.Step()
+		mc := s.cpu.Step()
+		atomic.AddUint64(&cycles, uint64(mc))
 		if s.lcd.IsDrawing() {
 			time.Sleep(time.Until(start.Add(ppuFreq)))
 			atomic.AddUint64(&frames, 1)
+			fmt.Println(time.Now().Sub(start))
 		}
 	}
 }

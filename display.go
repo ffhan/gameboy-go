@@ -66,7 +66,8 @@ type Display interface {
 }
 
 type nopDisplay struct {
-	debugOn bool
+	debugOn   bool
+	isDrawing bool
 }
 
 func NewNopDisplay() *nopDisplay {
@@ -77,7 +78,15 @@ func (n *nopDisplay) Debug(val bool) {
 	n.debugOn = val
 }
 
+func (n *nopDisplay) IsDrawing() bool {
+	defer func() {
+		n.isDrawing = false
+	}()
+	return n.isDrawing
+}
+
 func (n *nopDisplay) Draw(bufferLine []byte) {
+	n.isDrawing = true
 	if n.debugOn {
 		fmt.Printf("screen buffer: %v\n", bufferLine)
 	}
