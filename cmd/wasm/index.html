@@ -31,23 +31,24 @@
     document.scanLine = 0;
     let canvas = document.getElementById('screen');
 
-    const worker = new Worker('worker.js');
-    worker.onmessage = ev => {
-        if (ev.data.type === 'console') {
-            console.log(ev.data.msg);
-        } else if (ev.data.type === 'buffer') {
-            document.image.data = ev.data.msg;
-            draw();
-        } else if (ev.data.type === 'game') {
-            setup(ev.data.msg);
-        }
-    }
-
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#000000'
 
     ctx.fillRect(0, 0, 160, 144)
     document.image = ctx.getImageData(0, 0, 160, 144);
+    document.data = new ImageData(160, 144)
+
+    const worker = new Worker('worker.js');
+    worker.onmessage = ev => {
+        if (ev.data.type === 'console') {
+            console.log(ev.data.msg);
+        } else if (ev.data.type === 'buffer') {
+            document.data = new ImageData(new Uint8ClampedArray(ev.data.msg), 160, 144);
+            draw();
+        } else if (ev.data.type === 'game') {
+            setup(ev.data.msg);
+        }
+    }
 
     document.getElementById('rom').addEventListener('change', function () {
         var reader = new FileReader();
@@ -79,7 +80,7 @@
     }
 
     function draw() {
-        ctx.putImageData(document.image, 0, 0);
+        ctx.putImageData(document.data, 0, 0);
     }
 </script>
 <script src="wasm.js"></script>

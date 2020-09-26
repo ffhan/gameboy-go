@@ -30,7 +30,9 @@ function draw() {
         imageData[i * 4 + 2] = b
         imageData[i * 4 + 3] = a
     }
-    self.postMessage({msg: imageData, type: 'buffer'});
+    const buf = imageData.buffer;
+    self.postMessage({msg: buf, type: 'buffer'}, [buf]);
+    imageData = new Uint8ClampedArray(160 * 144 * 4);
 }
 
 function runGame(data) {

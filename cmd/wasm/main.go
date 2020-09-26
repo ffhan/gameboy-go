@@ -69,7 +69,7 @@ func main() {
 		return nil
 	}))
 	js.Global().Set("start", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		sched.Run()
+		go sched.Run()
 		return nil
 	}))
 	wg.Wait()
