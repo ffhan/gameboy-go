@@ -182,10 +182,9 @@ func (c *cpu) PC() uint16 {
 
 func (c *cpu) Step() go_gb.MC {
 	var cycles go_gb.MC
-	//if c.pc == 0x100 {
-	//	fmt.Println(instrs)
-	//	os.Exit(0)
-	//}
+	if c.pc == 0x2b6 {
+		print()
+	}
 	if !c.halt || !c.stop {
 		opcode := c.readOpcode(&cycles)
 		var instr Instr
@@ -196,6 +195,17 @@ func (c *cpu) Step() go_gb.MC {
 			instr = optable[opcode]
 		}
 		//instrs[runtime.FuncForPC(reflect.ValueOf(instr).Pointer()).Name()] = true
+
+		/* Padamo na:
+		; Set LCD control to Operation
+		        ld      a,80h           ; 02b6 3e 80   >.
+		        ldh     (40h),a         ; 02b8 e0 40   `@
+		        ei                      ; 02ba fb   {
+		        xor     a               ; 02bb af   /
+		; Clear all interrupt flags
+		        ldh     (0fh),a         ; 02bc e0 0f   `.
+		Krene clearati inteerruptove na IF-u ali se VBLANK već izvede...
+		*/
 		cycles += instr(c)
 	} else {
 		cycles = 1
@@ -205,9 +215,11 @@ func (c *cpu) Step() go_gb.MC {
 
 	if c.ppu.Enabled() {
 		c.ppu.Step(cycles)
+	} else {
+		print()
 	}
-	c.handleEiDi()
 	cycles += c.handleInterrupts()
+	c.handleEiDi()
 	return cycles
 }
 
