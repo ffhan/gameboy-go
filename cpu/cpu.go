@@ -3,9 +3,6 @@ package cpu
 import (
 	"fmt"
 	"go-gb"
-	"os"
-	"reflect"
-	"runtime"
 )
 
 const (
@@ -40,11 +37,15 @@ const (
 // executes specific things on the cpu and returns the number of m cycles it took to execute
 type Instr func(c *cpu) go_gb.MC
 
-type memoryBus interface {
+type MemoryBus interface {
 	go_gb.Memory
 	HRAM() go_gb.Memory
 	IO() go_gb.Memory
 	InterruptEnableRegister() go_gb.Memory
+}
+
+type timer interface {
+	Step(mc go_gb.MC)
 }
 
 type cpu struct {
@@ -67,11 +68,22 @@ type cpu struct {
 	diWaiting byte
 	ime       bool // Interrupt master enable
 
+	divTimer timer
+	timer    timer
+
 	ppu go_gb.PPU
 }
 
-func NewCpu(mmu memoryBus, ppu go_gb.PPU) *cpu {
-	c := &cpu{memory: mmu, ppu: ppu, hram: mmu.HRAM(), io: mmu.IO(), ier: mmu.InterruptEnableRegister()}
+func NewCpu(mmu MemoryBus, ppu go_gb.PPU, timer timer, divTimer timer) *cpu {
+	c := &cpu{
+		memory:   mmu,
+		ppu:      ppu,
+		hram:     mmu.HRAM(),
+		io:       mmu.IO(),
+		ier:      mmu.InterruptEnableRegister(),
+		timer:    timer,
+		divTimer: divTimer,
+	}
 	c.init()
 	return c
 }
@@ -166,14 +178,14 @@ func (c *cpu) PC() uint16 {
 	return c.pc
 }
 
-var instrs = map[string]bool{}
+//var instrs = map[string]bool{}
 
 func (c *cpu) Step() go_gb.MC {
 	var cycles go_gb.MC
-	if c.pc == 0x100 {
-		fmt.Println(instrs)
-		os.Exit(0)
-	}
+	//if c.pc == 0x100 {
+	//	fmt.Println(instrs)
+	//	os.Exit(0)
+	//}
 	if !c.halt || !c.stop {
 		opcode := c.readOpcode(&cycles)
 		var instr Instr
@@ -183,11 +195,14 @@ func (c *cpu) Step() go_gb.MC {
 		} else {
 			instr = optable[opcode]
 		}
-		instrs[runtime.FuncForPC(reflect.ValueOf(instr).Pointer()).Name()] = true
+		//instrs[runtime.FuncForPC(reflect.ValueOf(instr).Pointer()).Name()] = true
 		cycles += instr(c)
 	} else {
 		cycles = 1
 	}
+	c.timer.Step(cycles)
+	c.divTimer.Step(cycles)
+
 	if c.ppu.Enabled() {
 		c.ppu.Step(cycles)
 	}

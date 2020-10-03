@@ -7,6 +7,7 @@ import (
 	"go-gb/memory"
 	"go-gb/ppu"
 	"go-gb/scheduler"
+	"go-gb/timer"
 	"os"
 	"testing"
 )
@@ -19,7 +20,7 @@ func TestRunning(t *testing.T) {
 	defer logs.Close()
 
 	mmu := memory.NewMMU()
-	file, err := os.Open("roms/gb-test-roms-master/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb")
+	file, err := os.Open("roms/Tetris (World) (Rev A).gb")
 	if err != nil {
 		panic(err)
 	}
@@ -36,9 +37,15 @@ func TestRunning(t *testing.T) {
 
 	lcd := go_gb.NewNopDisplay()
 
+	divTimer := timer.NewDivTimer(mmu.IO())
+	timer := timer.NewTimer(mmu.IO())
+
 	//mmuD := memory.NewDebugger(mmu, os.Stdout)
 	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), mmu.IO(), lcd)
-	realCpu := cpu.NewCpu(mmu, ppu)
+	mmuD := memory.NewDebugger(mmu, logs)
+	mmuD.Debug(false)
+
+	realCpu := cpu.NewCpu(mmuD, ppu, timer, divTimer)
 
 	defer func() {
 		err := recover()

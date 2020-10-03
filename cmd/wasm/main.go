@@ -8,6 +8,7 @@ import (
 	"go-gb/memory"
 	"go-gb/ppu"
 	"go-gb/scheduler"
+	"go-gb/timer"
 	"go-gb/wasm"
 	"io/ioutil"
 	"sync"
@@ -36,8 +37,11 @@ func run() (go_gb.Cpu, go_gb.Memory, go_gb.PPU, go_gb.Display) {
 
 	lcd := wasm.NewWasmDisplay()
 
+	divTimer := timer.NewDivTimer(mmu.IO())
+	timer := timer.NewTimer(mmu.IO())
+
 	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), mmu.IO(), lcd)
-	c := cpu.NewCpu(mmu, ppu)
+	c := cpu.NewCpu(mmu, ppu, timer, divTimer)
 
 	return c, mmu, ppu, lcd
 }

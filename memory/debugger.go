@@ -3,16 +3,17 @@ package memory
 import (
 	"fmt"
 	go_gb "go-gb"
+	"go-gb/cpu"
 	"io"
 )
 
 type debugger struct {
-	memory  go_gb.Memory
+	memory  cpu.MemoryBus
 	output  io.Writer
 	debugOn bool
 }
 
-func NewDebugger(memory go_gb.Memory, output io.Writer) *debugger {
+func NewDebugger(memory cpu.MemoryBus, output io.Writer) *debugger {
 	return &debugger{memory: memory, output: output}
 }
 
@@ -46,4 +47,16 @@ func (d *debugger) StoreBytes(pointer uint16, bytes []byte) {
 func (d *debugger) Store(pointer uint16, val byte) {
 	d.memory.Store(pointer, val)
 	d.printf("stored byte to %X: %v\n", pointer, val)
+}
+
+func (d *debugger) HRAM() go_gb.Memory {
+	return d.memory.HRAM()
+}
+
+func (d *debugger) IO() go_gb.Memory {
+	return d.memory.IO()
+}
+
+func (d *debugger) InterruptEnableRegister() go_gb.Memory {
+	return d.memory.InterruptEnableRegister()
 }

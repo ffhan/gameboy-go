@@ -176,8 +176,7 @@ func cp(dst, src Ptr) Instr {
 		orig := int16(bytes[0])
 		dstVal := orig - srcVal
 
-		result := byte(dstVal)
-		c.setFlag(BitZ, result == 0)
+		c.setFlag(BitZ, byte(orig) == byte(srcVal))
 		c.setFlag(BitN, true)
 		c.setFlag(BitH, (orig&0xF)-(srcVal&0xF) < 0)
 		c.setFlag(BitC, dstVal < 0)

@@ -144,13 +144,9 @@ func (m *mmu) Read(pointer uint16) byte {
 }
 
 func (m *mmu) StoreBytes(pointer uint16, bytes []byte) {
-	switch pointer {
-	case go_gb.LCDDMA:
-		m.dma(bytes...)
-	case 0xFF50:
-		m.unmapBios(bytes...)
+	for i, b := range bytes { // make sure the store calls are satisfied
+		m.Store(pointer+uint16(i), b)
 	}
-	m.Route(pointer).StoreBytes(pointer, bytes)
 }
 
 func (m *mmu) dma(b ...byte) {
@@ -173,7 +169,9 @@ func (m *mmu) Store(pointer uint16, val byte) {
 		m.dma(val)
 	case 0xFF50:
 		m.unmapBios(val)
-		// add on lcd turn on - write to display
+	// add on lcd turn on - write to display
+	case go_gb.DIV:
+		m.io.Store(go_gb.DIV, 0)
 	}
 	m.Route(pointer).Store(pointer, val)
 }
