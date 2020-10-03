@@ -11,7 +11,7 @@ func inc8bit(dst Ptr) Instr {
 		orig := origB[0]
 		bytes := uint16(orig) + 1
 		result := byte(bytes)
-		c.setFlag(BitZ, bytes == 0)
+		c.setFlag(BitZ, result == 0)
 		c.setFlag(BitN, false)
 		c.setFlag(BitH, (bytes&0xF)+1 > 0xF) // TODO: probably wrong
 		dst.Store(c, []byte{result}, &cycles)
@@ -35,7 +35,7 @@ func dec8bit(dst Ptr) Instr {
 		orig := origB[0]
 		bytes := int16(orig) - 1
 		result := byte(bytes)
-		c.setFlag(BitZ, bytes == 0)
+		c.setFlag(BitZ, result == 0)
 		c.setFlag(BitN, true)
 		c.setFlag(BitH, (int16(orig)&0xF)-1 < 0) // TODO: probably wrong
 		dst.Store(c, []byte{result}, &cycles)

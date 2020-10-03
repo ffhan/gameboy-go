@@ -83,7 +83,11 @@ type mbc1 struct {
 }
 
 func NewMbc1(romBank *bank, ramBank *bank) *mbc1 {
-	return &mbc1{romBank: romBank, ramBank: ramBank, selectedRomBank: 1}
+	selectedRomBank := byte(1)
+	if romBank.numOfParts == 1 {
+		selectedRomBank = 0
+	}
+	return &mbc1{romBank: romBank, ramBank: ramBank, selectedRomBank: selectedRomBank}
 }
 
 func (m *mbc1) ReadBytes(pointer, n uint16) []byte {

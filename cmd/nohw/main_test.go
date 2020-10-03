@@ -12,11 +12,18 @@ import (
 )
 
 func TestRunning(t *testing.T) {
-	mmu := memory.NewMMU()
-	file, err := os.Open("roms/Tetris (World) (Rev A).gb")
+	logs, err := os.Create("output.log")
 	if err != nil {
 		panic(err)
 	}
+	defer logs.Close()
+
+	mmu := memory.NewMMU()
+	file, err := os.Open("roms/gb-test-roms-master/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
 
 	game, err := go_gb.LoadGame(file)
 	if err != nil {
@@ -32,12 +39,22 @@ func TestRunning(t *testing.T) {
 	//mmuD := memory.NewDebugger(mmu, os.Stdout)
 	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), mmu.IO(), lcd)
 	realCpu := cpu.NewCpu(mmu, ppu)
-	//c := cpu.NewDebugger(realCpu, os.Stdout)
 
-	//sysD := debugger.NewSystemDebugger(c, mmuD)
-	//c.Debug(false)
+	defer func() {
+		err := recover()
+		switch err.(type) {
+		case error:
+			fmt.Printf("PC: %X -> err: %v\n", realCpu.PC(), err)
+		case string:
+			fmt.Printf("PC: %X -> err: %s\n", realCpu.PC(), err)
+		}
+		panic(err)
+	}()
 
-	sched := scheduler.NewScheduler(realCpu, ppu, lcd)
-	sched.AddStopper(0x100)
+	debugger := cpu.NewDebugger(realCpu, logs)
+	debugger.Debug(true)
+	debugger.PrintInstructionNames(true)
+	sched := scheduler.NewScheduler(debugger, ppu, lcd)
+	//sched.AddStopper(0x100)
 	sched.Run()
 }

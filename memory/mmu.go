@@ -87,8 +87,6 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 	m.hram = m.createMmap(HRAMStart, HRAMEnd)
 	m.interruptEnableRegister = m.createMmap(InterruptEnableRegister, InterruptEnableRegister)
 
-	//m.interruptEnableRegister.Store(InterruptEnableRegister, 1)
-
 	m.locked = &lockedMemory{}
 }
 
@@ -190,4 +188,8 @@ func (m *mmu) IO() go_gb.Memory {
 
 func (m *mmu) HRAM() go_gb.Memory {
 	return m.hram
+}
+
+func (m *mmu) InterruptEnableRegister() go_gb.Memory {
+	return m.interruptEnableRegister
 }

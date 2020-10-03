@@ -20,14 +20,14 @@ func ldHlSp(c *cpu) go_gb.MC {
 
 	hl := rx(HL)
 	n := go_gb.FromBytes(dx(8).Load(c, &cycles))
-	result := int16(go_gb.FromBytes(sp().Load(c, &cycles))) + int16(n)
+	result := uint16(int(go_gb.FromBytes(sp().Load(c, &cycles))) + int(n))
 
-	hl.Store(c, go_gb.ToBytes(uint16(result), true), &cycles)
+	hl.Store(c, go_gb.ToBytes(result, true), &cycles)
 
 	c.setFlag(BitZ, false)
 	c.setFlag(BitN, false)
-	c.setFlag(BitH, (result&0xF) < int16(c.sp&0xF))
-	c.setFlag(BitC, (result&0xFF) < int16(c.sp&0xFF))
+	c.setFlag(BitH, (result&0xF) < (c.sp&0xF))
+	c.setFlag(BitC, (result&0xFF) < (c.sp&0xFF))
 	return cycles + 1
 }
 

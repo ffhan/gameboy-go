@@ -3,6 +3,9 @@ package cpu
 import (
 	"fmt"
 	"go-gb"
+	"os"
+	"reflect"
+	"runtime"
 )
 
 const (
@@ -41,6 +44,7 @@ type memoryBus interface {
 	go_gb.Memory
 	HRAM() go_gb.Memory
 	IO() go_gb.Memory
+	InterruptEnableRegister() go_gb.Memory
 }
 
 type cpu struct {
@@ -55,6 +59,7 @@ type cpu struct {
 	memory go_gb.Memory
 	hram   go_gb.Memory // used for direct stack access
 	io     go_gb.Memory // used for direct IO access
+	ier    go_gb.Memory // used for direct register access
 
 	halt      bool
 	stop      bool
@@ -66,7 +71,7 @@ type cpu struct {
 }
 
 func NewCpu(mmu memoryBus, ppu go_gb.PPU) *cpu {
-	c := &cpu{memory: mmu, ppu: ppu, hram: mmu.HRAM()}
+	c := &cpu{memory: mmu, ppu: ppu, hram: mmu.HRAM(), io: mmu.IO(), ier: mmu.InterruptEnableRegister()}
 	c.init()
 	return c
 }
@@ -121,7 +126,7 @@ func (c *cpu) popStack(size int, mc *go_gb.MC) []byte {
 	bytes := make([]byte, size)
 	for i := 0; i < size; i++ {
 		c.sp += 1
-		v := c.hram.Read(c.sp)
+		v := c.memory.Read(c.sp)
 		*mc += 1
 		bytes[i] = v
 	}
@@ -130,7 +135,7 @@ func (c *cpu) popStack(size int, mc *go_gb.MC) []byte {
 
 func (c *cpu) pushStack(b []byte, mc *go_gb.MC) {
 	for i := len(b) - 1; i >= 0; i-- {
-		c.hram.Store(c.sp, b[i])
+		c.memory.Store(c.sp, b[i])
 		*mc += 1
 		c.sp -= 1
 	}
@@ -161,8 +166,14 @@ func (c *cpu) PC() uint16 {
 	return c.pc
 }
 
+var instrs = map[string]bool{}
+
 func (c *cpu) Step() go_gb.MC {
 	var cycles go_gb.MC
+	if c.pc == 0x100 {
+		fmt.Println(instrs)
+		os.Exit(0)
+	}
 	if !c.halt || !c.stop {
 		opcode := c.readOpcode(&cycles)
 		var instr Instr
@@ -172,6 +183,7 @@ func (c *cpu) Step() go_gb.MC {
 		} else {
 			instr = optable[opcode]
 		}
+		instrs[runtime.FuncForPC(reflect.ValueOf(instr).Pointer()).Name()] = true
 		cycles += instr(c)
 	} else {
 		cycles = 1
@@ -190,7 +202,7 @@ func (c *cpu) handleInterrupts() go_gb.MC { // todo: should we count the cycles 
 		return cycles
 	}
 	ifRegister := c.io.Read(go_gb.IF)
-	ieRegister := c.io.Read(go_gb.IE)
+	ieRegister := c.ier.Read(go_gb.IE)
 
 	//cycles += 2
 

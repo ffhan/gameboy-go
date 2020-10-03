@@ -61,7 +61,7 @@ func main() {
 	js.Global().Set("run", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		cpu, mmu, ppu, lcd = run()
 		sched = scheduler.NewScheduler(cpu, ppu, lcd)
-		sched.AddStopper(0x100)
+		//sched.AddStopper(0x100)
 		return nil
 	}))
 	js.Global().Set("step", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -69,7 +69,17 @@ func main() {
 		return nil
 	}))
 	js.Global().Set("start", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		go sched.Run()
+		defer func() {
+			err := recover()
+			switch err.(type) {
+			case error:
+				fmt.Printf("PC: %X -> err: %v\n", cpu.PC(), err)
+			case string:
+				fmt.Printf("PC: %X -> err: %s\n", cpu.PC(), err)
+			}
+			panic(err)
+		}()
+		sched.Run()
 		return nil
 	}))
 	wg.Wait()

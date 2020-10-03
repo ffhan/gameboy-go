@@ -1,43 +1,39 @@
 package memory
 
 import (
+	"fmt"
 	"go-gb"
 )
 
 func getCartridge(memory []byte) go_gb.Cartridge {
 	cartridgeType := memory[go_gb.CartridgeTypeAddr]
+	var mbc go_gb.Cartridge
 	switch cartridgeType {
 	case 0x00:
-		n := &noMBC{}
-		n.LoadRom(memory)
-		return n
+		mbc = &noMBC{}
 	case 0x01:
-		return NewMbc1(getRomBanks(memory), nil)
+		mbc = NewMbc1(getRomBanks(memory), nil)
 	case 0x02, 0x03: // todo: implement battery (save in files)
-		return NewMbc1(getRomBanks(memory), getRamBanks(memory))
+		mbc = NewMbc1(getRomBanks(memory), getRamBanks(memory))
 	case 0x05, 0x06:
 		panic("implement MBC2")
 	case 0x08, 0x09:
-		mbc := &noMBC{ram: make([]byte, ExternalRAMEnd-ExternalRAMStart+1)}
-		mbc.LoadRom(memory)
-		return mbc
+		mbc = &noMBC{ram: make([]byte, ExternalRAMEnd-ExternalRAMStart+1)}
+	default:
+		panic(fmt.Errorf("implement cartridge type %X", cartridgeType))
 	}
-	//panic(fmt.Errorf("implement cartridge type %X", cartridgeType))
-	c := &noMBC{}
-	c.LoadRom(memory)
-	return c
+	mbc.LoadRom(memory)
+	return mbc
 }
 
 func getRomBanks(memory []byte) *bank {
 	banks := go_gb.RomSize(memory[go_gb.CartridgeROMSizeAddr])
 	size, num := banks.GetSize()
-	bank := newBank(uint16(num), uint16(size))
-	bank.LoadRom(memory)
-	return bank
+	return newBank(num, size)
 }
 
 func getRamBanks(memory []byte) *bank {
 	val := go_gb.RamSize(memory[go_gb.CartridgeRAMSizeAddr])
 	size, num := val.GetSize()
-	return newBank(uint16(num), uint16(size))
+	return newBank(num, size)
 }
