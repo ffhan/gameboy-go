@@ -88,6 +88,8 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 	m.interruptEnableRegister = m.createMmap(InterruptEnableRegister, InterruptEnableRegister)
 
 	m.locked = &lockedMemory{}
+
+	m.Store(go_gb.JOYP, 0b00111111)
 }
 
 func (m *mmu) OAM() go_gb.Memory {

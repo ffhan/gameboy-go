@@ -182,7 +182,7 @@ func (c *cpu) PC() uint16 {
 
 func (c *cpu) Step() go_gb.MC {
 	var cycles go_gb.MC
-	if c.pc == 0x2b6 {
+	if c.pc == 0x01d5 {
 		print()
 	}
 	if !c.halt || !c.stop {

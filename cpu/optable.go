@@ -18,8 +18,8 @@ var ( // todo check table (especially loads)
 
 		retnc(BitZ), pop(rx(BC)), jpnc(BitZ, dx(16)), jp(dx(16)), callcc(BitZ), push(rx(BC)), add8b(rx(A), dx(8)), rst(hc(0x00)), retc(BitZ), ret, jpc(BitZ, dx(16)), prefix, callc(BitZ), call, adc8b(rx(A), dx(8)), rst(hc(0x08)),
 		retnc(BitC), pop(rx(DE)), jpnc(BitC, dx(16)), invalid, callcc(BitC), push(rx(DE)), sub(rx(A), dx(8)), rst(hc(0x10)), retc(BitC), reti, jpc(BitC, dx(16)), invalid, callc(BitC), invalid, sbc(rx(A), dx(8)), rst(hc(0x18)),
-		load(mem(off(dx(8), 0xFF00)), rx(A)), pop(rx(HL)), load(mem(off(rx(C), 0xFF00)), rx(A)), invalid, invalid, push(rx(HL)), and(rx(A), dx(8)), rst(hc(0x20)), addSp, jpHl, load(md(16), rx(A)), invalid, invalid, invalid, xor(rx(A), dx(8)), rst(hc(0x28)),
-		load(rx(A), mem(off(dx(8), 0xFF00))), pop(rx(AF)), load(rx(A), mem(off(rx(C), 0xFF00))), di, invalid, push(rx(AF)), or(rx(A), dx(8)), rst(hc(0x30)), ldHlSp, ldSpHl, load(rx(A), md(16)), ei, invalid, invalid, cp(rx(A), dx(8)), rst(hc(0x38)),
+		load(mem(off(dx(8))), rx(A)), pop(rx(HL)), load(mem(off(rx(C))), rx(A)), invalid, invalid, push(rx(HL)), and(rx(A), dx(8)), rst(hc(0x20)), addSp, jpHl, load(md(16), rx(A)), invalid, invalid, invalid, xor(rx(A), dx(8)), rst(hc(0x28)),
+		load(rx(A), mem(off(dx(8)))), pop(rx(AF)), load(rx(A), mem(off(rx(C)))), di, invalid, push(rx(AF)), or(rx(A), dx(8)), rst(hc(0x30)), ldHlSp, ldSpHl, load(rx(A), md(16)), ei, invalid, invalid, cp(rx(A), dx(8)), rst(hc(0x38)),
 	}
 	cbOptable = createCbOptable()
 )

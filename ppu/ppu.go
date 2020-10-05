@@ -339,11 +339,11 @@ func (p *ppu) Step(mc go_gb.MC) {
 	case 2:
 		if p.modeClock >= 20 {
 			p.setMode(3, 20)
-			p.hblankInterrupt()
 			p.renderScanline()
 		}
 	case 3:
 		if p.modeClock >= 43 {
+			p.hblankInterrupt()
 			p.setMode(0, 43)
 		}
 	case 0:
@@ -351,12 +351,12 @@ func (p *ppu) Step(mc go_gb.MC) {
 			p.currentLine += 1
 			p.updateLine()
 			if p.currentLine == 144 {
-				p.setMode(1, 51)
 				p.vblankInterrupt()
+				p.setMode(1, 51)
 				p.display.Draw(p.frameBuffer[:])
 			} else {
-				p.setMode(2, 51)
 				p.oamInterrupt()
+				p.setMode(2, 51)
 			}
 		}
 	case 1:
@@ -364,8 +364,8 @@ func (p *ppu) Step(mc go_gb.MC) {
 			p.currentLine += 1
 			if p.currentLine > 153 {
 				p.currentLine = 0
-				p.setMode(2, 114)
 				p.oamInterrupt()
+				p.setMode(2, 114)
 			} else {
 				p.modeClock -= 114
 			}

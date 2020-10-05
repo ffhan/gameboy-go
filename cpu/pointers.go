@@ -64,21 +64,20 @@ func (r reg) Load(c *cpu, mc *go_gb.MC) []byte {
 }
 
 type offset struct {
-	dst    Ptr
-	offset int
+	dst Ptr
 }
 
 func (o offset) Store(c *cpu, b []byte, mc *go_gb.MC) {
-	o.dst.Store(c, go_gb.ToBytes(uint16(int(go_gb.FromBytes(b))+o.offset), len(b) == 2 || o.offset > 0xFF), mc)
+	o.dst.Store(c, []byte{b[0], 0xFF}, mc)
 }
 
 func (o offset) Load(c *cpu, mc *go_gb.MC) []byte {
 	bytes := o.dst.Load(c, mc)
-	return go_gb.ToBytes(uint16(int(go_gb.FromBytes(bytes))+o.offset), len(bytes) == 2 || o.offset > 0xFF)
+	return []byte{bytes[0], 0xFF}
 }
 
-func off(dst Ptr, o int) offset {
-	return offset{dst, o}
+func off(dst Ptr) offset {
+	return offset{dst}
 }
 
 type mPtr struct {
