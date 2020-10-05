@@ -71,10 +71,12 @@ type cpu struct {
 	divTimer timer
 	timer    timer
 
+	serial go_gb.Serial
+
 	ppu go_gb.PPU
 }
 
-func NewCpu(mmu MemoryBus, ppu go_gb.PPU, timer timer, divTimer timer) *cpu {
+func NewCpu(mmu MemoryBus, ppu go_gb.PPU, timer timer, divTimer timer, serial go_gb.Serial) *cpu {
 	c := &cpu{
 		memory:   mmu,
 		ppu:      ppu,
@@ -83,6 +85,7 @@ func NewCpu(mmu MemoryBus, ppu go_gb.PPU, timer timer, divTimer timer) *cpu {
 		ier:      mmu.InterruptEnableRegister(),
 		timer:    timer,
 		divTimer: divTimer,
+		serial:   serial,
 	}
 	c.init()
 	return c
@@ -212,6 +215,8 @@ func (c *cpu) Step() go_gb.MC {
 	}
 	c.timer.Step(cycles)
 	c.divTimer.Step(cycles)
+
+	c.serial.Step(cycles)
 
 	if c.ppu.Enabled() {
 		c.ppu.Step(cycles)

@@ -8,6 +8,7 @@ import (
 	"go-gb/memory"
 	"go-gb/ppu"
 	"go-gb/scheduler"
+	"go-gb/serial"
 	"go-gb/timer"
 	"go-gb/wasm"
 	"io/ioutil"
@@ -40,8 +41,10 @@ func run() (go_gb.Cpu, go_gb.Memory, go_gb.PPU, go_gb.Display) {
 	divTimer := timer.NewDivTimer(mmu.IO())
 	timer := timer.NewTimer(mmu.IO())
 
+	serialPort := serial.NewSerial(nil, nil, nil, mmu.IO())
+
 	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), mmu.IO(), lcd)
-	c := cpu.NewCpu(mmu, ppu, timer, divTimer)
+	c := cpu.NewCpu(mmu, ppu, timer, divTimer, serialPort)
 
 	return c, mmu, ppu, lcd
 }
