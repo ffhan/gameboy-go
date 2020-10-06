@@ -43,3 +43,14 @@ type Cartridge interface {
 	Memory
 	RomLoader
 }
+
+type MemoryBus interface {
+	Memory
+	VRAM() DumpableMemory
+	HRAM() Memory
+	IO() Memory
+	InterruptEnableRegister() Memory
+	Booted() bool
+	DMAInProgress() bool
+	SetDMAInProgress(val bool)
+}

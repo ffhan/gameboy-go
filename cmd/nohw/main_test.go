@@ -7,6 +7,7 @@ import (
 	"go-gb/memory"
 	"go-gb/ppu"
 	"go-gb/scheduler"
+	"go-gb/serial"
 	"go-gb/timer"
 	"os"
 	"testing"
@@ -45,7 +46,14 @@ func TestRunning(t *testing.T) {
 	mmuD := memory.NewDebugger(mmu, logs)
 	mmuD.Debug(false)
 
-	realCpu := cpu.NewCpu(mmuD, ppu, timer, divTimer)
+	serialFile, err := os.Create("serial.txt")
+	if err != nil {
+		panic(err)
+	}
+
+	serialPort := serial.NewSerial(nil, nil, serialFile, mmu.IO())
+
+	realCpu := cpu.NewCpu(mmuD, ppu, timer, divTimer, serialPort)
 
 	defer func() {
 		err := recover()
@@ -58,7 +66,7 @@ func TestRunning(t *testing.T) {
 		panic(err)
 	}()
 
-	debugger := cpu.NewDebugger(realCpu, logs)
+	debugger := cpu.NewDebugger(realCpu, os.Stdout)
 	debugger.Debug(true)
 	debugger.PrintInstructionNames(true)
 	sched := scheduler.NewScheduler(debugger, ppu, lcd)

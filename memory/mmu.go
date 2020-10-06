@@ -44,13 +44,30 @@ type mmu struct {
 	hram                    go_gb.Memory
 	interruptEnableRegister go_gb.Memory
 
-	locked *lockedMemory
-	booted bool
+	locked        *lockedMemory
+	booted        bool
+	dmaInProgress bool
 }
 
 func NewMMU() *mmu {
 	m := &mmu{}
 	return m
+}
+
+func (m *mmu) Booted() bool {
+	return m.booted
+}
+
+func (m *mmu) DMAInProgress() bool {
+	return m.dmaInProgress
+}
+
+func (m *mmu) SetDMAInProgress(val bool) {
+	m.dmaInProgress = val
+}
+
+func (m *mmu) SetBooted(val bool) {
+	m.booted = val
 }
 
 // returns true if x in [start, end], false otherwise
@@ -102,16 +119,19 @@ func (m *mmu) VRAM() go_gb.DumpableMemory {
 
 // takes a pointer and returns a whole portion of the memory responsible
 func (m *mmu) Route(pointer uint16) go_gb.Memory {
+	if m.dmaInProgress && !inInterval(pointer, HRAMStart, HRAMEnd) {
+		return m.locked
+	}
 	if !m.booted && inInterval(pointer, 0, 0xFF) {
 		return m.bios
 	}
 	if inInterval(pointer, ROMBank0Start, ROMBankNEnd) {
 		return m.cartridge
 	} else if inInterval(pointer, VRAMStart, VRAMEnd) {
-		//locked := m.Read(go_gb.LCDSTAT)&0x3 == 3
-		//if locked {
-		//	return m.locked
-		//}
+		locked := m.Read(go_gb.LCDSTAT)&0x3 == 3
+		if locked {
+			return m.locked
+		}
 		return m.vram
 	} else if inInterval(pointer, ExternalRAMStart, ExternalRAMEnd) {
 		return m.cartridge
@@ -120,10 +140,10 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	} else if inInterval(pointer, ECHORAMStart, ECHORAMEnd) {
 		return m.echo
 	} else if inInterval(pointer, OAMStart, OAMEnd) {
-		//locked := m.Read(go_gb.LCDSTAT)&0x3 > 1
-		//if locked {
-		//	return m.locked
-		//}
+		locked := m.Read(go_gb.LCDSTAT)&0x3 > 1
+		if locked {
+			return m.locked
+		}
 		return m.oam
 	} else if inInterval(pointer, UnusableStart, UnusableEnd) {
 		return m.unusable
@@ -156,6 +176,7 @@ func (m *mmu) dma(b ...byte) {
 	result := m.ReadBytes(source, 0x9F+1)
 	fmt.Printf("started dma from source %X to %X: %v\n", source, OAMStart, result)
 	m.oam.StoreBytes(OAMStart, result)
+	m.dmaInProgress = true
 }
 
 func (m *mmu) unmapBios(b ...byte) {

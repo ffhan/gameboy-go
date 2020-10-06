@@ -35,6 +35,9 @@ func TestJp(t *testing.T) {
 		{jpc(BitC, dx(16)), func() { c.setFlag(BitC, true); c.memory.StoreBytes(c.pc, []byte{0xFD, 0xFC}) }, c.sp, 0xFCFD, 3},
 
 		{jpHl, func() { c.rMap[HL][1] = 0xFC; c.rMap[HL][0] = 0xFD }, c.sp, 0xFCFD, 0},
+
+		{call, func() { c.memory.StoreBytes(c.pc, []byte{0x00, 0xDF}) }, c.sp - 2, 0xDF00, 5},
+		{ret, nil, c.sp, 0xC002, 3},
 	}
 	for i, test := range table {
 		c.pc = start
@@ -42,7 +45,7 @@ func TestJp(t *testing.T) {
 			test.prepare()
 		}
 		if mc := test.in(c); mc != test.expectedMC {
-			t.Errorf("expected MC %d, got %d\n", test.expectedMC, mc)
+			t.Errorf("test %d expected MC %d, got %d\n", i+1, test.expectedMC, mc)
 		}
 		if c.pc != test.expectedPc {
 			t.Errorf("test %d expected PC %X, got %X\n", i+1, test.expectedPc, c.pc)

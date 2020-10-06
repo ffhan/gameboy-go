@@ -3,12 +3,40 @@ package cpu
 import (
 	go_gb "go-gb"
 	"go-gb/memory"
+	"io"
 	"testing"
 )
 
+type mock struct {
+}
+
+func (m mock) Step(mc go_gb.MC) {
+	panic("implement me")
+}
+
+func (m mock) Enabled() bool {
+	panic("implement me")
+}
+
+func (m mock) Mode() byte {
+	panic("implement me")
+}
+
+func (m mock) CurrentLine() int {
+	panic("implement me")
+}
+
+func (m mock) Stream() io.Reader {
+	panic("implement me")
+}
+
 func initCpu(fill map[uint16]byte) *cpu {
 	mmu := memory.NewMMU()
-	c := NewCpu(mmu, nil)
+	mmu.SetBooted(true)
+
+	mock := &mock{}
+	c := NewCpu(mmu, mock, mock, mock, mock)
+	c.sp = 0xFFFE
 	bytes := make([]byte, 0xFFFF+1)
 	if fill != nil {
 		for addr, val := range fill {

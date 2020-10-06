@@ -19,8 +19,13 @@ func ldHlSp(c *cpu) go_gb.MC {
 	var cycles go_gb.MC
 
 	hl := rx(HL)
-	n := go_gb.FromBytes(dx(8).Load(c, &cycles))
-	result := uint16(int(go_gb.FromBytes(sp().Load(c, &cycles))) + int(n))
+	n := int8(go_gb.FromBytes(dx(8).Load(c, &cycles)))
+	var result uint16
+	if n < 0 {
+		result = go_gb.FromBytes(sp().Load(c, &cycles)) - uint16(0xFF^byte(n))
+	} else {
+		result = go_gb.FromBytes(sp().Load(c, &cycles)) + uint16(n)
+	}
 
 	hl.Store(c, go_gb.ToBytes(result, true), &cycles)
 

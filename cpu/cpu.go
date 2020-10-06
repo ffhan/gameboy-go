@@ -3,6 +3,7 @@ package cpu
 import (
 	"fmt"
 	"go-gb"
+	"os"
 )
 
 const (
@@ -37,13 +38,6 @@ const (
 // executes specific things on the cpu and returns the number of m cycles it took to execute
 type Instr func(c *cpu) go_gb.MC
 
-type MemoryBus interface {
-	go_gb.Memory
-	HRAM() go_gb.Memory
-	IO() go_gb.Memory
-	InterruptEnableRegister() go_gb.Memory
-}
-
 type timer interface {
 	Step(mc go_gb.MC)
 }
@@ -57,7 +51,7 @@ type cpu struct {
 	rMap [][]byte // register mappings
 
 	bios   go_gb.Memory
-	memory go_gb.Memory
+	memory go_gb.MemoryBus
 	hram   go_gb.Memory // used for direct stack access
 	io     go_gb.Memory // used for direct IO access
 	ier    go_gb.Memory // used for direct register access
@@ -67,6 +61,7 @@ type cpu struct {
 	eiWaiting byte
 	diWaiting byte
 	ime       bool // Interrupt master enable
+	dmaCycles go_gb.MC
 
 	divTimer timer
 	timer    timer
@@ -76,7 +71,7 @@ type cpu struct {
 	ppu go_gb.PPU
 }
 
-func NewCpu(mmu MemoryBus, ppu go_gb.PPU, timer timer, divTimer timer, serial go_gb.Serial) *cpu {
+func NewCpu(mmu go_gb.MemoryBus, ppu go_gb.PPU, timer timer, divTimer timer, serial go_gb.Serial) *cpu {
 	c := &cpu{
 		memory:   mmu,
 		ppu:      ppu,
@@ -185,7 +180,15 @@ func (c *cpu) PC() uint16 {
 
 func (c *cpu) Step() go_gb.MC {
 	var cycles go_gb.MC
-	if c.pc == 0x01d5 {
+	if (c.pc == 0x62 || c.pc == 0x2d1) && c.memory.Booted() {
+		file, err := os.Create("vram.txt")
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+		c.memory.VRAM().Dump(file)
+	}
+	if c.memory.Booted() {
 		print()
 	}
 	if !c.halt || !c.stop {
@@ -213,6 +216,13 @@ func (c *cpu) Step() go_gb.MC {
 	} else {
 		cycles = 1
 	}
+	if c.memory.DMAInProgress() {
+		c.dmaCycles += cycles
+		if c.dmaCycles >= 160 {
+			c.dmaCycles = 0
+			c.memory.SetDMAInProgress(false)
+		}
+	}
 	c.timer.Step(cycles)
 	c.divTimer.Step(cycles)
 
@@ -223,8 +233,8 @@ func (c *cpu) Step() go_gb.MC {
 	} else {
 		print()
 	}
-	cycles += c.handleInterrupts()
 	c.handleEiDi()
+	cycles += c.handleInterrupts()
 	return cycles
 }
 

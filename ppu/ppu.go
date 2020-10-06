@@ -282,48 +282,49 @@ func (p *ppu) renderSpritesOnScanLine() {
 		spriteData := p.oam.ReadBytes(memory.OAMStart+uint16(index), 4)
 		yPos := spriteData[0] - 16
 		xPos := spriteData[1] - 8
+		if !(scanLine >= yPos && scanLine < (yPos+ySize)) {
+			continue
+		}
 		tileLocation := spriteData[2]
 		attributes := spriteData[3]
 
 		xFlip := go_gb.Bit(attributes, 5)
 		yFlip := go_gb.Bit(attributes, 6)
 
-		if scanLine >= yPos && scanLine < (yPos+ySize) {
-			line := scanLine - yPos // line of the sprite
+		line := scanLine - yPos // line of the sprite
 
-			if yFlip {
-				line = ySize - 1 - line
+		if yFlip {
+			line = ySize - 1 - line
+		}
+
+		line *= 2 // 2 bytes in a line
+
+		dataAddress := (0x8000 + uint16(tileLocation)*16) + uint16(line)
+		data := p.vram.ReadBytes(dataAddress, 2)
+		data1 := data[0]
+		data2 := data[1]
+
+		for tilePixel := 7; tilePixel >= 0; tilePixel-- {
+			colorBit := tilePixel
+			if xFlip {
+				colorBit = 7 - colorBit
 			}
 
-			line *= 2 // 2 bytes in a line
-
-			dataAddress := (0x8000 + uint16(tileLocation)*16) + uint16(line)
-			data := p.vram.ReadBytes(dataAddress, 2)
-			data1 := data[0]
-			data2 := data[1]
-
-			for tilePixel := 7; tilePixel >= 0; tilePixel-- {
-				colorBit := tilePixel
-				if xFlip {
-					colorBit = 7 - colorBit
-				}
-
-				colorNum := p.getColorNum(data1, data2, byte(colorBit))
-				var colorAddr uint16
-				if go_gb.Bit(attributes, 4) {
-					colorAddr = go_gb.LCDOBP1
-				} else {
-					colorAddr = go_gb.LCDOBP0
-				}
-
-				col := p.getSpriteColor(colorNum, colorAddr)
-				if col == Transparent {
-					continue // don't update frame buffer
-				}
-
-				pixel := xPos + byte(tilePixel)
-				p.frameBuffer[scanLine*160+pixel] = col
+			colorNum := p.getColorNum(data1, data2, byte(colorBit))
+			var colorAddr uint16
+			if go_gb.Bit(attributes, 4) {
+				colorAddr = go_gb.LCDOBP1
+			} else {
+				colorAddr = go_gb.LCDOBP0
 			}
+
+			col := p.getSpriteColor(colorNum, colorAddr)
+			if col == Transparent {
+				continue // don't update frame buffer
+			}
+
+			pixel := xPos + byte(tilePixel)
+			p.frameBuffer[scanLine*160+pixel] = col
 		}
 	}
 }
