@@ -3,7 +3,6 @@ package cpu
 import (
 	"fmt"
 	"go-gb"
-	"os"
 )
 
 const (
@@ -180,13 +179,13 @@ func (c *cpu) PC() uint16 {
 
 func (c *cpu) Step() go_gb.MC {
 	var cycles go_gb.MC
-	if (c.pc == 0x62 || c.pc == 0x2d1) && c.memory.Booted() {
-		file, err := os.Create("vram.txt")
-		if err != nil {
-			panic(err)
-		}
-		defer file.Close()
-		c.memory.VRAM().Dump(file)
+	if (c.pc == 0x62 || c.pc == 0x2c4) && c.memory.Booted() {
+		//file, err := os.Create("vram.txt")
+		//if err != nil {
+		//	panic(err)
+		//}
+		//defer file.Close()
+		//c.memory.VRAM().Dump(file)
 	}
 	if c.memory.Booted() {
 		print()
@@ -218,7 +217,7 @@ func (c *cpu) Step() go_gb.MC {
 	}
 	if c.memory.DMAInProgress() {
 		c.dmaCycles += cycles
-		if c.dmaCycles >= 160 {
+		if c.dmaCycles >= 40 {
 			c.dmaCycles = 0
 			c.memory.SetDMAInProgress(false)
 		}
@@ -228,11 +227,7 @@ func (c *cpu) Step() go_gb.MC {
 
 	c.serial.Step(cycles)
 
-	if c.ppu.Enabled() {
-		c.ppu.Step(cycles)
-	} else {
-		print()
-	}
+	c.ppu.Step(cycles)
 	c.handleEiDi()
 	cycles += c.handleInterrupts()
 	return cycles

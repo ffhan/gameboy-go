@@ -69,17 +69,6 @@ func (p *ppu) windowEnabled() bool {
 	return go_gb.Bit(p.memory.Read(go_gb.LCDControlRegister), 5)
 }
 
-func (p *ppu) coincidenceInterrupt() {
-	go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
-		go_gb.Set(&b, 6, true)
-		return b
-	})
-	go_gb.Update(p.memory, go_gb.IF, func(b byte) byte {
-		go_gb.Set(&b, int(go_gb.BitLCD), true)
-		return b
-	})
-}
-
 func (p *ppu) oamInterrupt() {
 	go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
 		go_gb.Set(&b, 5, true)
@@ -102,11 +91,20 @@ func (p *ppu) hblankInterrupt() {
 	})
 }
 
+func (p *ppu) requestLCDSTATInterrupt() {
+	go_gb.Update(p.io, go_gb.IF, func(b byte) byte {
+		go_gb.Set(&b, int(go_gb.BitLCD), true)
+		return b
+	})
+}
+
+func (p *ppu) handleModeInterrupt(stat byte, modeBit int) {
+	if go_gb.Bit(stat, modeBit) {
+		p.requestLCDSTATInterrupt()
+	}
+}
+
 func (p *ppu) vblankInterrupt() {
-	//go_gb.Update(p.memory, go_gb.LCDSTAT, func(b byte) byte {
-	//	go_gb.Set(&b, 4, true)
-	//	return b
-	//})
 	go_gb.Update(p.memory, go_gb.IF, func(b byte) byte {
 		go_gb.Set(&b, int(go_gb.BitVBlank), true)
 		return b
@@ -124,9 +122,8 @@ func (p *ppu) getLine() byte {
 }
 
 func (p *ppu) updateLine() {
-	p.compareLyLyc()
-	p.coincidenceInterrupt()
 	p.io.Store(go_gb.LCDLY, byte(p.currentLine))
+	p.compareLyLyc()
 }
 
 func (p *ppu) CurrentLine() int {
@@ -151,15 +148,15 @@ func (p *ppu) setMode(mode byte, max go_gb.MC) {
 
 func (p *ppu) compareLyLyc() {
 	val := p.io.Read(go_gb.LCDLYC) == p.getLine()
-	stat := p.io.Read(go_gb.LCDSTAT)
-	go_gb.Set(&stat, go_gb.LCDSTATCoincidenceFlag, val)
-	go_gb.Set(&stat, go_gb.LCDSTATCoincidenceInterrupt, val)
-	p.io.Store(go_gb.LCDSTAT, stat)
-
-	interrupt := p.io.Read(go_gb.IF)
+	go_gb.Update(p.io, go_gb.LCDSTAT, func(b byte) byte {
+		go_gb.Set(&b, go_gb.LCDSTATCoincidenceFlag, val)
+		return b
+	})
 	if val {
-		go_gb.Set(&interrupt, 1, true)
-		p.io.Store(go_gb.IF, interrupt)
+		go_gb.Update(p.memory, go_gb.IF, func(b byte) byte {
+			go_gb.Set(&b, int(go_gb.BitLCD), true)
+			return b
+		})
 	}
 }
 
@@ -344,9 +341,9 @@ func (p *ppu) Step(mc go_gb.MC) {
 		}
 	case 3:
 		if p.modeClock >= 43 {
-			p.hblankInterrupt()
 			p.setMode(0, 43)
 		}
+		p.handleModeInterrupt(p.io.Read(go_gb.LCDSTAT), 3)
 	case 0:
 		if p.modeClock >= 51 {
 			p.currentLine += 1
@@ -356,21 +353,25 @@ func (p *ppu) Step(mc go_gb.MC) {
 				p.setMode(1, 51)
 				p.display.Draw(p.frameBuffer[:])
 			} else {
-				p.oamInterrupt()
 				p.setMode(2, 51)
 			}
+		}
+		if p.currentLine == 144 {
+			p.handleModeInterrupt(p.io.Read(go_gb.LCDSTAT), 4)
+		} else {
+			p.handleModeInterrupt(p.io.Read(go_gb.LCDSTAT), 5)
 		}
 	case 1:
 		if p.modeClock >= 114 {
 			p.currentLine += 1
 			if p.currentLine > 153 {
 				p.currentLine = 0
-				p.oamInterrupt()
 				p.setMode(2, 114)
 			} else {
 				p.modeClock -= 114
 			}
 			p.updateLine()
 		}
+		p.handleModeInterrupt(p.io.Read(go_gb.LCDSTAT), 5)
 	}
 }

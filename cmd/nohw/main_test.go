@@ -67,7 +67,7 @@ func TestRunning(t *testing.T) {
 	}()
 
 	debugger := cpu.NewDebugger(realCpu, os.Stdout)
-	debugger.Debug(true)
+	debugger.Debug(false)
 	debugger.PrintInstructionNames(true)
 	sched := scheduler.NewScheduler(debugger, ppu, lcd)
 	//sched.AddStopper(0x100)

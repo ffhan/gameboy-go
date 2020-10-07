@@ -157,12 +157,35 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	panic(fmt.Errorf("invalid pointer %X", pointer))
 }
 
+func (m *mmu) Read(pointer uint16) byte {
+	return m.Route(pointer).Read(pointer)
+}
+
 func (m *mmu) ReadBytes(pointer, n uint16) []byte {
 	return m.Route(pointer).ReadBytes(pointer, n)
 }
 
-func (m *mmu) Read(pointer uint16) byte {
-	return m.Route(pointer).Read(pointer)
+func (m *mmu) Store(pointer uint16, val byte) {
+	switch pointer {
+	case go_gb.LCDDMA:
+		m.dma(val)
+		return
+	case 0xFF50:
+		m.unmapBios(val)
+	// add on lcd turn on - write to display
+	case go_gb.DIV:
+		m.io.Store(go_gb.DIV, 0)
+		return
+	case go_gb.JOYP:
+		m.io.Store(go_gb.JOYP, val&0x30)
+		return
+	case go_gb.LCDSTAT:
+		m.io.Store(go_gb.LCDSTAT, (val&0xFC)|(m.io.Read(go_gb.LCDSTAT)&0x03))
+		return
+	case go_gb.LCDLY: // todo: should it be reset to 0?
+		return
+	}
+	m.Route(pointer).Store(pointer, val)
 }
 
 func (m *mmu) StoreBytes(pointer uint16, bytes []byte) {
@@ -184,19 +207,6 @@ func (m *mmu) unmapBios(b ...byte) {
 		m.booted = true
 		fmt.Println("boot completed, unmapped the boot rom")
 	}
-}
-
-func (m *mmu) Store(pointer uint16, val byte) {
-	switch pointer {
-	case go_gb.LCDDMA:
-		m.dma(val)
-	case 0xFF50:
-		m.unmapBios(val)
-	// add on lcd turn on - write to display
-	case go_gb.DIV:
-		m.io.Store(go_gb.DIV, 0)
-	}
-	m.Route(pointer).Store(pointer, val)
 }
 
 func (m *mmu) LoadRom(rom []byte) int {
