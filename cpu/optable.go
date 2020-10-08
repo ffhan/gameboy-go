@@ -50,11 +50,11 @@ func createCbOptable() []Instr {
 		case 7:
 			in = srl(reg)
 		case 8, 9, 10, 11, 12, 13, 14, 15:
-			in = bit(hc(byte(offset-8)), reg)
+			in = bit(hc(byte((i-4*16)/8)), reg)
 		case 16, 17, 18, 19, 20, 21, 22, 23:
-			in = res(hc(byte(offset-8)), reg)
+			in = res(hc(byte((i-8*16)/8)), reg)
 		default:
-			in = set(hc(byte(offset-8)), reg)
+			in = set(hc(byte((i-12*16)/8)), reg)
 		}
 		table = append(table, in)
 	}

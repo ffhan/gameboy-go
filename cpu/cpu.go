@@ -179,7 +179,7 @@ func (c *cpu) PC() uint16 {
 
 func (c *cpu) Step() go_gb.MC {
 	var cycles go_gb.MC
-	if (c.pc == 0x62 || c.pc == 0x28) && c.memory.Booted() {
+	if (c.pc == 0x62 || c.pc == 0x2824) && c.memory.Booted() {
 		//file, err := os.Create("vram.txt")
 		//if err != nil {
 		//	panic(err)
