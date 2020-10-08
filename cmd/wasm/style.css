@@ -17,3 +17,10 @@ body {
     flex-direction: row;
     align-content: center;
 }
+
+.debug-container {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    justify-items: center;
+}

@@ -27,6 +27,10 @@
         <span id="non-japanese"></span><br>
     </div>
 </div>
+<div class="debug-container">
+    <div id="oam"></div>
+    <div id="vram"></div>
+</div>
 <script src="wasm_exec.js"></script>
 <script type="application/javascript">
     document.scanLine = 0;
@@ -41,13 +45,22 @@
 
     const worker = new Worker('worker.js');
     worker.onmessage = ev => {
-        if (ev.data.type === 'console') {
-            console.log(ev.data.msg);
-        } else if (ev.data.type === 'buffer') {
-            document.data = new ImageData(new Uint8ClampedArray(ev.data.msg), 160, 144);
-            draw();
-        } else if (ev.data.type === 'game') {
-            setup(ev.data.msg);
+        switch (ev.data.type) {
+            case 'console':
+                console.log(ev.data.msg);
+                break;
+            case 'buffer':
+                document.data = new ImageData(new Uint8ClampedArray(ev.data.msg), 160, 144);
+                draw();
+                break;
+            case 'game':
+                setup(ev.data.msg);
+                break;
+            case 'oam':
+                document.getElementById('oam').innerText = ev.data.msg;
+                break;
+            case 'vram':
+                document.getElementById('vram').innerText = ev.data.msg;
         }
     }
 
@@ -102,9 +115,22 @@
                 return 4
             case 'Control':
                 return 5
+
+            case ',':
+                return 8 // step
+            case '.':
+                return 9 // stop
+            case '-':
+                return 10 // continue
+
+            case 'o':
+                return 11 // OAM dump
+            case 'l':
+                return 12 // VRAM dump
         }
         return 500
     }
+
     window.addEventListener('keydown', ev => {
         let msg = mapKey(ev.key);
         if (msg === 500) {

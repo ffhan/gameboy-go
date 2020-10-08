@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+type Controller interface {
+	Wait() bool
+}
+
 type scheduler struct {
 	cpu go_gb.Cpu
 	ppu go_gb.PPU
@@ -15,6 +19,8 @@ type scheduler struct {
 
 	Frequency time.Duration
 	Throttle  bool
+
+	Controller Controller
 }
 
 func NewScheduler(cpu go_gb.Cpu, ppu go_gb.PPU, lcd go_gb.Display) *scheduler {
@@ -52,6 +58,9 @@ func (s *scheduler) Run() {
 
 	start := time.Now()
 	for {
+		if s.Controller != nil && s.Controller.Wait() {
+			start = time.Now()
+		} // optionally wait (e.g. user debugging)
 		mc := s.cpu.Step()
 		atomic.AddUint64(&cycles, uint64(mc))
 		if !s.lcd.IsDrawing() {

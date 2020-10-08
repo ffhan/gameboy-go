@@ -16,7 +16,7 @@ import (
 	"syscall/js"
 )
 
-func run() (go_gb.Cpu, go_gb.Memory, go_gb.PPU, go_gb.Display) {
+func run() (go_gb.Cpu, go_gb.MemoryBus, go_gb.PPU, go_gb.Display, wasm.Joypad) {
 	mmu := memory.NewMMU()
 	rom := make([]byte, 2*1<<20)
 	n := js.CopyBytesToGo(rom, js.Global().Get("rom"))
@@ -50,7 +50,7 @@ func run() (go_gb.Cpu, go_gb.Memory, go_gb.PPU, go_gb.Display) {
 	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), mmu.IO(), lcd)
 	c := cpu.NewCpu(mmu, ppu, timer, divTimer, serialPort)
 
-	return c, mmu, ppu, lcd
+	return c, mmu, ppu, lcd, joypad
 }
 
 type Runner interface {
@@ -63,14 +63,17 @@ func main() {
 
 	var cpu go_gb.Cpu
 	var ppu go_gb.PPU
-	var mmu go_gb.Memory
+	var mmu go_gb.MemoryBus
 	var lcd go_gb.Display
+	var joypad wasm.Joypad
 
 	var sched Runner
 
 	js.Global().Set("run", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		cpu, mmu, ppu, lcd = run()
-		sched = scheduler.NewScheduler(cpu, ppu, lcd)
+		cpu, mmu, ppu, lcd, joypad = run()
+		s := scheduler.NewScheduler(cpu, ppu, lcd)
+		s.Controller = wasm.NewDebugger(mmu.OAM(), mmu.VRAM(), joypad)
+		sched = s
 		return nil
 	}))
 	js.Global().Set("step", js.FuncOf(func(this js.Value, args []js.Value) interface{} {

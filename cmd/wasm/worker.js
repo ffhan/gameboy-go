@@ -60,6 +60,14 @@ self.onmessage = ev => {
     } else if (ev.data.type === 'joyp_down') {
         if (typeof keyDown === 'function') {
             keyDown(ev.data.msg);
+            if (oam !== null) {
+                self.postMessage({type: 'oam', msg: new TextDecoder("utf-8").decode(oam)});
+                oam = null;
+            }
+            if (vram !== null) {
+                self.postMessage({type: 'vram', msg: new TextDecoder("utf-8").decode(vram)});
+                vram = null;
+            }
         }
     } else if (ev.data.type === 'joyp_up') {
         if (typeof keyUp === 'function') {

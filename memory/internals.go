@@ -29,6 +29,7 @@ func (m *mmap) Dump(writer io.Writer) {
 		pxl1 := m.memory[i-m.start]
 		pxl2 := m.memory[i-m.start+1]
 		i += 2
+		o := i - 0x8000
 		for p := 7; p >= 0; p-- {
 			color := (((pxl2 >> p) & 1) << 1) | ((pxl1 >> p) & 1)
 			var char rune
@@ -44,12 +45,12 @@ func (m *mmap) Dump(writer io.Writer) {
 			}
 			fmt.Fprint(writer, string(char))
 		}
-		o := i - 0x8000
 		if o > 0 && o%2 == 0 {
 			fmt.Fprintln(writer)
 		}
 		if o > 0 && o%16 == 0 {
 			fmt.Fprintln(writer)
+			fmt.Fprintf(writer, "ID: %X\n", o/0x10)
 		}
 	}
 }
