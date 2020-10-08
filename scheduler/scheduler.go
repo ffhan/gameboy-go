@@ -9,28 +9,22 @@ import (
 )
 
 type scheduler struct {
-	cpu      go_gb.Cpu
-	ppu      go_gb.PPU
-	lcd      go_gb.Display
-	stoppers map[uint16]bool
+	cpu go_gb.Cpu
+	ppu go_gb.PPU
+	lcd go_gb.Display
+
+	Frequency time.Duration
+	Throttle  bool
 }
 
 func NewScheduler(cpu go_gb.Cpu, ppu go_gb.PPU, lcd go_gb.Display) *scheduler {
-	return &scheduler{cpu: cpu, ppu: ppu, lcd: lcd, stoppers: make(map[uint16]bool)}
-}
-
-func (s *scheduler) AddStopper(addr uint16) {
-	s.stoppers[addr] = true
+	const PpuFrequency = 59.7
+	ppuFreq := time.Duration(math.Round(float64(time.Second.Nanoseconds()) / PpuFrequency))
+	return &scheduler{cpu: cpu, ppu: ppu, lcd: lcd, Frequency: ppuFreq, Throttle: true}
 }
 
 func (s *scheduler) Run() {
-	const (
-		CpuFrequency float64 = 4_194_304 / 4
-		PpuFrequency         = 59.7
-	)
-	ppuFreq := time.Duration(math.Round(float64(time.Second.Nanoseconds()) / PpuFrequency))
-
-	fmt.Println(ppuFreq)
+	fmt.Println(s.Frequency)
 
 	var frames uint64
 	var cycles uint64
@@ -58,16 +52,15 @@ func (s *scheduler) Run() {
 
 	start := time.Now()
 	for {
-		if _, ok := s.stoppers[s.cpu.PC()]; ok {
-			return
-		}
 		mc := s.cpu.Step()
 		atomic.AddUint64(&cycles, uint64(mc))
-		if s.lcd.IsDrawing() {
-			start = start.Add(ppuFreq)
-			time.Sleep(time.Until(start))
-			atomic.AddUint64(&frames, 1)
-			//fmt.Println(time.Now().Sub(start))
+		if !s.lcd.IsDrawing() {
+			continue
 		}
+		if s.Throttle {
+			start = start.Add(s.Frequency)
+			time.Sleep(time.Until(start))
+		}
+		atomic.AddUint64(&frames, 1)
 	}
 }

@@ -178,17 +178,20 @@ func (c *cpu) PC() uint16 {
 
 func (c *cpu) Step() go_gb.MC {
 	var cycles go_gb.MC
-	if (c.pc == 0x62 || c.pc == 0x2824) && c.memory.Booted() {
-		//file, err := os.Create("vram.txt")
-		//if err != nil {
-		//	panic(err)
-		//}
-		//defer file.Close()
-		//c.memory.VRAM().Dump(file)
-	}
-	if c.memory.Booted() {
-		print()
-	}
+	//if (c.pc == 0x1b05) && c.memory.Booted() {
+	//	vramFile, err := os.Create("vram.txt")
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	oamFile, err := os.Create("oam.txt")
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	defer vramFile.Close()
+	//	defer oamFile.Close()
+	//	c.memory.VRAM().Dump(vramFile)
+	//	memory.DumpOam(c.memory.OAM(), c.memory.VRAM(), oamFile)
+	//}
 	if !c.halt || !c.stop {
 		opcode := c.readOpcode(&cycles)
 		var instr Instr

@@ -34,7 +34,7 @@ func TestRunning(t *testing.T) {
 
 	fmt.Println(game)
 
-	mmu.Init(game.Rom, go_gb.GB)
+	mmu.Init(game.Rom, go_gb.GB, go_gb.NOPJoypad)
 
 	lcd := go_gb.NewNopDisplay()
 
@@ -70,6 +70,7 @@ func TestRunning(t *testing.T) {
 	debugger.Debug(false)
 	debugger.PrintInstructionNames(true)
 	sched := scheduler.NewScheduler(debugger, ppu, lcd)
+	sched.Throttle = false
 	//sched.AddStopper(0x100)
 	sched.Run()
 }

@@ -83,6 +83,42 @@
     function draw() {
         ctx.putImageData(document.data, 0, 0);
     }
+
+    function mapKey(key) {
+        switch (key) {
+            case 'w':
+                return 2
+            case 'a':
+                return 1
+            case 's':
+                return 3
+            case 'd':
+                return 0
+            case 'Enter':
+                return 6
+            case ' ':
+                return 7
+            case 'Shift':
+                return 4
+            case 'Control':
+                return 5
+        }
+        return 500
+    }
+    window.addEventListener('keydown', ev => {
+        let msg = mapKey(ev.key);
+        if (msg === 500) {
+            return;
+        }
+        worker.postMessage({type: 'joyp_down', msg: msg})
+    });
+    window.addEventListener('keyup', ev => {
+        let msg = mapKey(ev.key);
+        if (msg === 500) {
+            return;
+        }
+        worker.postMessage({type: 'joyp_up', msg: msg})
+    });
 </script>
 <script src="wasm.js"></script>
 </body>

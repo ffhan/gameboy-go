@@ -57,5 +57,13 @@ self.onmessage = ev => {
         runGame(ev.data.msg);
     } else if (ev.data.type === 'start') {
         start();
+    } else if (ev.data.type === 'joyp_down') {
+        if (typeof keyDown === 'function') {
+            keyDown(ev.data.msg);
+        }
+    } else if (ev.data.type === 'joyp_up') {
+        if (typeof keyUp === 'function') {
+            keyUp(ev.data.msg);
+        }
     }
 }

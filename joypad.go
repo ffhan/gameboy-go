@@ -18,3 +18,12 @@ const (
 	*/
 	JOYP uint16 = 0xFF00
 )
+
+var NOPJoypad = &nopJoypad{}
+
+type nopJoypad struct {
+}
+
+func (n *nopJoypad) Read(pointer uint16) byte {
+	return 0xF
+}

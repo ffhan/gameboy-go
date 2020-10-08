@@ -20,7 +20,11 @@ func run() (go_gb.Cpu, go_gb.Memory, go_gb.PPU, go_gb.Display) {
 	mmu := memory.NewMMU()
 	rom := make([]byte, 2*1<<20)
 	n := js.CopyBytesToGo(rom, js.Global().Get("rom"))
-	mmu.Init(rom[:n], go_gb.GB)
+
+	joypad := wasm.NewJoypad() // todo: fix this relationship
+
+	mmu.Init(rom[:n], go_gb.GB, joypad)
+	joypad.Init(mmu.IO())
 
 	game, err := go_gb.LoadGame(ioutil.NopCloser(bytes.NewBuffer(rom[:n])))
 	if err != nil {
@@ -51,7 +55,6 @@ func run() (go_gb.Cpu, go_gb.Memory, go_gb.PPU, go_gb.Display) {
 
 type Runner interface {
 	Run()
-	AddStopper(addr uint16)
 }
 
 func main() {
@@ -68,7 +71,6 @@ func main() {
 	js.Global().Set("run", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		cpu, mmu, ppu, lcd = run()
 		sched = scheduler.NewScheduler(cpu, ppu, lcd)
-		//sched.AddStopper(0x100)
 		return nil
 	}))
 	js.Global().Set("step", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -76,17 +78,7 @@ func main() {
 		return nil
 	}))
 	js.Global().Set("start", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		defer func() {
-			err := recover()
-			switch err.(type) {
-			case error:
-				fmt.Printf("PC: %X -> err: %v\n", cpu.PC(), err)
-			case string:
-				fmt.Printf("PC: %X -> err: %s\n", cpu.PC(), err)
-			}
-			panic(err)
-		}()
-		sched.Run()
+		go sched.Run()
 		return nil
 	}))
 	wg.Wait()

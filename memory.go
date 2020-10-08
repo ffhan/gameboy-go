@@ -13,11 +13,19 @@ const (
 	MemRamSize           uint16 = 0x0149
 )
 
+type Reader interface {
+	Read(pointer uint16) byte
+}
+
+type Writer interface {
+	Store(pointer uint16, val byte)
+}
+
 type Memory interface {
 	ReadBytes(pointer, n uint16) []byte
-	Read(pointer uint16) byte
+	Reader
 	StoreBytes(pointer uint16, bytes []byte)
-	Store(pointer uint16, val byte)
+	Writer
 }
 
 type Dumper interface {
@@ -48,6 +56,7 @@ type MemoryBus interface {
 	Memory
 	VRAM() DumpableMemory
 	HRAM() Memory
+	OAM() Memory
 	IO() Memory
 	InterruptEnableRegister() Memory
 	Booted() bool

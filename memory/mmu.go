@@ -44,6 +44,8 @@ type mmu struct {
 	hram                    go_gb.Memory
 	interruptEnableRegister go_gb.Memory
 
+	joypad go_gb.Reader
+
 	locked        *lockedMemory
 	booted        bool
 	dmaInProgress bool
@@ -91,7 +93,7 @@ func (m *mmu) createMmap(start, end uint16) *mmap {
 	return m.createMmapWithRedirection(start, end, start, end)
 }
 
-func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
+func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType, joypad go_gb.Reader) {
 	var wramMemory byteMemory
 	if gbType == go_gb.CGB {
 		wramMemory = &wram{bank: newBank(8, 1<<12), selectedBank: 1}
@@ -108,6 +110,8 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 	m.io = m.createMmap(IOPortsStart, IOPortsEnd)
 	m.hram = m.createMmap(HRAMStart, HRAMEnd)
 	m.interruptEnableRegister = m.createMmap(InterruptEnableRegister, InterruptEnableRegister)
+
+	m.joypad = joypad
 
 	m.locked = &lockedMemory{}
 
@@ -163,18 +167,18 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 }
 
 func (m *mmu) Read(pointer uint16) byte {
-	if pointer == 0xFF00 {
-		return 0xFF // todo: joypad
+	if pointer == go_gb.JOYP {
+		return m.joypad.Read(pointer)
 	}
 	return m.Route(pointer).Read(pointer)
 }
 
 func (m *mmu) ReadBytes(pointer, n uint16) []byte {
-	if pointer == 0xFF00 {
+	if pointer == go_gb.JOYP {
 		if n > 1 {
 			panic("should not be called")
 		}
-		return []byte{0xFF}
+		return []byte{m.joypad.Read(pointer)}
 	}
 	return m.Route(pointer).ReadBytes(pointer, n)
 }

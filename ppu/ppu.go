@@ -173,7 +173,9 @@ func (p *ppu) getSpriteColor(colorNum byte, address uint16) byte {
 
 func (p *ppu) renderScanline() {
 	p.renderBackgroundScanLine()
-	p.renderSpritesOnScanLine()
+	if go_gb.Bit(p.io.Read(go_gb.LCDControlRegister), 1) {
+		p.renderSpritesOnScanLine()
+	}
 }
 
 func (p *ppu) Enabled() bool {
@@ -274,7 +276,7 @@ func (p *ppu) renderSpritesOnScanLine() {
 		ySize = 16
 	}
 
-	for sprite := byte(0); sprite < 40; sprite++ {
+	for sprite := 39; sprite >= 0; sprite-- {
 		index := sprite * 4
 		spriteData := p.oam.ReadBytes(memory.OAMStart+uint16(index), 4)
 		yPos := spriteData[0] - 16
@@ -285,8 +287,19 @@ func (p *ppu) renderSpritesOnScanLine() {
 		tileLocation := spriteData[2]
 		attributes := spriteData[3]
 
+		var colorAddr uint16
+		if go_gb.Bit(attributes, 4) {
+			colorAddr = go_gb.LCDOBP1
+		} else {
+			colorAddr = go_gb.LCDOBP0
+		}
+
 		xFlip := go_gb.Bit(attributes, 5)
 		yFlip := go_gb.Bit(attributes, 6)
+		// If set to zero then sprite always rendered above bg
+		// If set to 1, sprite is hidden behind the background and window
+		// unless the color of the background or window is white, it's then rendered on top
+		hidden := go_gb.Bit(attributes, 7)
 
 		line := scanLine - yPos // line of the sprite
 
@@ -296,10 +309,10 @@ func (p *ppu) renderSpritesOnScanLine() {
 
 		line *= 2 // 2 bytes in a line
 
-		dataAddress := (0x8000 + uint16(tileLocation)*16) + uint16(line)
+		dataAddress := (memory.VRAMStart + uint16(tileLocation)*16) + uint16(line)
 		data := p.vram.ReadBytes(dataAddress, 2)
-		data1 := data[0]
-		data2 := data[1]
+		low := data[0]
+		high := data[1]
 
 		for tilePixel := 7; tilePixel >= 0; tilePixel-- {
 			colorBit := tilePixel
@@ -307,21 +320,20 @@ func (p *ppu) renderSpritesOnScanLine() {
 				colorBit = 7 - colorBit
 			}
 
-			colorNum := p.getColorNum(data1, data2, byte(colorBit))
-			var colorAddr uint16
-			if go_gb.Bit(attributes, 4) {
-				colorAddr = go_gb.LCDOBP1
-			} else {
-				colorAddr = go_gb.LCDOBP0
+			pixel := xPos + byte(tilePixel)
+			if pixel < 0 || pixel >= 160 {
+				continue
 			}
+
+			colorNum := p.getColorNum(low, high, byte(colorBit))
 
 			col := p.getSpriteColor(colorNum, colorAddr)
 			if col == Transparent {
 				continue // don't update frame buffer
 			}
-
-			pixel := xPos + byte(tilePixel)
-			p.frameBuffer[scanLine*160+pixel] = col
+			if !hidden || p.frameBuffer[scanLine*160+pixel] == White {
+				p.frameBuffer[scanLine*160+pixel] = col
+			}
 		}
 	}
 }
