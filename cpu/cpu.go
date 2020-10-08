@@ -134,8 +134,8 @@ func (c *cpu) setPc(val uint16, mc *go_gb.MC) {
 func (c *cpu) popStack(size int, mc *go_gb.MC) []byte {
 	bytes := make([]byte, size)
 	for i := 0; i < size; i++ {
-		c.sp += 1
 		v := c.memory.Read(c.sp)
+		c.sp += 1
 		*mc += 1
 		bytes[i] = v
 	}
@@ -144,9 +144,9 @@ func (c *cpu) popStack(size int, mc *go_gb.MC) []byte {
 
 func (c *cpu) pushStack(b []byte, mc *go_gb.MC) {
 	for i := len(b) - 1; i >= 0; i-- {
+		c.sp -= 1
 		c.memory.Store(c.sp, b[i])
 		*mc += 1
-		c.sp -= 1
 	}
 }
 
@@ -179,7 +179,7 @@ func (c *cpu) PC() uint16 {
 
 func (c *cpu) Step() go_gb.MC {
 	var cycles go_gb.MC
-	if (c.pc == 0x62 || c.pc == 0x2c4) && c.memory.Booted() {
+	if (c.pc == 0x62 || c.pc == 0x28) && c.memory.Booted() {
 		//file, err := os.Create("vram.txt")
 		//if err != nil {
 		//	panic(err)
@@ -227,7 +227,9 @@ func (c *cpu) Step() go_gb.MC {
 
 	c.serial.Step(cycles)
 
-	c.ppu.Step(cycles)
+	if c.ppu.Enabled() {
+		c.ppu.Step(cycles)
+	}
 	c.handleEiDi()
 	cycles += c.handleInterrupts()
 	return cycles

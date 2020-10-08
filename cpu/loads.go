@@ -79,6 +79,9 @@ func pop(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
 		val := c.popStack(2, &cycles)
+		//tmp := val[1]
+		//val[1] = val[0]
+		//val[0] = tmp
 		dst.Store(c, val, &cycles)
 		return cycles
 	}

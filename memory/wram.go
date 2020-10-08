@@ -7,6 +7,10 @@ type wram struct {
 	selectedBank int
 }
 
+func (w *wram) Memory() []byte {
+	return w.bank.memory
+}
+
 func (w *wram) ReadBytes(pointer, n uint16) []byte {
 	if WRAMBank0Start <= pointer && pointer <= WRAMBank0End {
 		return w.bank.ReadBytes(0, pointer-WRAMBank0Start, n)

@@ -46,7 +46,7 @@ func jrc(bit int) Instr {
 func ret(c *cpu) go_gb.MC {
 	var cycles go_gb.MC
 	addrBytes := c.popStack(2, &cycles)
-	c.setPc(go_gb.FromBytesReverse(addrBytes), &cycles)
+	c.setPc(go_gb.FromBytes(addrBytes), &cycles)
 	return cycles
 }
 
@@ -120,7 +120,7 @@ func call(c *cpu) go_gb.MC {
 }
 
 func callAddr(c *cpu, addr []byte, mc *go_gb.MC) {
-	pcBytes := go_gb.ToBytesReverse(c.pc, true)
+	pcBytes := go_gb.ToBytes(c.pc, true)
 	c.pushStack(pcBytes, mc)
 	c.pc = go_gb.FromBytes(addr)
 	if mc != nil {
@@ -160,7 +160,7 @@ func reti(c *cpu) go_gb.MC {
 func rst(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
-		pcBytes := go_gb.ToBytesReverse(c.pc, true)
+		pcBytes := go_gb.ToBytes(c.pc, true)
 		c.pushStack(pcBytes, &cycles)
 
 		bytes := dst.Load(c, &cycles)

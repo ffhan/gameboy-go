@@ -36,7 +36,7 @@ type mmu struct {
 	bios                    go_gb.Memory
 	cartridge               go_gb.Cartridge
 	vram                    go_gb.DumpableMemory
-	wram                    go_gb.Memory
+	wram                    byteMemory
 	echo                    go_gb.Memory
 	oam                     go_gb.Memory
 	unusable                go_gb.Memory
@@ -75,6 +75,11 @@ func inInterval(pointer, start, end uint16) bool {
 	return start <= pointer && pointer <= end
 }
 
+type byteMemory interface {
+	go_gb.Memory
+	Memory() []byte
+}
+
 func (m *mmu) createMmapWithRedirection(start, end, redirectStart, redirectEnd uint16) *mmap {
 	if (end - start) != (redirectEnd - redirectStart) {
 		panic(fmt.Errorf("invalid redirection (%X, %X) and (%X, %X)", start, end, redirectStart, redirectEnd))
@@ -87,7 +92,7 @@ func (m *mmu) createMmap(start, end uint16) *mmap {
 }
 
 func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
-	var wramMemory go_gb.Memory
+	var wramMemory byteMemory
 	if gbType == go_gb.CGB {
 		wramMemory = &wram{bank: newBank(8, 1<<12), selectedBank: 1}
 	} else {
@@ -97,7 +102,7 @@ func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType) {
 	m.cartridge = getCartridge(rom)
 	m.vram = m.createMmap(VRAMStart, VRAMEnd)
 	m.wram = wramMemory
-	m.echo = m.createMmapWithRedirection(ECHORAMStart, ECHORAMEnd, WRAMBank0Start, 0xDDFF)
+	m.echo = newMmap(ECHORAMStart, ECHORAMEnd, m.wram.Memory()[0:0xDDFF-WRAMBank0Start+1])
 	m.oam = m.createMmap(OAMStart, OAMEnd)
 	m.unusable = m.createMmap(UnusableStart, UnusableEnd)
 	m.io = m.createMmap(IOPortsStart, IOPortsEnd)
@@ -128,10 +133,10 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	if inInterval(pointer, ROMBank0Start, ROMBankNEnd) {
 		return m.cartridge
 	} else if inInterval(pointer, VRAMStart, VRAMEnd) {
-		locked := m.Read(go_gb.LCDSTAT)&0x3 == 3
-		if locked {
-			return m.locked
-		}
+		//locked := m.Read(go_gb.LCDSTAT)&0x3 == 3
+		//if locked {
+		//	return m.locked
+		//}
 		return m.vram
 	} else if inInterval(pointer, ExternalRAMStart, ExternalRAMEnd) {
 		return m.cartridge
@@ -140,10 +145,10 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	} else if inInterval(pointer, ECHORAMStart, ECHORAMEnd) {
 		return m.echo
 	} else if inInterval(pointer, OAMStart, OAMEnd) {
-		locked := m.Read(go_gb.LCDSTAT)&0x3 > 1
-		if locked {
-			return m.locked
-		}
+		//locked := m.Read(go_gb.LCDSTAT)&0x3 > 1
+		//if locked {
+		//	return m.locked
+		//}
 		return m.oam
 	} else if inInterval(pointer, UnusableStart, UnusableEnd) {
 		return m.unusable
@@ -158,16 +163,26 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 }
 
 func (m *mmu) Read(pointer uint16) byte {
+	if pointer == 0xFF00 {
+		return 0xFF // todo: joypad
+	}
 	return m.Route(pointer).Read(pointer)
 }
 
 func (m *mmu) ReadBytes(pointer, n uint16) []byte {
+	if pointer == 0xFF00 {
+		if n > 1 {
+			panic("should not be called")
+		}
+		return []byte{0xFF}
+	}
 	return m.Route(pointer).ReadBytes(pointer, n)
 }
 
 func (m *mmu) Store(pointer uint16, val byte) {
 	switch pointer {
 	case go_gb.LCDDMA:
+		m.io.Store(go_gb.LCDDMA, val)
 		m.dma(val)
 		return
 	case 0xFF50:
