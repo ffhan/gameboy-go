@@ -1,7 +1,6 @@
 package cpu
 
 import (
-	"fmt"
 	"go-gb"
 )
 
@@ -259,12 +258,10 @@ func (c *cpu) handleInterrupts() go_gb.MC { // todo: should we count the cycles 
 }
 
 func (c *cpu) serviceInterrupt(ifR byte, interrupt go_gb.Interrupt) go_gb.MC {
-	fmt.Printf("servicing an interrupt %d\n\n", interrupt.Bit)
 	var cycles go_gb.MC
 	go_gb.Set(&ifR, int(interrupt.Bit), false)
 	c.ime = false
-	c.io.Store(go_gb.IF, ifR) // todo: should we update cycles during interrupts?
-	//cycles += 1
+	c.io.Store(go_gb.IF, ifR)
 	callAddr(c, go_gb.ToBytes(interrupt.JpAddr, true), &cycles)
 	if interrupt.Bit == go_gb.BitJoypad {
 		c.stop = false // joypad interrupt removed stop
