@@ -164,7 +164,38 @@ func sbc(dst, src Ptr) Instr {
 }
 
 func daa(c *cpu) go_gb.MC {
-	panic("implement me")
+	var mc go_gb.MC
+	registerA := rx(A)
+	reg := registerA.Load(c, &mc)
+
+	add := !c.getFlag(BitN)
+	carry := c.getFlag(BitC)
+	halfCarry := c.getFlag(BitH)
+
+	result := uint16(reg[0])
+	var correction uint16
+	if carry {
+		correction = 0x60
+	}
+	if halfCarry || add && ((result&0x0F) > 9) {
+		correction |= 0x06
+	}
+	if carry || add && (result > 0x99) {
+		correction |= 0x60
+	}
+	if add {
+		result += correction
+	} else {
+		result -= correction
+	}
+	if ((correction << 2) & 0x100) != 0 {
+		c.setFlag(BitC, true)
+	}
+	c.setFlag(BitH, false)
+	storedResult := byte(result & 0xFF)
+	registerA.Store(c, []byte{storedResult}, &mc)
+	c.setFlag(BitZ, storedResult == 0)
+	return mc
 }
 
 func cp(dst, src Ptr) Instr {
