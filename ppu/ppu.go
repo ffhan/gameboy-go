@@ -19,10 +19,10 @@ const (
 )
 
 type ppu struct {
-	memory go_gb.Memory         // used for usual memory access
-	vram   go_gb.DumpableMemory // for skipping locks
-	oam    go_gb.Memory         // for skipping locks
-	io     go_gb.Memory         // optimized access to IO
+	memory go_gb.Memory // used for usual memory access
+	vram   go_gb.Memory // for skipping locks
+	oam    go_gb.Memory // for skipping locks
+	io     go_gb.Memory // optimized access to IO
 
 	frameBuffer [160 * 144]byte // map colors in the display!
 
@@ -35,7 +35,7 @@ type ppu struct {
 	display go_gb.Display
 }
 
-func NewPpu(memory go_gb.Memory, vram go_gb.DumpableMemory, oam go_gb.Memory, io go_gb.Memory, display go_gb.Display) *ppu {
+func NewPpu(memory go_gb.Memory, vram go_gb.Memory, oam go_gb.Memory, io go_gb.Memory, display go_gb.Display) *ppu {
 	return &ppu{memory: memory, vram: vram, oam: oam, io: io, currentMode: 2, display: display}
 }
 

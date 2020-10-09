@@ -23,4 +23,7 @@ body {
     flex-direction: row;
     align-content: center;
     justify-items: center;
+
+    font-family: 'Inconsolata', monospace;
+    font-size: 3px;
 }

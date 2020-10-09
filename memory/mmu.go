@@ -35,7 +35,7 @@ type mmu struct {
 	internalMemory          [0xFFFF + 1]byte
 	bios                    go_gb.Memory
 	cartridge               go_gb.Cartridge
-	vram                    go_gb.DumpableMemory
+	vram                    go_gb.Memory
 	wram                    byteMemory
 	echo                    go_gb.Memory
 	oam                     go_gb.Memory
@@ -122,7 +122,7 @@ func (m *mmu) OAM() go_gb.Memory {
 	return m.oam
 }
 
-func (m *mmu) VRAM() go_gb.DumpableMemory {
+func (m *mmu) VRAM() go_gb.Memory {
 	return m.vram
 }
 

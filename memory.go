@@ -32,11 +32,6 @@ type Dumper interface {
 	Dump(writer io.Writer)
 }
 
-type DumpableMemory interface {
-	Memory
-	Dumper
-}
-
 func Update(memory Memory, address uint16, updateFunc func(b byte) byte) {
 	val := memory.Read(address)
 	val = updateFunc(val)
@@ -54,7 +49,7 @@ type Cartridge interface {
 
 type MemoryBus interface {
 	Memory
-	VRAM() DumpableMemory
+	VRAM() Memory
 	HRAM() Memory
 	OAM() Memory
 	IO() Memory

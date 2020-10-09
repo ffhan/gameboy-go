@@ -10,7 +10,7 @@ import (
 
 type debugger struct {
 	oam  go_gb.Memory
-	vram go_gb.DumpableMemory
+	vram go_gb.Memory
 
 	stopped bool
 	steps   int
@@ -18,7 +18,7 @@ type debugger struct {
 	waitChan chan bool
 }
 
-func NewDebugger(oam go_gb.Memory, vram go_gb.DumpableMemory, joyPad Joypad) *debugger {
+func NewDebugger(io, oam, vram go_gb.Memory, joyPad Joypad) *debugger {
 	d := &debugger{oam: oam, vram: vram, waitChan: make(chan bool)}
 	joyPad.Subscribe(func(pressed bool) {
 		if pressed {
@@ -48,7 +48,7 @@ func NewDebugger(oam go_gb.Memory, vram go_gb.DumpableMemory, joyPad Joypad) *de
 	joyPad.Subscribe(func(pressed bool) {
 		if pressed {
 			var buf bytes.Buffer
-			vram.Dump(&buf)
+			memory.DumpVram(io, vram, &buf)
 			arr := js.Global().Get("Uint8Array").New(buf.Len())
 			js.Global().Set("vram", arr)
 			js.CopyBytesToJS(js.Global().Get("vram"), buf.Bytes())
