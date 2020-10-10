@@ -52,21 +52,21 @@ func initCpu(fill map[uint16]byte) *cpu {
 
 func TestCPU_doubleRegister(t *testing.T) {
 	c := initCpu(nil)
-	c.r[A] = 0xFA
-	c.r[F] = 0x12
+	c.r[go_gb.A] = 0xFA
+	c.r[go_gb.F] = 0x12
 
-	if c.rMap[AF][1] != 0xFA || c.rMap[AF][0] != 0x12 {
+	if c.rMap[go_gb.AF][1] != 0xFA || c.rMap[go_gb.AF][0] != 0x12 {
 		t.Fatal("invalid double registers")
 	}
 }
 
 func TestCPU_doubleRegister_changeSingleRegister(t *testing.T) {
 	c := initCpu(nil)
-	c.r[A] = 0xFA
-	c.r[F] = 0x12
-	c.rMap[AF][1] = 0xAA
+	c.r[go_gb.A] = 0xFA
+	c.r[go_gb.F] = 0x12
+	c.rMap[go_gb.AF][1] = 0xAA
 
-	if c.rMap[AF][1] != 0xAA || c.rMap[AF][0] != 0x12 {
+	if c.rMap[go_gb.AF][1] != 0xAA || c.rMap[go_gb.AF][0] != 0x12 {
 		t.Fatal("invalid double registers")
 	}
 }
@@ -141,7 +141,7 @@ func TestCpu_popStack(t *testing.T) {
 
 func TestCpu_getFlag(t *testing.T) {
 	c := initCpu(nil)
-	c.r[F] |= 0xA0 // 1010
+	c.r[go_gb.F] |= 0xA0 // 1010
 	if !c.getFlag(BitZ) {
 		t.Error("Bit Z should be set")
 	}
@@ -163,8 +163,8 @@ func TestCpu_setFlag(t *testing.T) {
 	c.setFlag(BitH, true)
 	c.setFlag(BitC, true)
 
-	if c.r[F] != 0xF0 {
-		t.Errorf("expected %X, got %X\n", c.r[F], 0xF0)
+	if c.r[go_gb.F] != 0xF0 {
+		t.Errorf("expected %X, got %X\n", c.r[go_gb.F], 0xF0)
 	}
 }
 

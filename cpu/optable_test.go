@@ -71,7 +71,7 @@ func checkCycles(prefix int, t *testing.T, c *cpu, table []Instr, expected []go_
 	for i, op := range table {
 		failed := false
 		var cyc go_gb.MC
-		c.r[F] = 0
+		c.r[go_gb.F] = 0
 		func() {
 			defer func() {
 				err := recover()

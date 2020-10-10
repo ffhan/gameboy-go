@@ -128,9 +128,9 @@ func (m *mmu) VRAM() go_gb.Memory {
 
 // takes a pointer and returns a whole portion of the memory responsible
 func (m *mmu) Route(pointer uint16) go_gb.Memory {
-	if m.dmaInProgress && !inInterval(pointer, HRAMStart, HRAMEnd) {
-		return m.locked
-	}
+	//if m.dmaInProgress && !inInterval(pointer, HRAMStart, HRAMEnd) {
+	//	return m.locked
+	//}
 	if !m.booted && inInterval(pointer, 0, 0xFF) {
 		return m.bios
 	}
@@ -216,6 +216,7 @@ func (m *mmu) StoreBytes(pointer uint16, bytes []byte) {
 func (m *mmu) dma(b ...byte) {
 	source := go_gb.FromBytes(b) << 8
 	result := m.ReadBytes(source, 0x9F+1)
+	fmt.Printf("started dma from source %X to %X: %v\n", source, OAMStart, result)
 	m.oam.StoreBytes(OAMStart, result)
 	m.dmaInProgress = true
 }

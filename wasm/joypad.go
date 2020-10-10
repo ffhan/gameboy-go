@@ -21,9 +21,6 @@ const (
 	Step
 	Pause
 	Continue
-
-	Oam
-	Vram
 )
 
 type Joypad interface {

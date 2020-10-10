@@ -72,7 +72,7 @@ func main() {
 	js.Global().Set("run", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		cpu, mmu, ppu, lcd, joypad = run()
 		s := scheduler.NewScheduler(cpu, ppu, lcd)
-		s.Controller = wasm.NewDebugger(mmu.IO(), mmu.OAM(), mmu.VRAM(), joypad)
+		s.Controller = wasm.NewDebugger(cpu, ppu, mmu, mmu.IO(), mmu.OAM(), mmu.VRAM(), joypad)
 		sched = s
 		return nil
 	}))

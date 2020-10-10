@@ -15,8 +15,6 @@
     </div>
     <div class="controls">
         <input type="file" id="rom">
-        <button onclick="runGame()">Run</button>
-        <button onclick="step()">Step</button>
         <button onclick="startGame()">Start</button>
     </div>
     <div class="info">
@@ -28,9 +26,18 @@
         <span id="non-japanese"></span><br>
     </div>
 </div>
+<div class="debug-ctl">
+    <div>
+        <label for="Memory from:"><input type="text" id="memStart" placeholder="From"></label>
+        <label for="Memory to:"><input type="text" id="memEnd" placeholder="To"></label>
+        <button type="button" onclick="debugMemory()">Show</button>
+    </div>
+</div>
 <div class="debug-container">
-    <div id="oam"></div>
-    <div id="vram"></div>
+    <div id="cpu">CPU</div>
+    <div id="memory">Memory</div>
+    <div id="oam">OAM</div>
+    <div id="vram">VRAM</div>
 </div>
 <script src="wasm_exec.js"></script>
 <script type="application/javascript">
@@ -57,11 +64,18 @@
             case 'game':
                 setup(ev.data.msg);
                 break;
+            case 'cpu':
+                document.getElementById('cpu').innerText = ev.data.msg;
+                break;
+            case 'mem':
+                document.getElementById('memory').innerText = ev.data.msg;
+                break;
             case 'oam':
                 document.getElementById('oam').innerText = ev.data.msg;
                 break;
             case 'vram':
                 document.getElementById('vram').innerText = ev.data.msg;
+                break;
         }
     }
 
@@ -146,6 +160,13 @@
         }
         worker.postMessage({type: 'joyp_up', msg: msg})
     });
+
+    function debugMemory() {
+        const start = parseInt(document.getElementById('memStart').value, 16);
+        const end = parseInt(document.getElementById('memEnd').value, 16);
+
+        worker.postMessage({type: 'memRequest', msg: {start: start, end: end}});
+    }
 </script>
 <script src="wasm.js"></script>
 </body>

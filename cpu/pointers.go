@@ -20,20 +20,20 @@ type Ptr interface {
 }
 
 type reg struct {
-	addr registerName
+	addr go_gb.RegisterName
 }
 
 // loads a value from a register
 //
 // examples: A, HL, BC
-func rx(addr registerName) reg {
+func rx(addr go_gb.RegisterName) reg {
 	return reg{addr}
 }
 
 // loads from memory addressed in the pointer
 //
 // examples: (A), (HL), (BC)...
-func mr(addr registerName) mPtr {
+func mr(addr go_gb.RegisterName) mPtr {
 	return mPtr{rx(addr)}
 }
 
@@ -56,11 +56,11 @@ func mem(ptr Ptr) mPtr {
 }
 
 func (r reg) Store(c *cpu, b []byte, mc *go_gb.MC) {
-	copy(c.getRegister(r.addr), b)
+	copy(c.GetRegister(r.addr), b)
 }
 
 func (r reg) Load(c *cpu, mc *go_gb.MC) []byte {
-	return c.getRegister(r.addr)
+	return c.GetRegister(r.addr)
 }
 
 type offset struct {

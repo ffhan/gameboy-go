@@ -70,7 +70,7 @@ func retc(bit int) Instr {
 
 func jpHl(c *cpu) go_gb.MC {
 	var cycles go_gb.MC
-	reg := rx(HL).Load(c, &cycles)
+	reg := rx(go_gb.HL).Load(c, &cycles)
 	c.pc = go_gb.FromBytes(reg)
 	return cycles
 }

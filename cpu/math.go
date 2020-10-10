@@ -165,7 +165,7 @@ func sbc(dst, src Ptr) Instr {
 
 func daa(c *cpu) go_gb.MC {
 	var mc go_gb.MC
-	registerA := rx(A)
+	registerA := rx(go_gb.A)
 	reg := registerA.Load(c, &mc)
 
 	add := !c.getFlag(BitN)

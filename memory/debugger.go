@@ -47,3 +47,11 @@ func (d *debugger) Store(pointer uint16, val byte) {
 	d.MemoryBus.Store(pointer, val)
 	d.printf("stored byte to %X: %v\n", pointer, val)
 }
+
+func DumpMemory(writer io.Writer, memory go_gb.Memory, start, end uint16) {
+	result := memory.ReadBytes(start, end-start+1)
+	for i, b := range result {
+		i := uint16(i)
+		fmt.Fprintf(writer, "%X: %X\t%d\t%b\n", start+i, b, b, b)
+	}
+}

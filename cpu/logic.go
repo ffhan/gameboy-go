@@ -5,11 +5,11 @@ import (
 )
 
 func rlca(c *cpu) go_gb.MC {
-	return rc(c, rx(A), true, true) - 1
+	return rc(c, rx(go_gb.A), true, true) - 1
 }
 
 func rrca(c *cpu) go_gb.MC {
-	return rc(c, rx(A), false, true) - 1
+	return rc(c, rx(go_gb.A), false, true) - 1
 }
 
 func r(c *cpu, dst Ptr, left bool) go_gb.MC {
@@ -40,11 +40,11 @@ func r(c *cpu, dst Ptr, left bool) go_gb.MC {
 }
 
 func rla(c *cpu) go_gb.MC {
-	return r(c, rx(A), true) - 1
+	return r(c, rx(go_gb.A), true) - 1
 }
 
 func rra(c *cpu) go_gb.MC {
-	return r(c, rx(A), false) - 1
+	return r(c, rx(go_gb.A), false) - 1
 }
 
 func and(dst, src Ptr) Instr {
@@ -104,7 +104,7 @@ func or(dst, src Ptr) Instr {
 }
 
 func cpl(c *cpu) go_gb.MC {
-	val := c.getRegister(A)
+	val := c.GetRegister(go_gb.A)
 	val[0] = ^val[0]
 	c.setFlag(BitN, true)
 	c.setFlag(BitH, true)

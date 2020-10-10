@@ -4,6 +4,11 @@ var rom
 var buffer = new Uint8ClampedArray(160 * 144);
 var imageData = new Uint8ClampedArray(160 * 144 * 4);
 
+var cpu = null;
+var mem = null;
+var oam = null;
+var vram = null;
+
 console.log = function (...args) {
     const msg = 'worker: ' + args.join(' ');
     self.postMessage({msg: msg, type: 'console'});
@@ -53,25 +58,41 @@ function runGame(data) {
 }
 
 self.onmessage = ev => {
-    if (ev.data.type === 'run') {
-        runGame(ev.data.msg);
-    } else if (ev.data.type === 'start') {
-        start();
-    } else if (ev.data.type === 'joyp_down') {
-        if (typeof keyDown === 'function') {
-            keyDown(ev.data.msg);
-            if (oam !== null) {
-                self.postMessage({type: 'oam', msg: new TextDecoder("utf-8").decode(oam)});
-                oam = null;
+    switch (ev.data.type) {
+        case 'run':
+            runGame(ev.data.msg);
+            break;
+        case 'start':
+            start();
+            break;
+        case 'joyp_down':
+            if (typeof keyDown === 'function') {
+                keyDown(ev.data.msg);
+                if (oam !== null) {
+                    self.postMessage({type: 'oam', msg: new TextDecoder("utf-8").decode(oam)});
+                    oam = null;
+                }
+                if (vram !== null) {
+                    self.postMessage({type: 'vram', msg: new TextDecoder("utf-8").decode(vram)});
+                    vram = null;
+                }
+                if (cpu !== null) {
+                    self.postMessage({type: 'cpu', msg: new TextDecoder("utf-8").decode(cpu)})
+                    cpu = null;
+                }
             }
-            if (vram !== null) {
-                self.postMessage({type: 'vram', msg: new TextDecoder("utf-8").decode(vram)});
-                vram = null;
+            break;
+        case 'joyp_up':
+            if (typeof keyUp === 'function') {
+                keyUp(ev.data.msg);
             }
-        }
-    } else if (ev.data.type === 'joyp_up') {
-        if (typeof keyUp === 'function') {
-            keyUp(ev.data.msg);
-        }
+            break;
+        case 'memRequest':
+            memoryRequest(ev.data.msg.start, ev.data.msg.end);
+            if (mem !== null) {
+                self.postMessage({type: 'mem', msg: new TextDecoder("utf-8").decode(mem)});
+                mem = null;
+            }
+            break;
     }
 }

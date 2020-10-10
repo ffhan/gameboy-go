@@ -28,13 +28,13 @@ func DumpOam(oam, vram go_gb.Memory, writer io.Writer) {
 				var char rune
 				switch col {
 				case 0:
-					char = '▓'
-				case 1:
-					char = '▒'
-				case 2:
-					char = '░'
-				case 3:
 					char = '▁'
+				case 1:
+					char = '░'
+				case 2:
+					char = '▒'
+				case 3:
+					char = '▓'
 				}
 				fmt.Fprint(writer, string(char))
 			}

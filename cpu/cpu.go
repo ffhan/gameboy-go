@@ -16,23 +16,6 @@ const (
 	PrefixFD byte = 0xFD
 )
 
-type registerName uint16
-
-const (
-	F registerName = iota
-	A
-	C
-	B
-	E
-	D
-	L
-	H
-	AF
-	BC
-	DE
-	HL
-)
-
 // executes specific things on the cpu and returns the number of m cycles it took to execute
 type Instr func(c *cpu) go_gb.MC
 
@@ -149,7 +132,7 @@ func (c *cpu) pushStack(b []byte, mc *go_gb.MC) {
 	}
 }
 
-func (c *cpu) getRegister(r registerName) []byte {
+func (c *cpu) GetRegister(r go_gb.RegisterName) []byte {
 	return c.rMap[r]
 }
 
@@ -159,19 +142,23 @@ func (c *cpu) init() {
 	// todo: set r to init values
 	// setting references to register arr
 	//c.ime = true
-	c.af = c.r[F : A+1]
-	c.bc = c.r[C : B+1]
-	c.de = c.r[E : D+1]
-	c.hl = c.r[L : H+1]
+	c.af = c.r[go_gb.F : go_gb.A+1]
+	c.bc = c.r[go_gb.C : go_gb.B+1]
+	c.de = c.r[go_gb.E : go_gb.D+1]
+	c.hl = c.r[go_gb.L : go_gb.H+1]
 	c.rMap = [][]byte{
-		c.r[F : F+1], c.r[A : A+1], c.r[C : C+1], c.r[B : B+1],
-		c.r[E : E+1], c.r[D : D+1], c.r[L : L+1], c.r[H : H+1],
+		c.r[go_gb.F : go_gb.F+1], c.r[go_gb.A : go_gb.A+1], c.r[go_gb.C : go_gb.C+1], c.r[go_gb.B : go_gb.B+1],
+		c.r[go_gb.E : go_gb.E+1], c.r[go_gb.D : go_gb.D+1], c.r[go_gb.L : go_gb.L+1], c.r[go_gb.H : go_gb.H+1],
 		c.af, c.bc, c.de, c.hl,
 	}
 }
 
 func (c *cpu) PC() uint16 {
 	return c.pc
+}
+
+func (c *cpu) SP() uint16 {
+	return c.sp
 }
 
 //var instrs = map[string]bool{}
@@ -288,10 +275,10 @@ func (c *cpu) handleEiDi() {
 }
 
 func (c *cpu) setFlag(bit int, val bool) {
-	register := &c.getRegister(F)[0]
+	register := &c.GetRegister(go_gb.F)[0]
 	go_gb.Set(register, bit, val)
 }
 
 func (c *cpu) getFlag(bit int) bool {
-	return go_gb.Bit(c.getRegister(F)[0], bit)
+	return go_gb.Bit(c.GetRegister(go_gb.F)[0], bit)
 }

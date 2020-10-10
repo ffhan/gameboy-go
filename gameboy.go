@@ -6,9 +6,28 @@ import (
 	"io"
 )
 
+type RegisterName uint16
+
+const (
+	F RegisterName = iota
+	A
+	C
+	B
+	E
+	D
+	L
+	H
+	AF
+	BC
+	DE
+	HL
+)
+
 type Cpu interface {
 	Step() MC
 	PC() uint16
+	SP() uint16
+	GetRegister(name RegisterName) []byte
 	IME() bool
 }
 

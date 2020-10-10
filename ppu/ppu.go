@@ -212,7 +212,7 @@ func (p *ppu) renderBackgroundScanLine() {
 	var data2 [20]byte
 	for i := 0; i < 20; i++ {
 		tileLocation := tileData
-		//tileAddress := mapAddr + tileRow + tileCol
+		tileAddress := mapAddr + tileRow + tileCol
 		tileId := uint16(tileIds[i])
 		if unsigned {
 			tileLocation += tileId * 16
@@ -267,7 +267,7 @@ func (p *ppu) getColorNum(data1 byte, data2 byte, colorBit byte) byte {
 	return colorNum
 }
 
-func (p *ppu) renderSpritesOnScanLine() {
+func (p *ppu) renderSpritesOnScanLine() { // todo: handle 8x16 sprites
 	use8x16 := p.use8x16Sprites()
 
 	scanLine := p.getLine()

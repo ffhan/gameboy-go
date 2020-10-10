@@ -9,8 +9,8 @@ import (
 func TestReg_Load(t *testing.T) {
 	c := initCpu(nil)
 	input := byte(0xFA)
-	c.r[A] = input
-	a := rx(A)
+	c.r[go_gb.A] = input
+	a := rx(go_gb.A)
 	var mc go_gb.MC
 	result := a.Load(c, &mc)
 	if len(result) != 1 {
@@ -28,9 +28,9 @@ func TestReg_Store(t *testing.T) {
 	var mc go_gb.MC
 	c := initCpu(nil)
 	input := byte(0xFA)
-	rx(A).Store(c, []byte{input}, &mc)
-	if input != c.r[A] {
-		t.Errorf("expected %X, got %X\n", input, c.r[A])
+	rx(go_gb.A).Store(c, []byte{input}, &mc)
+	if input != c.r[go_gb.A] {
+		t.Errorf("expected %X, got %X\n", input, c.r[go_gb.A])
 	}
 	if mc != 0 {
 		t.Error("MC should be 0")
@@ -42,9 +42,9 @@ func TestReg_Load16bit(t *testing.T) {
 
 	c := initCpu(nil)
 	input := []byte{0xFA, 0xCE}
-	c.r[A] = input[1]
-	c.r[F] = input[0]
-	a := rx(AF)
+	c.r[go_gb.A] = input[1]
+	c.r[go_gb.F] = input[0]
+	a := rx(go_gb.AF)
 	result := a.Load(c, &mc)
 	if len(result) != 2 {
 		t.Errorf("expected len 2, got %d\n", len(result))
@@ -64,8 +64,8 @@ func TestReg_Store16bit(t *testing.T) {
 
 	c := initCpu(nil)
 	input := []byte{0xFA, 0xCE}
-	rx(AF).Store(c, input, &mc)
-	for i, res := range c.rMap[AF] {
+	rx(go_gb.AF).Store(c, input, &mc)
+	for i, res := range c.rMap[go_gb.AF] {
 		if res != input[i] {
 			t.Errorf("expected result %X, got %X\n", input[i], res)
 		}
@@ -178,10 +178,10 @@ func TestMr(t *testing.T) {
 
 	c := initCpu(nil)
 	expected := byte(0xFE)
-	c.r[B] = 0xFF
-	c.r[C] = 0x00
+	c.r[go_gb.B] = 0xFF
+	c.r[go_gb.C] = 0x00
 	c.memory.Store(0xFF00, expected)
-	bytes := mr(BC).Load(c, &mc)
+	bytes := mr(go_gb.BC).Load(c, &mc)
 	if len(bytes) != 1 {
 		t.Errorf("expected len 1, got %d\n", len(bytes))
 	}
@@ -198,8 +198,8 @@ func TestOffset_Load_Reg(t *testing.T) { // offset doesn't work
 	var mc go_gb.MC
 
 	c := initCpu(nil)
-	c.rMap[F][0] = 0xAB
-	o := off(rx(AF))
+	c.rMap[go_gb.F][0] = 0xAB
+	o := off(rx(go_gb.AF))
 	expected := uint16(0xFFAB)
 	result := go_gb.FromBytes(o.Load(c, &mc))
 	if result != expected {
@@ -215,10 +215,10 @@ func TestOffset_Store_Reg(t *testing.T) { // offset doesn't work
 	var mc go_gb.MC
 
 	c := initCpu(nil)
-	o := off(rx(A))
+	o := off(rx(go_gb.A))
 	expected := byte(0xAB)
 	o.Store(c, []byte{0x0B}, &mc)
-	result := c.rMap[A][0]
+	result := c.rMap[go_gb.A][0]
 	if result != expected {
 		t.Errorf("expected %X, got %X\n", expected, result)
 	}
@@ -232,7 +232,7 @@ func TestOffset_Load_Mptr8bit(t *testing.T) {
 	var mc go_gb.MC
 	c := initCpu(nil)
 	c.pc = 0xA000
-	c.r[A] = 0xAA
+	c.r[go_gb.A] = 0xAA
 	expected := byte(0xF1)
 	c.memory.Store(0xFFAA, expected)
 	c.memory.Store(c.pc, 0xAA)
@@ -252,7 +252,7 @@ func TestOffset_Load_Mptr16bit(t *testing.T) {
 
 	c := initCpu(nil)
 	c.pc = 0xA000
-	c.r[A] = 0xAA
+	c.r[go_gb.A] = 0xAA
 	expected := byte(0xF1)
 	c.memory.Store(0xFFAA, expected)
 	c.memory.StoreBytes(c.pc, []byte{0xAA})

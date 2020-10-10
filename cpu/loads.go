@@ -12,13 +12,13 @@ func load(dst, src Ptr) Instr {
 }
 
 func ldSpHl(c *cpu) go_gb.MC {
-	return load(sp(), rx(HL))(c) + 1
+	return load(sp(), rx(go_gb.HL))(c) + 1
 }
 
 func ldHlSp(c *cpu) go_gb.MC {
 	var cycles go_gb.MC
 
-	hl := rx(HL)
+	hl := rx(go_gb.HL)
 	n := int8(go_gb.FromBytes(dx(8).Load(c, &cycles)))
 	var result uint16
 	if n < 0 {
@@ -44,7 +44,7 @@ func ldHl(dst, src Ptr, increment bool) Instr {
 		panic("invalid ldHl call")
 	}
 	if dst == nil {
-		dst = rx(HL)
+		dst = rx(go_gb.HL)
 		offset := 1
 		if !increment {
 			offset = -1
@@ -57,7 +57,7 @@ func ldHl(dst, src Ptr, increment bool) Instr {
 		loadFunc = load(mPtr{dst}, src)
 	}
 	if src == nil {
-		src = rx(HL)
+		src = rx(go_gb.HL)
 		offset := 1
 		if !increment {
 			offset = -1
