@@ -4,6 +4,7 @@ import (
 	"fmt"
 	go_gb "go-gb"
 	"math"
+	"os"
 	"sync/atomic"
 	"time"
 )
@@ -56,6 +57,7 @@ func (s *scheduler) Run() {
 		}
 	}()
 
+	dump := false
 	start := time.Now()
 	for {
 		if s.Controller != nil && s.Controller.Wait() {
@@ -64,6 +66,10 @@ func (s *scheduler) Run() {
 		mc := s.cpu.Step()
 		atomic.AddUint64(&cycles, uint64(mc))
 		if !s.lcd.IsDrawing() {
+			if dump {
+				go_gb.DumpDisplay(os.Stdout, s.lcd.(*go_gb.NopDisplay))
+				dump = false
+			}
 			continue
 		}
 		if s.Throttle {

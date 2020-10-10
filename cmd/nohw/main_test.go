@@ -21,7 +21,7 @@ func TestRunning(t *testing.T) {
 	defer logs.Close()
 
 	mmu := memory.NewMMU()
-	file, err := os.Open("roms/Tetris (World) (Rev A).gb")
+	file, err := os.Open("roms/Dr. Mario (JU) (V1.1).gb")
 	if err != nil {
 		panic(err)
 	}

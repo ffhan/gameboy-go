@@ -68,6 +68,14 @@ func (d *debugger) print(opcode uint16, pc uint16) {
 	}
 }
 
+func (d *debugger) SP() uint16 {
+	return d.cpu.sp
+}
+
+func (d *debugger) GetRegister(name go_gb.RegisterName) []byte {
+	return d.cpu.GetRegister(name)
+}
+
 func DumpCpu(writer io.Writer, c go_gb.Cpu, p go_gb.PPU) {
 	fmt.Fprintf(writer, "PC: %04X\tSP: %04X\ta: %02X\tf: %02X\tb: %02X\tc: %02X\td: %02X\te: %02X\th: %02X\tl: %02X\tZNHC: %04b PPU mode: %d line: %d\n",
 		c.PC(), c.SP(),

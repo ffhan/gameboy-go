@@ -1,6 +1,9 @@
 package go_gb
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
 const (
 	LCDControlRegister uint16 = 0xFF40
@@ -65,29 +68,52 @@ type Display interface {
 	IsDrawing() bool
 }
 
-type nopDisplay struct {
+type NopDisplay struct {
 	debugOn   bool
 	isDrawing bool
+
+	buffer []byte
 }
 
-func NewNopDisplay() *nopDisplay {
-	return &nopDisplay{}
+func NewNopDisplay() *NopDisplay {
+	return &NopDisplay{}
 }
 
-func (n *nopDisplay) Debug(val bool) {
+func (n *NopDisplay) Debug(val bool) {
 	n.debugOn = val
 }
 
-func (n *nopDisplay) IsDrawing() bool {
+func (n *NopDisplay) IsDrawing() bool {
 	defer func() {
 		n.isDrawing = false
 	}()
 	return n.isDrawing
 }
 
-func (n *nopDisplay) Draw(bufferLine []byte) {
+func (n *NopDisplay) Draw(buffer []byte) {
+	n.buffer = buffer
 	n.isDrawing = true
 	if n.debugOn {
-		fmt.Printf("screen buffer: %v\n", bufferLine)
+		fmt.Printf("screen buffer: %v\n", buffer)
+	}
+}
+
+func DumpDisplay(writer io.Writer, display *NopDisplay) {
+	for i, val := range display.buffer {
+		var char rune
+		switch val {
+		case 0:
+			char = '▁'
+		case 1:
+			char = '░'
+		case 2:
+			char = '▒'
+		case 3:
+			char = '▓'
+		}
+		fmt.Fprint(writer, string(char))
+		if (i % 160) == 159 {
+			fmt.Fprintln(writer)
+		}
 	}
 }

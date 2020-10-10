@@ -32,7 +32,7 @@ func NewDebugger(c go_gb.Cpu, p go_gb.PPU, mem, io, oam, vram go_gb.Memory, joyP
 			var buf bytes.Buffer
 			dumpCpu(d.cpu, d.ppu, buf)
 			buf.Reset()
-			dumpOam(oam, vram, buf)
+			dumpOam(io, oam, vram, buf)
 			buf.Reset()
 			dumpVram(io, vram, buf)
 		}
@@ -80,8 +80,8 @@ func dumpVram(io go_gb.Memory, vram go_gb.Memory, buf bytes.Buffer) {
 	js.CopyBytesToJS(js.Global().Get("vram"), buf.Bytes())
 }
 
-func dumpOam(oam go_gb.Memory, vram go_gb.Memory, buf bytes.Buffer) {
-	memory.DumpOam(oam, vram, &buf)
+func dumpOam(io, oam go_gb.Memory, vram go_gb.Memory, buf bytes.Buffer) {
+	memory.DumpOam(io, oam, vram, &buf)
 	arr := js.Global().Get("Uint8Array").New(buf.Len())
 	js.Global().Set("oam", arr)
 	js.CopyBytesToJS(js.Global().Get("oam"), buf.Bytes())

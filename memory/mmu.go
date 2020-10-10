@@ -216,7 +216,7 @@ func (m *mmu) StoreBytes(pointer uint16, bytes []byte) {
 func (m *mmu) dma(b ...byte) {
 	source := go_gb.FromBytes(b) << 8
 	result := m.ReadBytes(source, 0x9F+1)
-	fmt.Printf("started dma from source %X to %X: %v\n", source, OAMStart, result)
+	//fmt.Printf("started dma from source %X to %X: %v\n", source, OAMStart, result)
 	m.oam.StoreBytes(OAMStart, result)
 	m.dmaInProgress = true
 }

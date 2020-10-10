@@ -212,7 +212,7 @@ func (p *ppu) renderBackgroundScanLine() {
 	var data2 [20]byte
 	for i := 0; i < 20; i++ {
 		tileLocation := tileData
-		tileAddress := mapAddr + tileRow + tileCol
+		//tileAddress := mapAddr + tileRow + tileCol
 		tileId := uint16(tileIds[i])
 		if unsigned {
 			tileLocation += tileId * 16
@@ -220,7 +220,7 @@ func (p *ppu) renderBackgroundScanLine() {
 			if tileId < 128 {
 				tileLocation += (tileId + 128) * 16
 			} else {
-				tileLocation -= (tileId - 128) * 16
+				tileLocation += (tileId - 128) * 16
 			}
 		}
 
@@ -328,11 +328,12 @@ func (p *ppu) renderSpritesOnScanLine() { // todo: handle 8x16 sprites
 			colorNum := p.getColorNum(low, high, byte(colorBit))
 
 			col := p.getSpriteColor(colorNum, colorAddr)
-			if col == Transparent {
-				continue // don't update frame buffer
-			}
-			if !hidden || p.frameBuffer[scanLine*160+pixel] == White {
-				p.frameBuffer[scanLine*160+pixel] = col
+			//if col == Transparent {
+			//	continue // don't update frame buffer
+			//}
+			frameBufferAddr := uint(scanLine)*160 + uint(pixel)
+			if !hidden || p.frameBuffer[frameBufferAddr] == White {
+				p.frameBuffer[frameBufferAddr] = col
 			}
 		}
 	}

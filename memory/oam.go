@@ -6,27 +6,56 @@ import (
 	"io"
 )
 
-func DumpOam(oam, vram go_gb.Memory, writer io.Writer) {
-	for spriteAddr := uint16(0xFE00); spriteAddr < 0xFE9F; spriteAddr += 4 {
-		y := oam.Read(spriteAddr)
-		x := oam.Read(spriteAddr + 1)
-		tileNum := oam.Read(spriteAddr + 2)
-		attrs := oam.Read(spriteAddr + 3)
+func DumpOam(io, oam, vram go_gb.Memory, writer io.Writer) {
+	const (
+		rows             = 4
+		tilesPerRow      = 10
+		tileSize         = 8
+		bytesPerTileLine = 2
+		bytesPerSprite   = 4
+		bytesPerTile     = 16
+	)
+	fmt.Fprintf(writer, "sprites enabled: %t\n", go_gb.Bit(io.Read(go_gb.LCDControlRegister), 1))
+	for sprite := uint16(0); sprite < rows*tilesPerRow; sprite++ {
+		addr := OAMStart + sprite*4
+		y := oam.Read(addr)
+		x := oam.Read(addr + 1)
+		tileId := oam.Read(addr + 2)
+		attributes := oam.Read(addr + 3)
+		fmt.Fprintf(writer, "sprite %d: x %d y %d tileId %02X attributes %08b\n", sprite, x, y, tileId, attributes)
+	}
+	for line := 0; line < rows*tileSize; line++ {
+		tileRow := line / tileSize
+		rowStart := tileRow * tilesPerRow
+		for tile := 0; tile < tilesPerRow; tile++ {
+			tileNum := rowStart + tile
+			oamAddr := OAMStart + uint16(bytesPerSprite*tileNum)
 
-		tileAddr := VRAMStart + uint16(tileNum)
-		tile := vram.ReadBytes(tileAddr, 16)
+			var colorAddr uint16
+			if go_gb.Bit(oam.Read(oamAddr+3), 4) {
+				colorAddr = go_gb.LCDOBP1
+			} else {
+				colorAddr = go_gb.LCDOBP0
+			}
+			tileId := oam.Read(oamAddr + 2)
 
-		for b := 0; b < 16; b += 2 {
-			b1 := tile[b]
-			b2 := tile[b+1]
-			for i := 0; i < 8; i++ {
-				c1 := (b1 & 0x80) >> 7
-				c2 := (b2 & 0x80) >> 7
-				col := (c2 << 1) | c1
-				b1 <<= 1
-				b2 <<= 1
+			addr := VRAMStart + uint16(tileId)*uint16(bytesPerTile) + (uint16(line) % tileSize * bytesPerTileLine)
+			low := vram.Read(addr)
+			high := vram.Read(addr + 1)
+
+			var colors [4]byte
+			for i := byte(0); i < 4; i++ {
+				colors[i] = (io.Read(colorAddr) >> (i * 2)) & 0x3
+			}
+
+			for pxl := 7; pxl >= 0; pxl-- {
+				colorNum := (high >> pxl) & 1
+				colorNum <<= 1
+				colorNum |= (low >> pxl) & 1
+
+				colorId := colors[colorNum]
 				var char rune
-				switch col {
+				switch colorId {
 				case 0:
 					char = '▁'
 				case 1:
@@ -38,8 +67,7 @@ func DumpOam(oam, vram go_gb.Memory, writer io.Writer) {
 				}
 				fmt.Fprint(writer, string(char))
 			}
-			fmt.Fprintln(writer)
 		}
-		fmt.Fprintf(writer, "x: %d y: %d attrs: %b\n", x, y, attrs)
+		fmt.Fprintln(writer)
 	}
 }
