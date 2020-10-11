@@ -66,8 +66,9 @@ func TestRunning(t *testing.T) {
 		panic(err)
 	}()
 
-	debugger := cpu.NewDebugger(realCpu, os.Stdout)
-	debugger.Debug(false)
+	debugger := cpu.NewDebugger(realCpu, logs, cpu.NewInstructionQueue(100000))
+	debugger.PrintEveryCycle = false
+	debugger.Debug(true)
 	debugger.PrintInstructionNames(true)
 	sched := scheduler.NewScheduler(debugger, ppu, lcd)
 	sched.Throttle = false

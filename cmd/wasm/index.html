@@ -40,6 +40,16 @@
     <div id="vram">VRAM</div>
 </div>
 <script src="wasm_exec.js"></script>
+<input placeholder="type" value="square" id="soundType">
+<input type="number" value="0.1" id="gainValue">
+<input type="number" value="0.0" id="panValue">
+<button onclick="setType(
+    document.getElementById('soundType').value,
+    document.getElementById('gainValue').value,
+    document.getElementById('panValue').value,
+)">Play</button>
+<button onclick="stop()">Stop</button>
+<script src="sound.js"></script>
 <script type="application/javascript">
     document.scanLine = 0;
     let canvas = document.getElementById('screen');

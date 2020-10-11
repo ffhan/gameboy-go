@@ -42,7 +42,8 @@ func (s *scheduler) Run() {
 	}()
 
 	go func() {
-		t := time.NewTicker(time.Second)
+		const seconds = 5
+		t := time.NewTicker(seconds * time.Second)
 		for {
 			select {
 			case <-t.C:
@@ -50,7 +51,7 @@ func (s *scheduler) Run() {
 				inst := atomic.LoadUint64(&cycles)
 				atomic.StoreUint64(&frames, 0)
 				atomic.StoreUint64(&cycles, 0)
-				fmt.Printf("FPS: %d\tCPU m cycles: %d\n", fps, inst)
+				fmt.Printf("FPS: %f\tCPU m cycles: %d\n", float64(fps)/seconds, inst)
 			case <-stopChan:
 				return
 			}

@@ -12,6 +12,7 @@ import (
 	"go-gb/timer"
 	"go-gb/wasm"
 	"io/ioutil"
+	"os"
 	"sync"
 	"syscall/js"
 )
@@ -48,7 +49,7 @@ func run() (go_gb.Cpu, go_gb.MemoryBus, go_gb.PPU, go_gb.Display, wasm.Joypad) {
 	serialPort := serial.NewSerial(nil, nil, nil, mmu.IO())
 
 	ppu := ppu.NewPpu(mmu, mmu.VRAM(), mmu.OAM(), mmu.IO(), lcd)
-	c := cpu.NewCpu(mmu, ppu, timer, divTimer, serialPort)
+	c := cpu.NewDebugger(cpu.NewCpu(mmu, ppu, timer, divTimer, serialPort), os.Stdout, cpu.NewInstructionQueue(200))
 
 	return c, mmu, ppu, lcd, joypad
 }

@@ -168,6 +168,9 @@ func (p *ppu) getBgColor(colorNum byte) byte {
 	return (p.io.Read(go_gb.LCDBGP) >> (colorNum * 2)) & 0x3
 }
 func (p *ppu) getSpriteColor(colorNum byte, address uint16) byte {
+	if colorNum == 0 {
+		return 0
+	}
 	return (p.io.Read(address) >> (colorNum * 2)) & 0x3
 }
 

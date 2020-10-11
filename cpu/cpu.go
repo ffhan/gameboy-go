@@ -179,7 +179,10 @@ func (c *cpu) Step() go_gb.MC {
 	//	c.memory.VRAM().Dump(vramFile)
 	//	memory.DumpOam(c.memory.OAM(), c.memory.VRAM(), oamFile)
 	//}
-	if !c.halt || !c.stop {
+	if c.memory.Booted() {
+		print()
+	}
+	if !c.halt && !c.stop {
 		opcode := c.readOpcode(&cycles)
 		var instr Instr
 		if opcode == 0xCB {
@@ -241,6 +244,7 @@ func (c *cpu) handleInterrupts() go_gb.MC { // todo: should we count the cycles 
 	for _, interrupt := range go_gb.Interrupts {
 		if go_gb.ShouldServiceInterrupt(ieRegister, ifRegister, interrupt.Bit) {
 			cycles += c.serviceInterrupt(ifRegister, interrupt)
+			c.halt = false
 			return cycles
 		}
 	}

@@ -167,6 +167,9 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 }
 
 func (m *mmu) Read(pointer uint16) byte {
+	if pointer == 0x6DF6 {
+		print()
+	}
 	if pointer == go_gb.JOYP {
 		return m.joypad.Read(pointer)
 	}
