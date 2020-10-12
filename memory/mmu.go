@@ -128,19 +128,19 @@ func (m *mmu) VRAM() go_gb.Memory {
 
 // takes a pointer and returns a whole portion of the memory responsible
 func (m *mmu) Route(pointer uint16) go_gb.Memory {
-	//if m.dmaInProgress && !inInterval(pointer, HRAMStart, HRAMEnd) {
-	//	return m.locked
-	//}
+	if m.dmaInProgress && !inInterval(pointer, HRAMStart, HRAMEnd) {
+		return m.locked
+	}
 	if !m.booted && inInterval(pointer, 0, 0xFF) {
 		return m.bios
 	}
 	if inInterval(pointer, ROMBank0Start, ROMBankNEnd) {
 		return m.cartridge
 	} else if inInterval(pointer, VRAMStart, VRAMEnd) {
-		//locked := m.Read(go_gb.LCDSTAT)&0x3 == 3
-		//if locked {
-		//	return m.locked
-		//}
+		locked := m.Read(go_gb.LCDSTAT)&0x3 == 3
+		if locked {
+			return m.locked
+		}
 		return m.vram
 	} else if inInterval(pointer, ExternalRAMStart, ExternalRAMEnd) {
 		return m.cartridge
@@ -149,10 +149,10 @@ func (m *mmu) Route(pointer uint16) go_gb.Memory {
 	} else if inInterval(pointer, ECHORAMStart, ECHORAMEnd) {
 		return m.echo
 	} else if inInterval(pointer, OAMStart, OAMEnd) {
-		//locked := m.Read(go_gb.LCDSTAT)&0x3 > 1
-		//if locked {
-		//	return m.locked
-		//}
+		locked := m.Read(go_gb.LCDSTAT)&0x3 > 1
+		if locked {
+			return m.locked
+		}
 		return m.oam
 	} else if inInterval(pointer, UnusableStart, UnusableEnd) {
 		return m.unusable

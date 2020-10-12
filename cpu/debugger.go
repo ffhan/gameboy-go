@@ -43,6 +43,7 @@ func (d *debugger) PC() uint16 {
 }
 
 var setD = false
+var setB = false
 
 func (d *debugger) Step() go_gb.MC {
 	pc := d.cpu.pc
@@ -59,6 +60,14 @@ func (d *debugger) Step() go_gb.MC {
 		}
 	}()
 	mc := d.cpu.Step()
+	if !setB && d.cpu.memory.Booted() {
+		fmt.Fprintln(d.output, "booted")
+		setB = true
+	}
+	if !setD && d.cpu.r[go_gb.E] == 0x7B {
+		DumpCpu(d.output, d.cpu, d.cpu.ppu)
+		setD = true
+	}
 	d.print(op, pc)
 	return mc
 }
