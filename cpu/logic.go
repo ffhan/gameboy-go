@@ -1,80 +1,186 @@
 package cpu
 
-import (
-	go_gb "go-gb"
-)
+import go_gb "go-gb"
+
+func rlc(dst Ptr) Instr {
+	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
+		a := dst.Load(c, &mc)[0]
+		msb := a & 0x80
+		a <<= 1
+		if msb != 0 { // msb is set
+			a |= 1
+		} else {
+			a &= 0xFE
+		}
+
+		dst.Store(c, []byte{a}, &mc)
+		c.setFlag(BitZ, a == 0)
+		c.setFlag(BitN, false)
+		c.setFlag(BitH, false)
+		c.setFlag(BitC, msb != 0)
+		return 1 + mc
+	}
+}
 
 func rlca(c *cpu) go_gb.MC {
-	return rc(c, rx(go_gb.A), true, true) - 1
+	return rlc(rx(go_gb.A))(c)
 }
 
-func rrca(c *cpu) go_gb.MC {
-	return rc(c, rx(go_gb.A), false, true) - 1
-}
+func rl(dst Ptr) Instr {
+	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
+		a := dst.Load(c, &mc)[0]
+		msb := a & 0x80
+		a <<= 1
+		if c.getFlag(BitC) {
+			a |= 1
+		} else {
+			a &= 0xFE
+		}
 
-func r(c *cpu, dst Ptr, left bool) go_gb.MC {
-	var cycles go_gb.MC
-	bytes := dst.Load(c, &cycles)
-	b := bytes[0]
-	var old byte
-	carry := c.getFlag(BitC)
-	if left {
-		old = b >> 7
-		b <<= 1
-		if carry {
-			b |= 1
-		}
-	} else {
-		old = b & 1
-		b >>= 1
-		if carry {
-			b |= 0x80
-		}
+		dst.Store(c, []byte{a}, &mc)
+		c.setFlag(BitZ, a == 0)
+		c.setFlag(BitN, false)
+		c.setFlag(BitH, false)
+		c.setFlag(BitC, msb != 0)
+		return 1 + mc
 	}
-	dst.Store(c, []byte{b}, &cycles)
-	c.setFlag(BitZ, b == 0)
-	c.setFlag(BitN, false)
-	c.setFlag(BitH, false)
-	c.setFlag(BitC, old == 1)
-	return cycles + 1
 }
 
 func rla(c *cpu) go_gb.MC {
-	return r(c, rx(go_gb.A), true) - 1
+	return rl(rx(go_gb.A))(c)
 }
 
-func rra(c *cpu) go_gb.MC {
-	return r(c, rx(go_gb.A), false) - 1
-}
-
-func and(dst, src Ptr) Instr {
+func rrc(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
-		var cycles go_gb.MC
+		var mc go_gb.MC
+		a := dst.Load(c, &mc)[0]
+		lsb := a & 1
+		a >>= 1
+		if lsb != 0 { // msb is set
+			a |= 0x80
+		} else {
+			a &= 0x7F
+		}
 
-		bytes := src.Load(c, &cycles)
-		srcVal := bytes[0]
-		bytes = dst.Load(c, &cycles)
-		orig := bytes[0]
-		dstVal := orig & srcVal
-
-		c.setFlag(BitZ, dstVal == 0)
+		dst.Store(c, []byte{a}, &mc)
+		c.setFlag(BitZ, a == 0)
 		c.setFlag(BitN, false)
-		c.setFlag(BitH, true)
-		c.setFlag(BitC, false)
-		dst.Store(c, []byte{dstVal}, &cycles)
-		return cycles
+		c.setFlag(BitH, false)
+		c.setFlag(BitC, lsb != 0)
+		return 1 + mc
 	}
 }
 
-func xor(dst, src Ptr) Instr {
+func rrca(c *cpu) go_gb.MC {
+	return rrc(rx(go_gb.A))(c)
+}
+
+func rr(dst Ptr) Instr {
+	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
+		a := dst.Load(c, &mc)[0]
+		lsb := a & 1
+		a >>= 1
+		if c.getFlag(BitC) { // msb is set
+			a |= 0x80
+		} else {
+			a &= 0x7F
+		}
+
+		dst.Store(c, []byte{a}, &mc)
+		c.setFlag(BitZ, a == 0)
+		c.setFlag(BitN, false)
+		c.setFlag(BitH, false)
+		c.setFlag(BitC, lsb != 0)
+		return 1 + mc
+	}
+}
+
+func rra(c *cpu) go_gb.MC {
+	return rr(rx(go_gb.A))(c)
+}
+
+func sla(dst Ptr) Instr {
+	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
+		a := dst.Load(c, &mc)[0]
+		msb := a & 0x80
+		a <<= 1
+
+		dst.Store(c, []byte{a}, &mc)
+		c.setFlag(BitZ, a == 0)
+		c.setFlag(BitN, false)
+		c.setFlag(BitH, false)
+		c.setFlag(BitC, msb != 0)
+		return 1 + mc
+	}
+}
+
+func sra(dst Ptr) Instr {
+	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
+		a := dst.Load(c, &mc)[0]
+		lsb := a & 1
+		msb := a & 0x80
+		a >>= 1
+		a |= msb
+
+		dst.Store(c, []byte{a}, &mc)
+		c.setFlag(BitZ, a == 0)
+		c.setFlag(BitN, false)
+		c.setFlag(BitH, false)
+		c.setFlag(BitC, lsb != 0)
+		return 1 + mc
+	}
+}
+
+func srl(dst Ptr) Instr {
+	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
+		a := dst.Load(c, &mc)[0]
+		lsb := a & 1
+		a >>= 1
+
+		dst.Store(c, []byte{a}, &mc)
+		c.setFlag(BitZ, a == 0)
+		c.setFlag(BitN, false)
+		c.setFlag(BitH, false)
+		c.setFlag(BitC, lsb != 0)
+		return 1 + mc
+	}
+}
+
+func swap(dst Ptr) Instr {
+	return func(c *cpu) go_gb.MC {
+		var mc go_gb.MC
+		a := dst.Load(c, &mc)[0]
+		msb := a & 0xF0
+		lsb := a & 0x0F
+
+		a = (lsb << 4) | (msb >> 4)
+
+		dst.Store(c, []byte{a}, &mc)
+		c.setFlag(BitZ, a == 0)
+		c.setFlag(BitN, false)
+		c.setFlag(BitH, false)
+		c.setFlag(BitC, false)
+		return 1 + mc
+	}
+}
+
+func or(src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
+
+		dst := rx(go_gb.A)
 
 		bytes := src.Load(c, &cycles)
 		srcVal := bytes[0]
 		bytes = dst.Load(c, &cycles)
 		orig := bytes[0]
-		dstVal := orig ^ srcVal
+		dstVal := orig | srcVal
 
 		c.setFlag(BitZ, dstVal == 0)
 		c.setFlag(BitN, false)
@@ -85,14 +191,17 @@ func xor(dst, src Ptr) Instr {
 	}
 }
 
-func or(dst, src Ptr) Instr {
+func xor(src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
+
+		dst := rx(go_gb.A)
+
 		bytes := src.Load(c, &cycles)
 		srcVal := bytes[0]
 		bytes = dst.Load(c, &cycles)
 		orig := bytes[0]
-		dstVal := orig | srcVal
+		dstVal := orig ^ srcVal
 
 		c.setFlag(BitZ, dstVal == 0)
 		c.setFlag(BitN, false)
@@ -111,122 +220,23 @@ func cpl(c *cpu) go_gb.MC {
 	return 0
 }
 
-func rc(c *cpu, dst Ptr, left, resetZ bool) go_gb.MC {
-	var cycles go_gb.MC
-	bytes := dst.Load(c, &cycles)
-	b := bytes[0]
-	var old byte
-	if left {
-		old = b >> 7
-		b <<= 1
-		b |= old
-	} else {
-		old = b & 1
-		b >>= 1
-		b |= old << 7
-	}
-	dst.Store(c, []byte{b}, &cycles)
-	if resetZ {
-		c.setFlag(BitZ, false)
-	} else {
-		c.setFlag(BitZ, b == 0)
-	}
-	c.setFlag(BitN, false)
-	c.setFlag(BitH, false)
-	c.setFlag(BitC, old == 1)
-	return cycles + 1
-}
-
-func rlc(dst Ptr) Instr {
-	return func(c *cpu) go_gb.MC {
-		return rc(c, dst, true, false)
-	}
-}
-
-func rrc(dst Ptr) Instr {
-	return func(c *cpu) go_gb.MC {
-		return rc(c, dst, false, false)
-	}
-}
-
-func rl(dst Ptr) Instr {
-	return func(c *cpu) go_gb.MC {
-		return r(c, dst, true)
-	}
-}
-
-func rr(dst Ptr) Instr {
-	return func(c *cpu) go_gb.MC {
-		return r(c, dst, false)
-	}
-}
-
-func sa(c *cpu, dst Ptr, left bool) go_gb.MC {
-	var cycles go_gb.MC
-	bytes := dst.Load(c, &cycles)
-	b := bytes[0]
-	var old byte
-	if left {
-		old = b >> 7
-		b <<= 1
-	} else {
-		old = b & 1
-		b >>= 1
-	}
-	dst.Store(c, []byte{b}, &cycles)
-	c.setFlag(BitZ, b == 0)
-	c.setFlag(BitN, false)
-	c.setFlag(BitH, false)
-	c.setFlag(BitC, old == 1)
-	return cycles + 1
-}
-
-func sla(dst Ptr) Instr {
-	return func(c *cpu) go_gb.MC {
-		return sa(c, dst, true)
-	}
-}
-
-func sra(dst Ptr) Instr {
+func and(src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
-		bytes := dst.Load(c, &cycles)
-		b := bytes[0]
-		var old byte
-		msb := b & 0xF0
-		old = b & 1
-		b >>= 1
-		b |= msb
-		dst.Store(c, []byte{b}, &cycles)
-		c.setFlag(BitZ, b == 0)
+
+		dst := rx(go_gb.A)
+
+		bytes := src.Load(c, &cycles)
+		srcVal := bytes[0]
+		bytes = dst.Load(c, &cycles)
+		orig := bytes[0]
+		dstVal := orig & srcVal
+
+		c.setFlag(BitZ, dstVal == 0)
 		c.setFlag(BitN, false)
-		c.setFlag(BitH, false)
-		c.setFlag(BitC, old == 1)
-		return cycles + 1
-	}
-}
-
-// note: srl is analogous to sla, not sra!
-func srl(dst Ptr) Instr {
-	return func(c *cpu) go_gb.MC {
-		return sa(c, dst, false)
-	}
-}
-
-func swap(dst Ptr) Instr {
-	return func(c *cpu) go_gb.MC {
-		var cycles go_gb.MC
-		bytes := dst.Load(c, &cycles)
-		val := bytes[0]
-		msn := val & 0xF0
-		lsn := val & 0x0F
-		result := (msn >> 4) | (lsn << 4)
-		dst.Store(c, []byte{result}, &cycles)
-
-		c.setFlag(BitZ, result == 0)
-		c.setFlag(BitN, false)
-		c.setFlag(BitH, false)
+		c.setFlag(BitH, true)
 		c.setFlag(BitC, false)
-		return cycles + 1
+		dst.Store(c, []byte{dstVal}, &cycles)
+		return cycles
 	}
 }

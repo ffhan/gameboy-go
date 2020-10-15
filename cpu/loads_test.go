@@ -65,9 +65,8 @@ func TestLoad(t *testing.T) {
 		{nil, checkReg(c, go_gb.B), load(rx(go_gb.B), dx(8)), []byte{0x56}},
 		{nil, checkReg(c, go_gb.D), load(rx(go_gb.D), dx(8)), []byte{0x57}},
 		{nil, checkReg(c, go_gb.H), load(rx(go_gb.H), dx(8)), []byte{0xAA}},
-		{nil, checkMr(c, go_gb.HL), load(mr(go_gb.HL), dx(8)), []byte{0xAB}},
-
 		{func() { c.sp = 0xFFFE }, checkMd(c, 16), load(md(16), sp()), []byte{0xFE, 0xFF}},
+		{nil, checkMr(c, go_gb.HL), load(mr(go_gb.HL), dx(8)), []byte{0xAB}},
 
 		{func() {
 			c.memory.StoreBytes(0xFBFA, []byte{0x0A})
@@ -84,6 +83,27 @@ func TestLoad(t *testing.T) {
 		{nil, checkReg(c, go_gb.E), load(rx(go_gb.E), dx(8)), []byte{0x5B}},
 		{nil, checkReg(c, go_gb.L), load(rx(go_gb.L), dx(8)), []byte{0x5C}},
 		{nil, checkReg(c, go_gb.A), load(rx(go_gb.A), dx(8)), []byte{0x5D}},
+		{func() { c.sp = 0x1200 }, checkReg(c, go_gb.HL), ldHlSp, []byte{0x34, 0x12}},
+		{func() {
+			c.r[go_gb.A] = 0xF1
+			c.r[go_gb.H] = 0xC0
+			c.r[go_gb.L] = 0x00
+		}, checkReg(c, go_gb.HL), ldHl(nil, rx(go_gb.A), true), []byte{0x01, 0xC0}},
+		{func() {
+			c.r[go_gb.A] = 0xF1
+			c.r[go_gb.H] = 0xC0
+			c.r[go_gb.L] = 0x01
+		}, checkReg(c, go_gb.HL), ldHl(nil, rx(go_gb.A), false), []byte{0x00, 0xC0}},
+		{func() {
+			c.r[go_gb.A] = 0xF1
+			c.r[go_gb.H] = 0xC0
+			c.r[go_gb.L] = 0x00
+		}, checkReg(c, go_gb.HL), ldHl(rx(go_gb.A), nil, true), []byte{0x01, 0xC0}},
+		{func() {
+			c.r[go_gb.A] = 0xF1
+			c.r[go_gb.H] = 0xC0
+			c.r[go_gb.L] = 0x01
+		}, checkReg(c, go_gb.HL), ldHl(rx(go_gb.A), nil, false), []byte{0x00, 0xC0}},
 	}
 	c.memory.StoreBytes(c.pc, []byte{
 		0xFA, 0xCE, 0xFE, 0xCE,
@@ -91,6 +111,7 @@ func TestLoad(t *testing.T) {
 		0x56, 0x57, 0xAA, 0xAB,
 		0xCD, 0xAB, // load (nn), SP test moves PC
 		0x5A, 0x5B, 0x5C, 0x5D,
+		0x34,
 	})
 	for i, test := range table {
 		if test.prepare != nil {

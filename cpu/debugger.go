@@ -4,11 +4,11 @@ import (
 	"fmt"
 	go_gb "go-gb"
 	"io"
-	"os"
 )
 
 type debuggerQueue interface {
 	Push(op, pc, sp uint16, a, f, b, c, d, e, h, l, flags byte, instruction string, ppuMode, ppuLine byte)
+	Tail() state
 	fmt.Stringer
 }
 
@@ -42,9 +42,6 @@ func (d *debugger) PC() uint16 {
 	return d.cpu.pc
 }
 
-var setD = false
-var setB = false
-
 func (d *debugger) Step() go_gb.MC {
 	pc := d.cpu.pc
 	op := uint16(d.cpu.memory.Read(d.cpu.pc))
@@ -60,15 +57,13 @@ func (d *debugger) Step() go_gb.MC {
 		}
 	}()
 	mc := d.cpu.Step()
-	if !setB && d.cpu.memory.Booted() {
-		fmt.Fprintln(d.output, "booted")
-		setB = true
-	}
-	if !setD && d.cpu.r[go_gb.E] == 0x7B {
-		DumpCpu(d.output, d.cpu, d.cpu.ppu)
-		setD = true
-	}
 	d.print(op, pc)
+	//if d.cpu.memory.Booted() {
+	//	d.PrintEveryCycle = true
+	//}
+	//if cyc == every {
+	//	fmt.Println(d.instructionQueue.String())
+	//}
 	return mc
 }
 
@@ -91,7 +86,7 @@ func (d *debugger) print(opcode uint16, pc uint16) {
 		queue.Push(opcode, pc, sp, a, f, b, c, d, e, h, l, flags, instruction, ppuMode, byte(ppuLine))
 	}
 	if d.PrintEveryCycle {
-		DumpCpu(os.Stdout, d.cpu, d.cpu.ppu)
+		fmt.Println(d.instructionQueue.Tail().String())
 	}
 }
 

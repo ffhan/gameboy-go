@@ -38,6 +38,10 @@ type instructionQueue struct {
 	capacity int
 }
 
+func (i *instructionQueue) Tail() state {
+	return i.tail.value
+}
+
 func NewInstructionQueue(capacity int) *instructionQueue {
 	return &instructionQueue{capacity: capacity}
 }

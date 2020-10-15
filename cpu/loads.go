@@ -21,10 +21,11 @@ func ldHlSp(c *cpu) go_gb.MC {
 	hl := rx(go_gb.HL)
 	n := int8(go_gb.FromBytes(dx(8).Load(c, &cycles)))
 	var result uint16
+	spVal := go_gb.FromBytes(sp().Load(c, &cycles))
 	if n < 0 {
-		result = go_gb.FromBytes(sp().Load(c, &cycles)) - uint16(0xFF^byte(n))
+		result = spVal - uint16(0xFF^byte(n))
 	} else {
-		result = go_gb.FromBytes(sp().Load(c, &cycles)) + uint16(n)
+		result = spVal + uint16(n)
 	}
 
 	hl.Store(c, go_gb.ToBytes(result, true), &cycles)
@@ -79,9 +80,6 @@ func pop(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
 		val := c.popStack(2, &cycles)
-		//tmp := val[1]
-		//val[1] = val[0]
-		//val[0] = tmp
 		dst.Store(c, val, &cycles)
 		return cycles
 	}
