@@ -16,6 +16,18 @@
     <div class="controls">
         <input type="file" id="rom">
         <button onclick="startGame()">Start</button>
+        <label for="colorpalette">Color palette:</label>
+        <select name="colorpalette" id="colorpalette">
+            <option value="default">Default</option>
+            <option value="bw">black & white</option>
+            <option value="custom">Custom</option>
+        </select>
+        <div id="custom_palette_pickers" hidden>
+            <input type="color" id="paletteCol0">
+            <input type="color" id="paletteCol1">
+            <input type="color" id="paletteCol2">
+            <input type="color" id="paletteCol3">
+        </div>
     </div>
     <div class="info">
         <span id="cartridgeType"></span><br>
@@ -46,137 +58,11 @@
     document.getElementById('soundType').value,
     document.getElementById('gainValue').value,
     document.getElementById('panValue').value,
-)">Play</button>
+)">Play
+</button>
 <button onclick="stop()">Stop</button>
 <script src="sound.js"></script>
-<script type="application/javascript">
-    document.scanLine = 0;
-    let canvas = document.getElementById('screen');
+<script src="base.js" type="application/javascript"></script>
 
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#000000'
-
-    ctx.fillRect(0, 0, 160, 144)
-    document.image = ctx.getImageData(0, 0, 160, 144);
-    document.data = new ImageData(160, 144)
-
-    const worker = new Worker('worker.js');
-    worker.onmessage = ev => {
-        switch (ev.data.type) {
-            case 'console':
-                console.log(ev.data.msg);
-                break;
-            case 'buffer':
-                document.data = new ImageData(new Uint8ClampedArray(ev.data.msg), 160, 144);
-                draw();
-                break;
-            case 'game':
-                setup(ev.data.msg);
-                break;
-            case 'cpu':
-                document.getElementById('cpu').innerText = ev.data.msg;
-                break;
-            case 'mem':
-                document.getElementById('memory').innerText = ev.data.msg;
-                break;
-            case 'oam':
-                document.getElementById('oam').innerText = ev.data.msg;
-                break;
-            case 'vram':
-                document.getElementById('vram').innerText = ev.data.msg;
-                break;
-        }
-    }
-
-    document.getElementById('rom').addEventListener('change', function () {
-        var reader = new FileReader();
-        reader.onload = function () {
-            document.rom = new Uint8Array(this.result);
-            console.log(document.rom);
-            worker.postMessage({type: 'run', msg: document.rom});
-        }
-        reader.readAsArrayBuffer(this.files[0]);
-    }, false);
-
-
-    function startGame() {
-        worker.postMessage({type: 'start'});
-    }
-
-    function setup(game) {
-        document.getElementById('title').innerText = game.title;
-        document.getElementById('cartridgeType').innerText = game.cartridgeType;
-        document.getElementById('sgb').innerText = game.sgb;
-        document.getElementById('cgb').innerText = game.cgb;
-        document.getElementById('romSize').innerText = game.romSize;
-        document.getElementById('ramSize').innerText = game.ramSize;
-        if (game.nonJapanese === true) {
-            document.getElementById('non-japanese').innerText = 'Non Japanese';
-        } else {
-            document.getElementById('non-japanese').innerText = 'Japanese';
-        }
-    }
-
-    function draw() {
-        ctx.putImageData(document.data, 0, 0);
-    }
-
-    function mapKey(key) {
-        switch (key) {
-            case 'w':
-                return 2
-            case 'a':
-                return 1
-            case 's':
-                return 3
-            case 'd':
-                return 0
-            case 'Enter':
-                return 6
-            case ' ':
-                return 7
-            case 'Shift':
-                return 4
-            case 'Control':
-                return 5
-
-            case ',':
-                return 8 // step
-            case '.':
-                return 9 // stop
-            case '-':
-                return 10 // continue
-
-            case 'o':
-                return 11 // OAM dump
-            case 'l':
-                return 12 // VRAM dump
-        }
-        return 500
-    }
-
-    window.addEventListener('keydown', ev => {
-        let msg = mapKey(ev.key);
-        if (msg === 500) {
-            return;
-        }
-        let message = {type: 'joyp_down', msg: msg};
-        worker.postMessage(message);
-    });
-    window.addEventListener('keyup', ev => {
-        let msg = mapKey(ev.key);
-        if (msg === 500) {
-            return;
-        }
-        worker.postMessage({type: 'joyp_up', msg: msg})
-    });
-
-    function debugMemory() {
-        const start = parseInt(document.getElementById('memStart').value, 16);
-        const end = parseInt(document.getElementById('memEnd').value, 16);
-
-        worker.postMessage({type: 'memRequest', msg: {start: start, end: end}});
-    }
-</script>
 </body>
 </html>

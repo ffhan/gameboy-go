@@ -1,4 +1,4 @@
-self.importScripts('wasm_exec.js', 'wasm.js');
+self.importScripts('wasm_exec.js', 'wasm.js', 'colorpalette.js');
 
 var rom
 var buffer = new Uint8ClampedArray(160 * 144);
@@ -12,21 +12,6 @@ var vram = null;
 console.log = function (...args) {
     const msg = 'worker: ' + args.join(' ');
     self.postMessage({msg: msg, type: 'console'});
-}
-
-console.log('logging ready...');
-
-function mapColor(col) {
-    switch (col) {
-        case 0:
-            return [255, 255, 255, 255]
-        case 1:
-            return [0xCC, 0xCC, 0xCC, 255]
-        case 2:
-            return [0x77, 0x77, 0x77, 255]
-        case 3:
-            return [0, 0, 0, 255]
-    }
 }
 
 function draw() {
@@ -58,6 +43,8 @@ function runGame(data) {
             }, type: 'game'
     })
 }
+
+self.postMessage({type: 'custom_palette', msg: customPalette});
 
 self.onmessage = ev => {
     switch (ev.data.type) {
@@ -95,6 +82,12 @@ self.onmessage = ev => {
                 self.postMessage({type: 'mem', msg: new TextDecoder("utf-8").decode(mem)});
                 mem = null;
             }
+            break;
+        case 'palette':
+            currentPalette = ev.data.msg;
+            break;
+        case 'set_custom_palette':
+            customPalette = ev.data.msg;
             break;
     }
 }
