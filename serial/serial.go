@@ -11,6 +11,19 @@ type ExternalSerial interface {
 	Ready() bool // determines if the next bit should be read.
 }
 
+var NopSerial = &noopSerial{}
+
+type noopSerial struct {
+}
+
+func (s *noopSerial) Read(p []byte) (n int, err error) {
+	return 0, nil
+}
+
+func (s *noopSerial) Ready() bool {
+	return true
+}
+
 type serial struct {
 	in ExternalSerial
 

@@ -2,6 +2,11 @@ body {
     font-family: 'Bebas Neue', cursive !important;
 }
 
+#screen {
+    width: 4.8cm;
+    height: 4.4cm;
+}
+
 .container {
     display: flex;
     flex-direction: column;

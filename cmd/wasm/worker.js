@@ -14,6 +14,8 @@ console.log = function (...args) {
     self.postMessage({msg: msg, type: 'console'});
 }
 
+console.log('logging ready...');
+
 function mapColor(col) {
     switch (col) {
         case 0:

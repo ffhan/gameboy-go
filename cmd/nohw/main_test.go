@@ -21,7 +21,7 @@ func TestRunning(t *testing.T) {
 	defer logs.Close()
 
 	mmu := memory.NewMMU()
-	file, err := os.Open("roms/gb-test-roms-master/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb")
+	file, err := os.Open("roms/Super Mario Land (World).gb")
 	if err != nil {
 		panic(err)
 	}
@@ -51,7 +51,7 @@ func TestRunning(t *testing.T) {
 		panic(err)
 	}
 
-	serialPort := serial.NewSerial(nil, nil, serialFile, mmu.IO())
+	serialPort := serial.NewSerial(serial.NopSerial, nil, serialFile, mmu.IO())
 
 	realCpu := cpu.NewCpu(mmuD, ppu, timer, divTimer, serialPort)
 
@@ -67,7 +67,7 @@ func TestRunning(t *testing.T) {
 	}()
 
 	debugger := cpu.NewDebugger(realCpu, logs, cpu.NewInstructionQueue(100000))
-	debugger.PrintEveryCycle = true
+	debugger.PrintEveryCycle = false
 	debugger.Debug(true)
 	debugger.PrintInstructionNames(true)
 	sched := scheduler.NewScheduler(debugger, ppu, lcd)

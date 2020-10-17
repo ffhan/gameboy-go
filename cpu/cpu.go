@@ -190,7 +190,7 @@ func (c *cpu) Step() go_gb.MC {
 	if cyc == every+1 {
 		cyc = 0
 	}
-	if c.pc == 0xfe {
+	if c.pc == 0x100 {
 		print()
 	}
 	if !c.halt && !c.stop {

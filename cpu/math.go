@@ -127,9 +127,9 @@ func sub(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
 		bytes := src.Load(c, &cycles)
-		srcVal := int16(bytes[0])
+		srcVal := uint16(bytes[0])
 		bytes = dst.Load(c, &cycles)
-		orig := int16(bytes[0])
+		orig := uint16(bytes[0])
 		dstVal := orig - srcVal
 
 		result := byte(dstVal)
@@ -146,10 +146,10 @@ func sbc(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
 		bytes := src.Load(c, &cycles)
-		srcVal := int16(bytes[0])
+		srcVal := uint16(bytes[0])
 		bytes = dst.Load(c, &cycles)
-		orig := int16(bytes[0])
-		carry := go_gb.BitToInt16(c.getFlag(BitC))
+		orig := uint16(bytes[0])
+		carry := go_gb.BitToUint16(c.getFlag(BitC))
 		dstVal := orig - srcVal - carry
 
 		result := byte(dstVal)
