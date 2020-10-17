@@ -72,11 +72,13 @@ func (j *joypad) Subscribe(executor func(bool), keys ...Key) {
 }
 
 func (j *joypad) KeyDown(key Key) {
+	fmt.Println("key down", key)
 	j.currentlyHeld[key] = true
 	j.handleSubs(key, true)
 }
 
 func (j *joypad) KeyUp(key Key) {
+	fmt.Println("key up", key)
 	j.currentlyHeld[key] = false
 	j.handleSubs(key, false)
 }

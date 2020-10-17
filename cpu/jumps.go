@@ -1,17 +1,21 @@
 package cpu
 
-import "C"
 import (
 	"go-gb"
 )
 
 func jr(c *cpu) go_gb.MC {
 	var cycles go_gb.MC
+	startPc := c.pc
 	opcode := c.readOpcode(&cycles)
-	e := int16(int8(opcode))
-	var pc int16
-	pc += int16(c.pc) + e
-	c.setPc(uint16(pc), &cycles)
+	e := int8(opcode)
+	var pc uint16
+	if e > 0 {
+		pc = startPc + uint16(e) + 1
+	} else {
+		pc = startPc - uint16(0xFF^byte(e))
+	}
+	c.setPc(pc, &cycles)
 	return cycles
 }
 
