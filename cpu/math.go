@@ -127,9 +127,9 @@ func sub(dst, src Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
 		bytes := src.Load(c, &cycles)
-		srcVal := uint16(bytes[0])
+		srcVal := bytes[0]
 		bytes = dst.Load(c, &cycles)
-		orig := uint16(bytes[0])
+		orig := bytes[0]
 		dstVal := orig - srcVal
 
 		result := byte(dstVal)

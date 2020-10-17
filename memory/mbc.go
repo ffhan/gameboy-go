@@ -141,6 +141,10 @@ func (m *mbc1) StoreBytes(pointer uint16, bytes []byte) {
 		}
 	} else if pointer <= ROMBankNEnd {
 		m.ramBankingMode = go_gb.FromBytes(bytes)&0x01 == 0x01
+	} else {
+		if m.ramBank != nil {
+			m.ramBank.StoreBytes(uint16(m.selectedRamBank), pointer, bytes)
+		}
 	}
 }
 
