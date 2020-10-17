@@ -287,7 +287,16 @@ func (p *ppu) renderSpritesOnScanLine() { // todo: handle 8x16 sprites
 		if !(scanLine >= yPos && scanLine < (yPos+ySize)) {
 			continue
 		}
+		line := scanLine - yPos // line of the sprite
+
 		tileLocation := spriteData[2]
+		if use8x16 {
+			if line > 7 {
+				tileLocation |= 0x01
+			} else {
+				tileLocation &= 0xFE
+			}
+		}
 		attributes := spriteData[3]
 
 		var colorAddr uint16
@@ -303,8 +312,6 @@ func (p *ppu) renderSpritesOnScanLine() { // todo: handle 8x16 sprites
 		// If set to 1, sprite is hidden behind the background and window
 		// unless the color of the background or window is white, it's then rendered on top
 		hidden := go_gb.Bit(attributes, 7)
-
-		line := scanLine - yPos // line of the sprite
 
 		if yFlip {
 			line = ySize - 1 - line
