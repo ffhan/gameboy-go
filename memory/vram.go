@@ -57,6 +57,8 @@ func DumpVram(io, vram go_gb.Memory, writer io.Writer) {
 		}
 		fmt.Fprintln(writer)
 	}
+	fmt.Fprintln(writer)
+	DumpBg(io, vram, writer)
 }
 
 func DumpBg(io, vram go_gb.Memory, writer io.Writer) {

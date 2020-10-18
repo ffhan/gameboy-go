@@ -325,22 +325,23 @@ func (p *ppu) renderSpritesOnScanLine() { // todo: handle 8x16 sprites
 		high := data[1]
 
 		for tilePixel := 7; tilePixel >= 0; tilePixel-- {
+			pxl := 7 - tilePixel
 			colorBit := tilePixel
 			if xFlip {
 				colorBit = 7 - colorBit
 			}
 
-			pixel := xPos + byte(tilePixel)
+			pixel := xPos + byte(pxl)
 			if pixel < 0 || pixel >= 160 {
 				continue
 			}
 
 			colorNum := p.getColorNum(low, high, byte(colorBit))
+			if colorNum == Transparent {
+				continue // don't update frame buffer
+			}
 
 			col := p.getSpriteColor(colorNum, colorAddr)
-			//if col == Transparent {
-			//	continue // don't update frame buffer
-			//}
 			frameBufferAddr := uint(scanLine)*160 + uint(pixel)
 			if !hidden || p.frameBuffer[frameBufferAddr] == White {
 				p.frameBuffer[frameBufferAddr] = col
