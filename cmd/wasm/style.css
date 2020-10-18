@@ -3,10 +3,10 @@ body {
 }
 
 #screen {
-    width: 9.8cm;
-    height: 9cm;
-    /*width: 4.8cm;*/
-    /*height: 4.4cm;*/
+    /*width: 9.8cm;*/
+    /*height: 9cm;*/
+    width: 4.8cm;
+    height: 4.4cm;
 }
 
 .container {

@@ -13,6 +13,21 @@ const (
 	MemRamSize           uint16 = 0x0149
 )
 
+func ReadBytes(reader Reader, pointer uint16, n uint16) []byte {
+	result := make([]byte, n)
+	for i := uint16(0); i < n; i++ {
+		result[i] = reader.Read(pointer + i)
+	}
+	return result
+}
+
+func WriteBytes(writer Writer, pointer uint16, data []byte) {
+	for i, b := range data {
+		i := uint16(i)
+		writer.Store(pointer+i, b)
+	}
+}
+
 type Reader interface {
 	Read(pointer uint16) byte
 }

@@ -91,20 +91,7 @@ func NewMbc1(romBank *bank, ramBank *bank) *mbc1 {
 }
 
 func (m *mbc1) ReadBytes(pointer, n uint16) []byte {
-	if pointer <= ROMBank0End {
-		return m.romBank.ReadBytes(0, pointer, n)
-	} else if pointer <= ROMBankNEnd {
-		return m.romBank.ReadBytes(uint16(m.selectedRomBank), pointer-ROMBankNStart, n)
-	} else if ExternalRAMStart <= pointer && pointer <= ExternalRAMEnd {
-		if !m.ramEnable {
-			return make([]byte, n)
-		}
-		if m.ramBankingMode {
-			return m.ramBank.ReadBytes(uint16(m.selectedRamBank), pointer-ExternalRAMStart, n)
-		}
-		return m.ramBank.ReadBytes(0, pointer-ExternalRAMStart, n)
-	}
-	panic(fmt.Errorf("invalid address %X", pointer))
+	return go_gb.ReadBytes(m, pointer, n)
 }
 
 func (m *mbc1) Read(pointer uint16) byte {
@@ -125,25 +112,32 @@ func (m *mbc1) Read(pointer uint16) byte {
 }
 
 func (m *mbc1) StoreBytes(pointer uint16, bytes []byte) {
+	val := go_gb.FromBytes(bytes)
 	if pointer <= 0x1FFF {
-		m.ramEnable = go_gb.FromBytes(bytes)&0xFF == 0x0A
+		m.ramEnable = val&0xFF == 0x0A
 	} else if pointer <= ROMBank0End {
-		val := go_gb.FromBytes(bytes) & 0x1F
-		if val == 0 {
-			val = 1
+		val := byte(val & 0x1F)
+		m.selectedRomBank = (m.selectedRomBank & 0xE0) | val
+		switch m.selectedRomBank {
+		case 0x00, 0x20, 0x40, 0x60:
+			m.selectedRomBank += 1
 		}
-		m.selectedRomBank |= byte(val)
 	} else if pointer <= 0x5FFF {
+		val &= 0x03
 		if m.ramBankingMode {
-			m.selectedRamBank = byte(go_gb.FromBytes(bytes) & 0x1F)
+			m.selectedRamBank = byte(val)
 		} else {
-			m.selectedRomBank |= byte((go_gb.FromBytes(bytes) & 0x3) << 5)
+			m.selectedRomBank |= byte(val << 5)
+			switch m.selectedRomBank {
+			case 0x00, 0x20, 0x40, 0x60:
+				m.selectedRomBank += 1
+			}
 		}
 	} else if pointer <= ROMBankNEnd {
-		m.ramBankingMode = go_gb.FromBytes(bytes)&0x01 == 0x01
+		m.ramBankingMode = val&0x01 == 0x01
 	} else {
 		if m.ramBank != nil && m.ramEnable {
-			m.ramBank.StoreBytes(uint16(m.selectedRamBank), pointer, bytes)
+			m.ramBank.StoreBytes(uint16(m.selectedRamBank), pointer-ExternalRAMStart, bytes)
 		}
 	}
 }

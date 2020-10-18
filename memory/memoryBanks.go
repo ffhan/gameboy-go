@@ -17,6 +17,9 @@ func newBank(numOfParts, totalSize uint) *bank {
 }
 
 func (b *bank) address(bank, pointer uint16) uint {
+	if b.numOfParts == 1 {
+		bank = 0
+	}
 	result := b.partSize*uint(bank) + uint(pointer)
 	if result >= uint(len(b.memory)) {
 		panic(fmt.Sprintf("want bank %d for pointer %X on bank (%d, %d, %d)\n", bank, pointer, len(b.memory), b.numOfParts, b.partSize))
