@@ -94,7 +94,7 @@ func (m *mbc1) ReadBytes(pointer, n uint16) []byte {
 	if pointer <= ROMBank0End {
 		return m.romBank.ReadBytes(0, pointer, n)
 	} else if pointer <= ROMBankNEnd {
-		return m.romBank.ReadBytes(uint16(m.selectedRomBank), pointer, n)
+		return m.romBank.ReadBytes(uint16(m.selectedRomBank), pointer-ROMBankNStart, n)
 	} else if ExternalRAMStart <= pointer && pointer <= ExternalRAMEnd {
 		if !m.ramEnable {
 			return make([]byte, n)
@@ -111,10 +111,10 @@ func (m *mbc1) Read(pointer uint16) byte {
 	if pointer <= ROMBank0End {
 		return m.romBank.Read(0, pointer)
 	} else if pointer <= ROMBankNEnd {
-		return m.romBank.Read(uint16(m.selectedRomBank), pointer)
+		return m.romBank.Read(uint16(m.selectedRomBank), pointer-ROMBankNStart)
 	} else if ExternalRAMStart <= pointer && pointer <= ExternalRAMEnd {
 		if !m.ramEnable {
-			return 0
+			return 0xFF
 		}
 		if m.ramBankingMode {
 			return m.ramBank.Read(uint16(m.selectedRamBank), pointer-ExternalRAMStart)
@@ -142,7 +142,7 @@ func (m *mbc1) StoreBytes(pointer uint16, bytes []byte) {
 	} else if pointer <= ROMBankNEnd {
 		m.ramBankingMode = go_gb.FromBytes(bytes)&0x01 == 0x01
 	} else {
-		if m.ramBank != nil {
+		if m.ramBank != nil && m.ramEnable {
 			m.ramBank.StoreBytes(uint16(m.selectedRamBank), pointer, bytes)
 		}
 	}

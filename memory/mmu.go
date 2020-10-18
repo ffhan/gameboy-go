@@ -96,9 +96,9 @@ func (m *mmu) createMmap(start, end uint16) *mmap {
 func (m *mmu) Init(rom []byte, gbType go_gb.GameboyType, joypad go_gb.Reader) {
 	var wramMemory byteMemory
 	if gbType == go_gb.CGB {
-		wramMemory = &wram{bank: newBank(8, 1<<12), selectedBank: 1}
+		wramMemory = &wram{bank: newBank(8, 8*1<<12), selectedBank: 1}
 	} else {
-		wramMemory = &wram{bank: newBank(2, 1<<12), selectedBank: 1}
+		wramMemory = &wram{bank: newBank(2, 2*1<<12), selectedBank: 1}
 	}
 	m.bios = NewBios()
 	m.cartridge = getCartridge(rom)
