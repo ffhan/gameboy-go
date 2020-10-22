@@ -83,11 +83,7 @@ type mbc1 struct {
 }
 
 func NewMbc1(romBank *bank, ramBank *bank) *mbc1 {
-	selectedRomBank := byte(1)
-	if romBank.numOfParts == 1 {
-		selectedRomBank = 0
-	}
-	return &mbc1{romBank: romBank, ramBank: ramBank, selectedRomBank: selectedRomBank}
+	return &mbc1{romBank: romBank, ramBank: ramBank, selectedRomBank: 1, selectedRamBank: 1}
 }
 
 func (m *mbc1) ReadBytes(pointer, n uint16) []byte {
@@ -122,16 +118,19 @@ func (m *mbc1) StoreBytes(pointer uint16, bytes []byte) {
 		case 0x00, 0x20, 0x40, 0x60:
 			m.selectedRomBank += 1
 		}
+		//fmt.Printf("selected ROM bank %d\n", m.selectedRomBank)
 	} else if pointer <= 0x5FFF {
 		val &= 0x03
 		if m.ramBankingMode {
 			m.selectedRamBank = byte(val)
+			//fmt.Printf("selected RAM bank %d\n", m.selectedRamBank)
 		} else {
 			m.selectedRomBank |= byte(val << 5)
 			switch m.selectedRomBank {
 			case 0x00, 0x20, 0x40, 0x60:
 				m.selectedRomBank += 1
 			}
+			//fmt.Printf("upper: selected ROM bank %d\n", m.selectedRomBank)
 		}
 	} else if pointer <= ROMBankNEnd {
 		m.ramBankingMode = val&0x01 == 0x01

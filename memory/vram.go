@@ -75,6 +75,7 @@ func DumpBg(io, vram go_gb.Memory, writer io.Writer) {
 
 		var tileData uint16
 		var unsigned bool
+
 		if go_gb.Bit(io.Read(go_gb.LCDControlRegister), 4) {
 			tileData, unsigned = 0x8000, true
 		} else {
@@ -145,7 +146,11 @@ func DumpBg(io, vram go_gb.Memory, writer io.Writer) {
 			var char rune
 			switch colorId {
 			case 0:
-				char = '▁'
+				if pixel >= scx && uint16(pixel) < (uint16(scx)+160) && line >= scy && uint16(line) < (uint16(scy)+144) {
+					char = '-'
+				} else {
+					char = '▁'
+				}
 			case 1:
 				char = '░'
 			case 2:

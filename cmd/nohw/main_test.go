@@ -10,6 +10,8 @@ import (
 	"go-gb/serial"
 	"go-gb/timer"
 	"os"
+	"os/signal"
+	"syscall"
 	"testing"
 )
 
@@ -21,7 +23,7 @@ func TestRunning(t *testing.T) {
 	defer logs.Close()
 
 	mmu := memory.NewMMU()
-	file, err := os.Open("roms/gb-test-roms-master/cpu_instrs/cpu_instrs.gb")
+	file, err := os.Open("roms/Street Fighter II (UE) [S][!].gb")
 	if err != nil {
 		panic(err)
 	}
@@ -66,6 +68,9 @@ func TestRunning(t *testing.T) {
 		panic(err)
 	}()
 
+	sig := make(chan os.Signal, 10)
+	signal.Notify(sig, os.Interrupt, syscall.SIGINT)
+
 	debugger := cpu.NewDebugger(realCpu, logs, cpu.NewInstructionQueue(100000))
 	debugger.PrintEveryCycle = false
 	debugger.Debug(true)
@@ -73,5 +78,12 @@ func TestRunning(t *testing.T) {
 	sched := scheduler.NewScheduler(debugger, ppu, lcd)
 	sched.Throttle = false
 	//sched.AddStopper(0x100)
+
+	go func() {
+		<-sig
+		debugger.Dump()
+		fmt.Println("dumped instr queue")
+	}()
+
 	sched.Run()
 }

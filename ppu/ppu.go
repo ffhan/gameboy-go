@@ -175,6 +175,10 @@ func (p *ppu) getSpriteColor(colorNum byte, address uint16) byte {
 }
 
 func (p *ppu) renderScanline() {
+	currLine := p.frameBuffer[p.currentLine*160 : (p.currentLine+1)*160]
+	for i := range currLine {
+		currLine[i] = 0
+	}
 	p.renderBackgroundScanLine()
 	if go_gb.Bit(p.io.Read(go_gb.LCDControlRegister), 1) {
 		p.renderSpritesOnScanLine()
@@ -191,6 +195,8 @@ func (p *ppu) renderBackgroundScanLine() {
 	scx, scy := p.getScroll()
 	wx, wy := p.getWindow()
 
+	//scx -= 35
+
 	line := p.getLine()
 	usingWindow := p.windowEnabled() && wy <= line
 
@@ -206,14 +212,14 @@ func (p *ppu) renderBackgroundScanLine() {
 	}
 	tileRow := uint16(yPos/8) * 32
 
-	tileIds := p.vram.ReadBytes(mapAddr+tileRow+uint16(scx)/8, 20)
+	tileIds := p.vram.ReadBytes(mapAddr+tileRow, 32)
 
 	lineNum := uint16(yPos % 8)
 	lineNum *= 2
 
-	var data1 [20]byte
-	var data2 [20]byte
-	for i := 0; i < 20; i++ {
+	var data1 [32]byte
+	var data2 [32]byte
+	for i := 0; i < 32; i++ {
 		tileLocation := tileData
 		//tileAddress := mapAddr + tileRow + tileCol
 		tileId := uint16(tileIds[i])
@@ -246,8 +252,8 @@ func (p *ppu) renderBackgroundScanLine() {
 		}
 		//tileCol := uint16(xPos) / 8
 
-		data1 := data1[pixel/8]
-		data2 := data2[pixel/8]
+		data1 := data1[xPos/8]
+		data2 := data2[xPos/8]
 
 		colorBit := 7 - xPos%8
 
@@ -362,12 +368,12 @@ func (p *ppu) Step(mc go_gb.MC) {
 		if p.modeClock >= 20 {
 			p.setMode(3, 20)
 			p.renderScanline()
+			p.handleModeInterrupt(p.io.Read(go_gb.LCDSTAT), 3)
 		}
 	case 3:
 		if p.modeClock >= 43 {
 			p.setMode(0, 43)
 		}
-		p.handleModeInterrupt(p.io.Read(go_gb.LCDSTAT), 3)
 	case 0:
 		if p.modeClock >= 51 {
 			p.currentLine += 1

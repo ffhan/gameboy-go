@@ -52,7 +52,7 @@ func (d *debugger) Step() go_gb.MC {
 		err := recover()
 		if err != nil {
 			fmt.Fprintf(d.output, "failed OP %X at %X, printing stack trace...\n", op, pc)
-			fmt.Fprintln(d.output, d.instructionQueue.String())
+			d.Dump()
 			panic(err)
 		}
 	}()
@@ -65,6 +65,10 @@ func (d *debugger) Step() go_gb.MC {
 	//	fmt.Println(d.instructionQueue.String())
 	//}
 	return mc
+}
+
+func (d *debugger) Dump() (int, error) {
+	return fmt.Fprintln(d.output, d.instructionQueue.String())
 }
 
 func (d *debugger) IME() bool {
