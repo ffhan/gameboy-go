@@ -8,48 +8,52 @@
     <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@300&display=swap" rel="stylesheet">
 </head>
 <body>
-<div class="container">
-    <h1 id="title"></h1>
-    <div class="display">
-        <canvas id="screen" width="160" height="144"></canvas>
+<div>
+    <div id="games">
     </div>
-    <div class="controls">
-        <input type="file" id="rom">
-        <button onclick="startGame()">Start</button>
-        <label for="colorpalette">Color palette:</label>
-        <select name="colorpalette" id="colorpalette">
-            <option value="default">Default</option>
-            <option value="bw">black & white</option>
-            <option value="custom">Custom</option>
-        </select>
-        <div id="custom_palette_pickers" hidden>
-            <input type="color" id="paletteCol0">
-            <input type="color" id="paletteCol1">
-            <input type="color" id="paletteCol2">
-            <input type="color" id="paletteCol3">
+    <div class="container">
+        <h1 id="title"></h1>
+        <div class="display">
+            <canvas id="screen" width="160" height="144"></canvas>
+        </div>
+        <div class="controls">
+            <input type="file" id="rom">
+            <button onclick="startGame()">Start</button>
+            <label for="colorpalette">Color palette:</label>
+            <select name="colorpalette" id="colorpalette">
+                <option value="default">Default</option>
+                <option value="bw">black & white</option>
+                <option value="custom">Custom</option>
+            </select>
+            <div id="custom_palette_pickers" hidden>
+                <input type="color" id="paletteCol0">
+                <input type="color" id="paletteCol1">
+                <input type="color" id="paletteCol2">
+                <input type="color" id="paletteCol3">
+            </div>
+        </div>
+        <div class="info">
+            <span id="cartridgeType"></span><br>
+            <span id="romSize"></span><br>
+            <span id="ramSize"></span><br>
+            <span id="sgb"></span><br>
+            <span id="cgb"></span><br>
+            <span id="non-japanese"></span><br>
         </div>
     </div>
-    <div class="info">
-        <span id="cartridgeType"></span><br>
-        <span id="romSize"></span><br>
-        <span id="ramSize"></span><br>
-        <span id="sgb"></span><br>
-        <span id="cgb"></span><br>
-        <span id="non-japanese"></span><br>
+    <div class="debug-ctl">
+        <div>
+            <label for="Memory from:"><input type="text" id="memStart" placeholder="From"></label>
+            <label for="Memory to:"><input type="text" id="memEnd" placeholder="To"></label>
+            <button type="button" onclick="debugMemory()">Show</button>
+        </div>
     </div>
-</div>
-<div class="debug-ctl">
-    <div>
-        <label for="Memory from:"><input type="text" id="memStart" placeholder="From"></label>
-        <label for="Memory to:"><input type="text" id="memEnd" placeholder="To"></label>
-        <button type="button" onclick="debugMemory()">Show</button>
+    <div class="debug-container">
+        <div id="cpu">CPU</div>
+        <div id="memory">Memory</div>
+        <div id="oam">OAM</div>
+        <div id="vram">VRAM</div>
     </div>
-</div>
-<div class="debug-container">
-    <div id="cpu">CPU</div>
-    <div id="memory">Memory</div>
-    <div id="oam">OAM</div>
-    <div id="vram">VRAM</div>
 </div>
 <input placeholder="type" value="square" id="soundType">
 <input type="number" value="0.1" id="gainValue">
@@ -61,6 +65,8 @@
 )">Play
 </button>
 <button onclick="stop()">Stop</button>
+<script src="gameload.js"></script>
+<script src="database.js"></script>
 <script src="sound.js"></script>
 <script src="base.js" type="application/javascript"></script>
 

@@ -2,11 +2,11 @@ document.scanLine = 0;
 let canvas = document.getElementById('screen');
 
 const ctx = canvas.getContext('2d');
-ctx.fillStyle = '#000000'
+ctx.fillStyle = '#000000';
 
-ctx.fillRect(0, 0, 160, 144)
+ctx.fillRect(0, 0, 160, 144);
 document.image = ctx.getImageData(0, 0, 160, 144);
-document.data = new ImageData(160, 144)
+document.data = new ImageData(160, 144);
 
 const worker = new Worker('worker.js');
 worker.onmessage = ev => {
@@ -45,7 +45,6 @@ document.getElementById('rom').addEventListener('change', function () {
     var reader = new FileReader();
     reader.onload = function () {
         document.rom = new Uint8Array(this.result);
-        console.log(document.rom);
         worker.postMessage({type: 'run', msg: document.rom});
     }
     reader.readAsArrayBuffer(this.files[0]);
@@ -58,6 +57,8 @@ function startGame() {
 
 function setup(game) {
     document.getElementById('title').innerText = game.title;
+    storeRom(game.title);
+    updateGameList();
     document.getElementById('cartridgeType').innerText = game.cartridgeType;
     document.getElementById('sgb').innerText = game.sgb;
     document.getElementById('cgb').innerText = game.cgb;

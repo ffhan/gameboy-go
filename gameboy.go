@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
+	"unicode"
 )
 
 type RegisterName uint16
@@ -102,7 +104,7 @@ func (g *Game) String() string {
 func NewGame(rom []byte) *Game {
 	return &Game{
 		Rom:           rom,
-		Title:         string(rom[0x134:0x144]),
+		Title:         cleanTitle(string(rom[0x134:0x144])),
 		CGBFlag:       CGBFlag(rom[0x143]),
 		SGBFlag:       SGBFlag(rom[0x146]),
 		CartridgeType: CartridgeType(rom[CartridgeTypeAddr]),
@@ -110,6 +112,17 @@ func NewGame(rom []byte) *Game {
 		RamSize:       RamSize(rom[CartridgeRAMSizeAddr]),
 		NonJapanese:   rom[0x14A] != 0,
 	}
+}
+
+func cleanTitle(title string) string {
+	var sb strings.Builder
+	for _, char := range title {
+		if !unicode.IsGraphic(char) {
+			break
+		}
+		sb.WriteRune(char)
+	}
+	return sb.String()
 }
 
 func LoadGame(rom io.ReadCloser) (*Game, error) {
