@@ -47,53 +47,55 @@ function runGame(data) {
 self.postMessage({type: 'custom_palette', msg: customPalette});
 
 self.onmessage = ev => {
-    console.log('running ', ev.data.type);
-    switch (ev.data.type) {
-        case 'run':
-            runGame(ev.data.msg);
-            break;
-        case 'start':
-            start();
-            break;
-        case 'joyp_down':
-            if (typeof keyDown === 'function') {
-                keyDown(ev.data.msg);
-                if (oam !== null) {
-                    self.postMessage({type: 'oam', msg: new TextDecoder("utf-8").decode(oam)});
-                    oam = null;
+    new Promise(resolve => {
+        console.log('running ', ev.data.type);
+        switch (ev.data.type) {
+            case 'run':
+                runGame(ev.data.msg);
+                break;
+            case 'start':
+                start();
+                break;
+            case 'joyp_down':
+                if (typeof keyDown === 'function') {
+                    keyDown(ev.data.msg);
+                    if (oam !== null) {
+                        self.postMessage({type: 'oam', msg: new TextDecoder("utf-8").decode(oam)});
+                        oam = null;
+                    }
+                    if (vram !== null) {
+                        self.postMessage({type: 'vram', msg: new TextDecoder("utf-8").decode(vram)});
+                        vram = null;
+                    }
+                    if (cpu !== null) {
+                        self.postMessage({type: 'cpu', msg: new TextDecoder("utf-8").decode(cpu)})
+                        cpu = null;
+                    }
+                } else {
+                    console.error('no keydown');
                 }
-                if (vram !== null) {
-                    self.postMessage({type: 'vram', msg: new TextDecoder("utf-8").decode(vram)});
-                    vram = null;
+                break;
+            case 'joyp_up':
+                if (typeof keyUp === 'function') {
+                    keyUp(ev.data.msg);
+                } else {
+                    console.error('no keyup');
                 }
-                if (cpu !== null) {
-                    self.postMessage({type: 'cpu', msg: new TextDecoder("utf-8").decode(cpu)})
-                    cpu = null;
+                break;
+            case 'memRequest':
+                memoryRequest(ev.data.msg.start, ev.data.msg.end);
+                if (mem !== null) {
+                    self.postMessage({type: 'mem', msg: new TextDecoder("utf-8").decode(mem)});
+                    mem = null;
                 }
-            } else {
-                console.error('no keydown');
-            }
-            break;
-        case 'joyp_up':
-            if (typeof keyUp === 'function') {
-                keyUp(ev.data.msg);
-            } else {
-                console.error('no keyup');
-            }
-            break;
-        case 'memRequest':
-            memoryRequest(ev.data.msg.start, ev.data.msg.end);
-            if (mem !== null) {
-                self.postMessage({type: 'mem', msg: new TextDecoder("utf-8").decode(mem)});
-                mem = null;
-            }
-            break;
-        case 'palette':
-            currentPalette = ev.data.msg;
-            break;
-        case 'set_custom_palette':
-            customPalette = ev.data.msg;
-            break;
-    }
-    console.log('done with ', ev.data.type);
+                break;
+            case 'palette':
+                currentPalette = ev.data.msg;
+                break;
+            case 'set_custom_palette':
+                customPalette = ev.data.msg;
+                break;
+        }
+    })
+        .then(value => console.log('done with ', ev.data.type));
 }

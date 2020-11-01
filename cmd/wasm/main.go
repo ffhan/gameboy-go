@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"sync"
 	"syscall/js"
+	"time"
 )
 
 func run() (go_gb.Cpu, go_gb.MemoryBus, go_gb.PPU, go_gb.Display, wasm.Joypad) {
@@ -69,6 +70,13 @@ func main() {
 	var joypad wasm.Joypad
 
 	var sched Runner
+
+	go func() {
+		t := time.NewTimer(1 * time.Minute)
+		defer t.Stop()
+		<-t.C
+		fmt.Println(go_gb.Events.String())
+	}()
 
 	js.Global().Set("run", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		cpu, mmu, ppu, lcd, joypad = run()

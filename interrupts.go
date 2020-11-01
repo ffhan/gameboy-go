@@ -1,5 +1,7 @@
 package go_gb
 
+import "fmt"
+
 type InterruptBit int
 
 const (
@@ -17,6 +19,10 @@ type Interrupt struct {
 	InterruptRegister uint16
 	Bit               InterruptBit
 	JpAddr            uint16
+}
+
+func (i Interrupt) String() string {
+	return fmt.Sprintf("interrupt(%d)", i.JpAddr)
 }
 
 var (

@@ -37,7 +37,7 @@ func dec8bit(dst Ptr) Instr {
 		result := byte(bytes)
 		c.setFlag(BitZ, result == 0)
 		c.setFlag(BitN, true)
-		c.setFlag(BitH, (orig&0xF)-1 < 0) // TODO: probably wrong
+		c.setFlag(BitH, int(orig&0xF)-1 < 0) // TODO: probably wrong
 		dst.Store(c, []byte{result}, &cycles)
 		return cycles
 	}
@@ -135,11 +135,11 @@ func sub(src Ptr) Instr {
 		orig := bytes[0]
 		dstVal := orig - srcVal
 
-		result := byte(dstVal)
+		result := dstVal
 		c.setFlag(BitZ, result == 0)
 		c.setFlag(BitN, true)
-		c.setFlag(BitH, (orig&0xF)-(srcVal&0xF) < 0)
-		c.setFlag(BitC, dstVal < 0)
+		c.setFlag(BitH, int(orig&0xF)-int(srcVal&0xF) < 0)
+		c.setFlag(BitC, int(orig)-int(srcVal) < 0)
 		dst.Store(c, []byte{result}, &cycles)
 		return cycles
 	}
@@ -159,8 +159,8 @@ func sbc(src Ptr) Instr {
 		result := byte(dstVal)
 		c.setFlag(BitZ, result == 0)
 		c.setFlag(BitN, true)
-		c.setFlag(BitH, (orig&0xF)-(srcVal&0xF)-carry < 0)
-		c.setFlag(BitC, dstVal < 0)
+		c.setFlag(BitH, int(orig&0xF)-int(srcVal&0xF)-int(carry) < 0)
+		c.setFlag(BitC, int(dstVal) < 0)
 		dst.Store(c, []byte{result}, &cycles)
 		return cycles
 	}
@@ -211,7 +211,7 @@ func cp(dst, src Ptr) Instr {
 
 		c.setFlag(BitZ, orig == srcVal)
 		c.setFlag(BitN, true)
-		c.setFlag(BitH, (orig&0xF)-(srcVal&0xF) < 0)
+		c.setFlag(BitH, int(orig&0xF)-int(srcVal&0xF) < 0)
 		c.setFlag(BitC, orig < srcVal)
 		return cycles
 	}

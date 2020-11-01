@@ -44,12 +44,14 @@ func NewJoypad() *joypad {
 		key := Key(args[0].Int())
 		j.KeyDown(key)
 		fmt.Printf("go key %d down\n", key)
+		go_gb.Events.Add("keyDown func call")
 		return nil
 	}))
 	js.Global().Set("keyUp", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		key := Key(args[0].Int())
 		j.KeyUp(key)
 		fmt.Printf("go key %d up\n", key)
+		go_gb.Events.Add("keyUp func call")
 		return nil
 	}))
 	return j
@@ -79,7 +81,8 @@ func (j *joypad) KeyDown(key Key) {
 
 	fmt.Println("JOYP key down", key)
 	j.currentlyHeld[key] = true
-	go j.handleSubs(key, true)
+	j.handleSubs(key, true)
+	go_gb.Events.Add("keydown")
 }
 
 func (j *joypad) KeyUp(key Key) {
@@ -88,13 +91,14 @@ func (j *joypad) KeyUp(key Key) {
 
 	fmt.Println("JOYP key up", key)
 	j.currentlyHeld[key] = false
-	go j.handleSubs(key, false)
+	j.handleSubs(key, false)
+	go_gb.Events.Add("keyup")
 }
 
 func (j *joypad) handleSubs(key Key, val bool) {
 	for _, exec := range j.subscriptions[key] {
 		exec := exec
-		go exec(val)
+		exec(val)
 	}
 }
 

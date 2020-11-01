@@ -54,7 +54,7 @@ func (s *scheduler) Run() {
 				inst := atomic.LoadUint64(&cycles)
 				atomic.StoreUint64(&frames, 0)
 				atomic.StoreUint64(&cycles, 0)
-				fmt.Printf("%s: FPS: %f\tCPU m cycles: %d, start: %s\n", time.Now().String(), float64(fps)/seconds, inst, start.String())
+				fmt.Printf("FPS: %f\tCPU m cycles: %d\n", float64(fps)/seconds, inst)
 			case <-stopChan:
 				return
 			}
@@ -77,6 +77,7 @@ func (s *scheduler) Run() {
 		if s.Throttle {
 			start = start.Add(s.Frequency)
 			time.Sleep(time.Until(start))
+			go_gb.Events.Add("throttled emulation")
 		}
 		atomic.AddUint64(&frames, 1)
 	}

@@ -3,6 +3,7 @@ package cpu
 import (
 	"fmt"
 	"strings"
+	"sync"
 )
 
 type state struct {
@@ -36,6 +37,7 @@ type instructionQueue struct {
 	tail     *instructionNode
 	size     int
 	capacity int
+	mutex    sync.Mutex
 }
 
 func (i *instructionQueue) Tail() state {
@@ -47,6 +49,9 @@ func NewInstructionQueue(capacity int) *instructionQueue {
 }
 
 func (i *instructionQueue) Push(op, pc, sp uint16, a, f, b, c, d, e, h, l, flags byte, instruction string, ppuMode, ppuLine byte) {
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+
 	newNode := &instructionNode{
 		next: nil,
 		value: state{
@@ -79,9 +84,11 @@ func (i *instructionQueue) Push(op, pc, sp uint16, a, f, b, c, d, e, h, l, flags
 			i.tail = newNode
 			return
 		}
+		oldHead := i.head
 		i.head = i.head.next
 		i.tail.next = newNode
 		i.tail = newNode
+		oldHead.next = nil
 		return
 	}
 	i.tail.next = newNode
@@ -90,6 +97,9 @@ func (i *instructionQueue) Push(op, pc, sp uint16, a, f, b, c, d, e, h, l, flags
 }
 
 func (i *instructionQueue) String() string {
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+
 	var sb strings.Builder
 	for node := i.head; node != nil; node = node.next {
 		sb.WriteString(node.value.String())

@@ -230,6 +230,7 @@ func (c *cpu) Step() go_gb.MC {
 		if c.dmaCycles >= 40 {
 			c.dmaCycles = 0
 			c.memory.SetDMAInProgress(false)
+			go_gb.Events.Add("DMA done")
 		}
 	}
 	c.timer.Step(cycles)
@@ -239,9 +240,11 @@ func (c *cpu) Step() go_gb.MC {
 
 	if c.ppu.Enabled() {
 		c.ppu.Step(cycles)
+		//go_gb.Events.Add("stepped through PPU")
 	}
 	c.handleEiDi()
 	cycles += c.handleInterrupts()
+	//go_gb.Events.Add("stepped through CPU")
 	return cycles
 }
 
@@ -278,6 +281,7 @@ func (c *cpu) serviceInterrupt(ifR byte, interrupt go_gb.Interrupt) go_gb.MC {
 	if interrupt.Bit == go_gb.BitJoypad {
 		c.stop = false // joypad interrupt removed stop
 	}
+	//go_gb.Events.Add("serviced an interrupt " + interrupt.String())
 	return 5
 }
 

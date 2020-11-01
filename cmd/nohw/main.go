@@ -12,10 +12,9 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"testing"
 )
 
-func TestRunning(t *testing.T) {
+func main() {
 	logs, err := os.Create("output.log")
 	if err != nil {
 		panic(err)
@@ -23,7 +22,7 @@ func TestRunning(t *testing.T) {
 	defer logs.Close()
 
 	mmu := memory.NewMMU()
-	file, err := os.Open("roms/Super Mario Land (World).gb")
+	file, err := os.Open("roms/gb-test-roms-master/cpu_instrs/cpu_instrs.gb")
 	if err != nil {
 		panic(err)
 	}
@@ -68,8 +67,8 @@ func TestRunning(t *testing.T) {
 		panic(err)
 	}()
 
-	sig := make(chan os.Signal, 10)
-	signal.Notify(sig, os.Interrupt, syscall.SIGINT)
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT)
 
 	debugger := cpu.NewDebugger(realCpu, logs, cpu.NewInstructionQueue(100000))
 	debugger.PrintEveryCycle = false
@@ -80,9 +79,12 @@ func TestRunning(t *testing.T) {
 	//sched.AddStopper(0x100)
 
 	go func() {
-		<-sig
+		fmt.Println("waiting for the signal", os.Getpid())
+		signal := <-sig
+		fmt.Println("received a signal", signal.String())
 		debugger.Dump()
 		fmt.Println("dumped instr queue")
+		os.Exit(0)
 	}()
 
 	sched.Run()
