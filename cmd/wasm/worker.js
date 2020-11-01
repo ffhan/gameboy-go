@@ -47,6 +47,7 @@ function runGame(data) {
 self.postMessage({type: 'custom_palette', msg: customPalette});
 
 self.onmessage = ev => {
+    console.log('running ', ev.data.type);
     switch (ev.data.type) {
         case 'run':
             runGame(ev.data.msg);
@@ -69,11 +70,15 @@ self.onmessage = ev => {
                     self.postMessage({type: 'cpu', msg: new TextDecoder("utf-8").decode(cpu)})
                     cpu = null;
                 }
+            } else {
+                console.error('no keydown');
             }
             break;
         case 'joyp_up':
             if (typeof keyUp === 'function') {
                 keyUp(ev.data.msg);
+            } else {
+                console.error('no keyup');
             }
             break;
         case 'memRequest':
@@ -90,4 +95,5 @@ self.onmessage = ev => {
             customPalette = ev.data.msg;
             break;
     }
+    console.log('done with ', ev.data.type);
 }

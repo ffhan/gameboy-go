@@ -8,9 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@300&display=swap" rel="stylesheet">
 </head>
 <body>
-<div>
-    <div id="games">
-    </div>
+<div class="upper-panel">
+    <div></div>
+    <div class="game_list" id="games"></div>
     <div class="container">
         <h1 id="title"></h1>
         <div class="display">
@@ -32,28 +32,29 @@
                 <input type="color" id="paletteCol3">
             </div>
         </div>
-        <div class="info">
-            <span id="cartridgeType"></span><br>
-            <span id="romSize"></span><br>
-            <span id="ramSize"></span><br>
-            <span id="sgb"></span><br>
-            <span id="cgb"></span><br>
-            <span id="non-japanese"></span><br>
-        </div>
     </div>
-    <div class="debug-ctl">
-        <div>
-            <label for="Memory from:"><input type="text" id="memStart" placeholder="From"></label>
-            <label for="Memory to:"><input type="text" id="memEnd" placeholder="To"></label>
-            <button type="button" onclick="debugMemory()">Show</button>
-        </div>
+    <div class="info">
+        <span id="cartridgeType"></span><br>
+        <span id="romSize"></span><br>
+        <span id="ramSize"></span><br>
+        <span id="sgb"></span><br>
+        <span id="cgb"></span><br>
+        <span id="non-japanese"></span><br>
     </div>
-    <div class="debug-container">
-        <div id="cpu">CPU</div>
-        <div id="memory">Memory</div>
-        <div id="oam">OAM</div>
-        <div id="vram">VRAM</div>
+    <div></div>
+</div>
+<div class="debug-ctl">
+    <div>
+        <label for="Memory from:"><input type="text" id="memStart" placeholder="From"></label>
+        <label for="Memory to:"><input type="text" id="memEnd" placeholder="To"></label>
+        <button type="button" onclick="debugMemory()">Show</button>
     </div>
+</div>
+<div class="debug-container">
+    <div id="cpu">CPU</div>
+    <div id="memory">Memory</div>
+    <div id="oam">OAM</div>
+    <div id="vram">VRAM</div>
 </div>
 <input placeholder="type" value="square" id="soundType">
 <input type="number" value="0.1" id="gainValue">

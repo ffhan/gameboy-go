@@ -50,8 +50,12 @@ document.getElementById('rom').addEventListener('change', function () {
     reader.readAsArrayBuffer(this.files[0]);
 }, false);
 
-
+let started = false;
 function startGame() {
+    if (started) {
+        return;
+    }
+    started = true;
     worker.postMessage({type: 'start'});
 }
 
@@ -100,21 +104,22 @@ function mapKey(key) {
             return 9 // stop
         case '-':
             return 10 // continue
-
-        case 'o':
-            return 11 // OAM dump
-        case 'l':
-            return 12 // VRAM dump
     }
     return 500
 }
 
+let lastDown = null;
 window.addEventListener('keydown', ev => {
     let msg = mapKey(ev.key);
     if (msg === 500) {
         return;
     }
+    if (lastDown === msg) {
+        return;
+    }
+    console.log('keydown event', msg);
     let message = {type: 'joyp_down', msg: msg};
+    lastDown = msg;
     worker.postMessage(message);
 });
 window.addEventListener('keyup', ev => {
@@ -122,6 +127,8 @@ window.addEventListener('keyup', ev => {
     if (msg === 500) {
         return;
     }
+    lastDown = null;
+    console.log('keyup event', msg);
     worker.postMessage({type: 'joyp_up', msg: msg})
 });
 

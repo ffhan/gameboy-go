@@ -52,7 +52,8 @@ func dec16bit(dst Ptr) Instr {
 	}
 }
 
-func add8b(dst, src Ptr) Instr {
+func add8b(src Ptr) Instr {
+	dst := rx(go_gb.A)
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
 		bytes := src.Load(c, &cycles)
@@ -103,7 +104,8 @@ func addSp(c *cpu) go_gb.MC {
 	return cycles + 2
 }
 
-func adc8b(dst, src Ptr) Instr {
+func adc8b(src Ptr) Instr {
+	dst := rx(go_gb.A)
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
 		bytes := src.Load(c, &cycles)
@@ -123,7 +125,8 @@ func adc8b(dst, src Ptr) Instr {
 	}
 }
 
-func sub(dst, src Ptr) Instr {
+func sub(src Ptr) Instr {
+	dst := rx(go_gb.A)
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
 		bytes := src.Load(c, &cycles)
@@ -142,7 +145,8 @@ func sub(dst, src Ptr) Instr {
 	}
 }
 
-func sbc(dst, src Ptr) Instr {
+func sbc(src Ptr) Instr {
+	dst := rx(go_gb.A)
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
 		bytes := src.Load(c, &cycles)

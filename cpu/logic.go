@@ -83,11 +83,16 @@ func rr(dst Ptr) Instr {
 		a := dst.Load(c, &mc)[0]
 		lsb := a & 1
 		a >>= 1
-		if c.getFlag(BitC) { // msb is set
+		if lsb != 0 {
 			a |= 0x80
 		} else {
 			a &= 0x7F
 		}
+		//if c.getFlag(BitC) { // msb is set
+		//	a |= 0x80
+		//} else {
+		//	a &= 0x7F
+		//}
 
 		dst.Store(c, []byte{a}, &mc)
 		c.setFlag(BitZ, a == 0)

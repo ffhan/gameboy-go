@@ -3,6 +3,7 @@ package wasm
 import (
 	"fmt"
 	go_gb "go-gb"
+	"sync"
 	"syscall/js"
 )
 
@@ -34,6 +35,7 @@ type joypad struct {
 	io            go_gb.Memory
 	currentlyHeld map[Key]bool
 	subscriptions map[Key][]func(pressed bool)
+	mutex         sync.Mutex
 }
 
 func NewJoypad() *joypad {
@@ -72,15 +74,21 @@ func (j *joypad) Subscribe(executor func(bool), keys ...Key) {
 }
 
 func (j *joypad) KeyDown(key Key) {
-	fmt.Println("key down", key)
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+
+	fmt.Println("JOYP key down", key)
 	j.currentlyHeld[key] = true
-	j.handleSubs(key, true)
+	go j.handleSubs(key, true)
 }
 
 func (j *joypad) KeyUp(key Key) {
-	fmt.Println("key up", key)
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+
+	fmt.Println("JOYP key up", key)
 	j.currentlyHeld[key] = false
-	j.handleSubs(key, false)
+	go j.handleSubs(key, false)
 }
 
 func (j *joypad) handleSubs(key Key, val bool) {

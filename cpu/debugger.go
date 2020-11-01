@@ -103,12 +103,12 @@ func (d *debugger) GetRegister(name go_gb.RegisterName) []byte {
 }
 
 func DumpCpu(writer io.Writer, c go_gb.Cpu, p go_gb.PPU) {
-	fmt.Fprintf(writer, "PC: %04X\tSP: %04X\ta: %02X\tf: %02X\tb: %02X\tc: %02X\td: %02X\te: %02X\th: %02X\tl: %02X\tZNHC: %04b PPU mode: %d line: %d\n",
+	fmt.Fprintf(writer, "PC: %04X\tSP: %04X\ta: %02X\tf: %02X\tb: %02X\tc: %02X\td: %02X\te: %02X\th: %02X\tl: %02X\tZNHC: %04b PPU mode: %d line: %d, %v\n%v\n",
 		c.PC(), c.SP(),
 		c.GetRegister(go_gb.A)[0], c.GetRegister(go_gb.F)[0],
 		c.GetRegister(go_gb.B)[0], c.GetRegister(go_gb.C)[0],
 		c.GetRegister(go_gb.D)[0], c.GetRegister(go_gb.E)[0],
 		c.GetRegister(go_gb.H)[0], c.GetRegister(go_gb.L)[0],
 		c.GetRegister(go_gb.F)[0]>>4,
-		p.Mode(), p.CurrentLine())
+		p.Mode(), p.CurrentLine(), instrs, opcodes)
 }

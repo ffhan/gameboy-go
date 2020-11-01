@@ -23,7 +23,7 @@ func TestRunning(t *testing.T) {
 	defer logs.Close()
 
 	mmu := memory.NewMMU()
-	file, err := os.Open("roms/Street Fighter II (UE) [S][!].gb")
+	file, err := os.Open("roms/Super Mario Land (World).gb")
 	if err != nil {
 		panic(err)
 	}

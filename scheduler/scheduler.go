@@ -41,8 +41,11 @@ func (s *scheduler) Run() {
 		stopChan <- true
 	}()
 
+	dump := false
+	start := time.Now()
+
 	go func() {
-		const seconds = 5
+		const seconds = 1
 		t := time.NewTicker(seconds * time.Second)
 		for {
 			select {
@@ -51,15 +54,13 @@ func (s *scheduler) Run() {
 				inst := atomic.LoadUint64(&cycles)
 				atomic.StoreUint64(&frames, 0)
 				atomic.StoreUint64(&cycles, 0)
-				fmt.Printf("FPS: %f\tCPU m cycles: %d\n", float64(fps)/seconds, inst)
+				fmt.Printf("%s: FPS: %f\tCPU m cycles: %d, start: %s\n", time.Now().String(), float64(fps)/seconds, inst, start.String())
 			case <-stopChan:
 				return
 			}
 		}
 	}()
 
-	dump := false
-	start := time.Now()
 	for {
 		if s.Controller != nil && s.Controller.Wait() {
 			start = time.Now()

@@ -6,7 +6,10 @@ import (
 	go_gb "go-gb"
 	cpu2 "go-gb/cpu"
 	"go-gb/memory"
+	io2 "io"
+	"os"
 	"syscall/js"
+	"time"
 )
 
 type debugger struct {
@@ -55,6 +58,15 @@ func NewDebugger(c go_gb.Cpu, p go_gb.PPU, mem, io, oam, vram go_gb.Memory, joyP
 		dumpMemory(mem, start, end)
 		return nil
 	}))
+	go func() {
+		t := time.NewTicker(10 * time.Second)
+		for range t.C {
+			var buf bytes.Buffer
+			fmt.Println("shitting")
+			cpu2.DumpCpu(&buf, d.cpu, d.ppu)
+			io2.Copy(os.Stdout, &buf)
+		}
+	}()
 	return d
 }
 

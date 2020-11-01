@@ -2,6 +2,8 @@ package cpu
 
 import (
 	"go-gb"
+	"reflect"
+	"runtime"
 )
 
 const (
@@ -161,7 +163,9 @@ func (c *cpu) SP() uint16 {
 	return c.sp
 }
 
-//var instrs = map[string]bool{}
+var instrs = map[string]bool{}
+var opcodes = map[uint16]bool{}
+
 //
 //var cyc uint
 //var every uint = 50
@@ -196,14 +200,16 @@ func (c *cpu) Step() go_gb.MC {
 		var instr Instr
 		if opcode == 0xCB {
 			opcode = c.readOpcode(&cycles)
+			opcodes[uint16(opcode)|0xCB00] = true
 			instr = cbOptable[opcode]
 		} else {
 			instr = optable[opcode]
+			opcodes[uint16(opcode)] = true
 		}
-		//name := runtime.FuncForPC(reflect.ValueOf(instr).Pointer()).Name()
-		//if _, ok := instrs[name]; !ok {
-		//	instrs[name] = true
-		//}
+		name := runtime.FuncForPC(reflect.ValueOf(instr).Pointer()).Name()
+		if _, ok := instrs[name]; !ok {
+			instrs[name] = true
+		}
 
 		/* Padamo na:
 		; Set LCD control to Operation

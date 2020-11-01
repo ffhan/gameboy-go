@@ -285,7 +285,8 @@ func (p *ppu) renderSpritesOnScanLine() { // todo: handle 8x16 sprites
 		ySize = 16
 	}
 
-	for sprite := 39; sprite >= 0; sprite-- {
+	renderCount := 0
+	for sprite := 39; sprite >= 0 && renderCount <= 10; sprite-- {
 		index := sprite * 4
 		spriteData := p.oam.ReadBytes(memory.OAMStart+uint16(index), 4)
 		yPos := spriteData[0] - 16
@@ -293,6 +294,7 @@ func (p *ppu) renderSpritesOnScanLine() { // todo: handle 8x16 sprites
 		if !(scanLine >= yPos && scanLine < (yPos+ySize)) {
 			continue
 		}
+		renderCount += 1
 		line := scanLine - yPos // line of the sprite
 
 		tileLocation := spriteData[2]
