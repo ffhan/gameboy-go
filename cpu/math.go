@@ -47,7 +47,13 @@ func dec16bit(dst Ptr) Instr {
 	return func(c *cpu) go_gb.MC {
 		var cycles go_gb.MC
 		bytes := dst.Load(c, &cycles)
-		dst.Store(c, go_gb.ToBytes(go_gb.FromBytes(bytes)-1, true), &cycles)
+		orig := go_gb.FromBytes(bytes)
+		value := orig - 1
+		result := go_gb.ToBytes(value, true)
+		dst.Store(c, result, &cycles)
+		c.setFlag(BitZ, value == 0)
+		c.setFlag(BitN, true)
+		c.setFlag(BitH, int(orig&0xF)-1 < 0) // TODO: probably wrong
 		return cycles + 1
 	}
 }

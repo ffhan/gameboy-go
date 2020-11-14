@@ -56,6 +56,11 @@ func main() {
 
 	realCpu := cpu.NewCpu(mmuD, ppu, timer, divTimer, serialPort)
 
+	debugger := cpu.NewDebugger(realCpu, logs, cpu.NewInstructionQueue(100000))
+	debugger.PrintEveryCycle = false
+	debugger.Debug(true)
+	debugger.PrintInstructionNames(true)
+
 	defer func() {
 		err := recover()
 		switch err.(type) {
@@ -64,16 +69,13 @@ func main() {
 		case string:
 			fmt.Printf("PC: %X -> err: %s\n", realCpu.PC(), err)
 		}
+		_, _ = debugger.Dump()
 		panic(err)
 	}()
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT)
 
-	debugger := cpu.NewDebugger(realCpu, logs, cpu.NewInstructionQueue(100000))
-	debugger.PrintEveryCycle = false
-	debugger.Debug(true)
-	debugger.PrintInstructionNames(true)
 	sched := scheduler.NewScheduler(debugger, ppu, lcd)
 	sched.Throttle = false
 	//sched.AddStopper(0x100)

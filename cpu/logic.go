@@ -88,11 +88,11 @@ func rr(dst Ptr) Instr {
 		} else {
 			a &= 0x7F
 		}
-		//if c.getFlag(BitC) { // msb is set
-		//	a |= 0x80
-		//} else {
-		//	a &= 0x7F
-		//}
+		if c.getFlag(BitC) { // msb is set
+			a |= 0x80
+		} else {
+			a &= 0x7F
+		}
 
 		dst.Store(c, []byte{a}, &mc)
 		c.setFlag(BitZ, a == 0)
